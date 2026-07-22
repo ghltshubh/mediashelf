@@ -59,6 +59,10 @@ export function MusicTab() {
     );
   }
 
+  // One queue across every source so playback runs continuously from all apps
+  // once started, regardless of which section a track was clicked in.
+  const allLikes = likeGroups.flatMap((g) => g.items);
+
   return (
     <div>
       {likeGroups.map((lg) =>
@@ -73,7 +77,7 @@ export function MusicTab() {
             <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
               {lg.items.slice(0, 24).map((item, i) => (
                 <MusicCard key={i} item={item}
-                           onPlay={() => void activate(item, undefined, lg.items.slice(0, 24))} />
+                           onPlay={() => void activate(item, undefined, allLikes)} />
               ))}
             </div>
           </section>

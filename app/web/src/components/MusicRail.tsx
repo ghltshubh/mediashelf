@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type MusicResult } from "../lib/api";
 import { useActivate } from "../lib/searchData";
+import { MusicServiceBadge, musicSource } from "./MusicServiceBadge";
 
 export function MusicCard({ item, onPlay }: { item: MusicResult; onPlay: () => void }) {
   return (
     <button
       onClick={onPlay}
-      className="hoverable group w-[132px] shrink-0 rounded-[10px] bg-bg1 p-2 text-left hover:bg-bg2"
+      className="hoverable group w-[132px] shrink-0 cursor-pointer rounded-[10px] bg-bg1 p-2 text-left hover:bg-bg2"
       title={`Play ${item.title}`}
     >
       <div className="relative aspect-square w-full overflow-hidden rounded-[6px] bg-bg2">
@@ -16,6 +17,11 @@ export function MusicCard({ item, onPlay }: { item: MusicResult; onPlay: () => v
         ) : (
           <div className="flex h-full items-center justify-center text-muted">♪</div>
         )}
+        {/* Which app this track plays from, bottom-right of the cover. */}
+        <MusicServiceBadge
+          serviceKey={musicSource(item)}
+          className="absolute bottom-1 right-1 h-4 w-4 shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
+        />
         <span
           aria-hidden
           className="absolute inset-0 flex items-center justify-center bg-bg0/0 text-[1.6rem] text-[color:var(--play)] opacity-0 transition-opacity group-hover:bg-bg0/40 group-hover:opacity-100"
@@ -62,7 +68,9 @@ export function MusicRail({ label = "Music" }: { label?: string }) {
       </div>
       <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
         {shown.map((item, i) => (
-          <MusicCard key={i} item={item} onPlay={() => void activate(item, undefined, shown)} />
+          // Queue spans every source (Spotify + YouTube Music), so playback runs
+          // continuously across apps once started from the Music rail.
+          <MusicCard key={i} item={item} onPlay={() => void activate(item, undefined, items)} />
         ))}
       </div>
     </section>
