@@ -23,8 +23,11 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
   (optional, via OMDb) alongside TMDB scores, service logos on every card, and studio-inferred
   **"expected on X"** hints for upcoming titles that aren't streaming yet.
 
-**Milestones M1–M5 complete.** Next: optional `yt-dlp` metadata provider (M6), concierge &
-accessibility polish (M7), more connectors (M8), and a social/feed layer (M9).
+- **Optional `yt-dlp`** metadata provider — zero-quota YouTube search behind a detected,
+  off-by-default toggle (Settings → Plugins).
+
+**Milestones M1–M7 complete** (skeleton, search, accounts/playback, matching, migrations,
+yt-dlp, concierge & a11y polish). Next: more connectors (M8) and a social/feed layer (M9).
 
 ## Quick start (Docker)
 
@@ -51,6 +54,29 @@ cd app/web && npm install && npm run dev            # http://localhost:5173
 
 Checks: `.venv/bin/pytest` · `.venv/bin/ruff check app tests` · `.venv/bin/mypy app`
 Component demo page (dev builds): http://localhost:5173/dev/components
+
+## Connecting accounts & keys
+
+All keys are **your own** — nothing is shared or embedded. Only **TMDB is required**; everything
+else is optional and unlocks a specific feature. Enter them in **Settings → Keys**; connect the
+OAuth accounts in **Settings → Accounts**. The OAuth redirect URI is always
+`http://127.0.0.1:8000/oauth2callback`.
+
+| Provider | Unlocks | How to get it |
+|---|---|---|
+| **TMDB** (required) | the whole catalog + availability | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) → request a key (v3 key or v4 read token both work) |
+| **OMDb** (optional) | IMDb / Rotten Tomatoes / Metacritic ratings | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) → free key by email, click the activation link |
+| **Spotify** (optional) | music search, in-app playback (Premium), migration | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → create app → add the redirect URI above → copy Client ID + Secret |
+| **YouTube / Google** (optional) | subscriptions + liked-video sync, migration, cheaper reads | [console.cloud.google.com](https://console.cloud.google.com) → new project → enable **YouTube Data API v3** → OAuth consent screen (External; add yourself as a test user) → Credentials → **OAuth client ID (Web application)** with the redirect URI above → copy Client ID + Secret |
+| **Apple Music** (optional) | Apple Music in the playback chain | paid Apple Developer account → generate a **MusicKit developer token** (JWT) and paste it |
+| **yt-dlp** (optional plugin) | zero-quota YouTube search | `pipx install yt-dlp` (or `pip install yt-dlp`), then enable it in **Settings → Plugins** |
+
+**Add-on channels** (Prime Video Channels, Apple TV Channels, Roku Premium Channels) appear as
+their own services in the checklist (e.g. "HBO Max Amazon Channel") — tick whichever way you
+actually subscribe, and titles light up accordingly.
+
+**Watchlist import** ("My List" from Netflix/Tubi/etc.) runs as a **separate local companion tool**,
+not part of this product — logged-in scraping stays outside the core per the plugin boundary.
 
 ## Notes
 
