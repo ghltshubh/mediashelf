@@ -10,6 +10,7 @@ __pycache__/
 # Node / frontend
 app/web/node_modules/
 app/web/dist/
+*.tsbuildinfo
 
 # Runtime data (SQLite, encrypted keys, backups)
 data/
