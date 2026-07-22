@@ -217,6 +217,10 @@ def list_services(db: Session = Depends(get_session)) -> list[dict]:
         connected_keys |= {"youtube", "youtube_music"}
     if settings_store.get_setting(db, "apple_developer_token"):
         connected_keys.add("apple_music")
+    # Video "integratable" depends on TMDB reporting the provider, which only
+    # populates after a sync — so we only prune dead video once the catalog has
+    # synced (before that, onboarding needs the full roster).
+    synced = settings_store.get_setting(db, "catalog_synced_at") is not None
     # A token can be present but expired (refresh failed) — the tile should say
     # "Reconnect", matching the Library banner and the Accounts card.
     expired_keys = set()
@@ -229,12 +233,19 @@ def list_services(db: Session = Depends(get_session)) -> list[dict]:
     for s, sub in rows:
         featured, integration, integ_kind = catalog.service_integration(
             s.key, s.tier, s.capabilities)
-        # Music surfaces only through a real connector (catalog/library). A music
-        # service with no connector (Gaana, Tidal, Deezer, …) can't show tracks and
-        # ticking it does nothing — so keep it out of the checklist until it gains
-        # one (still in the DB as a future connector target / migration endpoint).
-        if s.kind == "music" and integ_kind != "connector":
-            continue
+        # A service earns a checklist spot only if ticking it can actually surface
+        # something. Otherwise keep it out (still seeded in the DB, so it
+        # self-reappears once it gains a data source / connector):
+        #   music → needs a real catalog/library connector (Gaana, Tidal, … don't).
+        #   video → TMDB must track its availability (tmdb_provider_id) OR it's
+        #           watchlist-importable / a connector / a custom browse-link marker.
+        if s.kind == "music":
+            if integ_kind != "connector":
+                continue
+        elif s.kind == "video" and synced:
+            if not (s.custom or s.tmdb_provider_id is not None
+                    or integ_kind in ("watchlist", "connector")):
+                continue
         out.append({
             "connected": s.key in connected_keys,
             "expired": s.key in expired_keys,

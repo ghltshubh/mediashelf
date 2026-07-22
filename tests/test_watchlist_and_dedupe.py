@@ -31,8 +31,11 @@ def test_services_payload_flags_channels(client):
     from app.models import Service, UserSub
 
     with session_factory()() as db:
+        # Real channels are TMDB-tracked (carry a provider id), so they stay in
+        # the checklist — only untracked video with no data source is pruned.
         svc = Service(key="animax_amazon_channel", name="Animax Amazon Channel",
-                      kind="video", tier=3, auto_added=True, capabilities={})
+                      kind="video", tier=3, auto_added=True, tmdb_provider_id=88888,
+                      capabilities={})
         db.add(svc)
         db.flush()
         db.add(UserSub(service_id=svc.id, subscribed=False))
