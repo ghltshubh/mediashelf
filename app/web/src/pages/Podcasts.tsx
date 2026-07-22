@@ -110,9 +110,11 @@ export function Podcasts() {
   const shows = podcasts.data ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="font-display text-[1.6rem] font-bold">Podcasts</h1>
+    <div className="max-w-3xl">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="font-mono text-[0.8rem] text-muted">
+          {shows.length} subscription{shows.length === 1 ? "" : "s"} · no account or API key needed
+        </p>
         <div className="flex gap-2">
           <button
             onClick={() => refresh.mutate()}
@@ -147,9 +149,6 @@ export function Podcasts() {
           />
         </div>
       </div>
-      <p className="mb-5 font-mono text-[0.8rem] text-muted">
-        {shows.length} subscription{shows.length === 1 ? "" : "s"} · no account or API key needed
-      </p>
 
       <form
         onSubmit={(e) => { e.preventDefault(); if (url.trim()) subscribe.mutate(url.trim()); }}

@@ -14,12 +14,14 @@ import { api } from "../lib/api";
 import { fmtNumber, useLocale } from "../lib/locale";
 import { ageOf, daysSince } from "../lib/time";
 import { MusicTab } from "./MusicTab";
+import { Podcasts } from "./Podcasts";
 
 const TABS = [
   ["all", "All"],
   ["movies", "Movies"],
   ["shows", "Shows"],
   ["music", "Music"],
+  ["podcasts", "Podcasts"],
 ] as const;
 
 const TAB_TYPE: Record<string, string> = { movies: "movie", shows: "tv" };
@@ -65,7 +67,8 @@ export function Shelf() {
   const shelf = useQuery({
     queryKey: ["shelf", view, region, active, mediaType, sort, genre],
     queryFn: () => api.shelf(view, region, active, mediaType, sort, genre),
-    enabled: !!settings.data?.tmdb_api_key_set && shelfKnown.isSuccess && tab !== "music",
+    enabled: !!settings.data?.tmdb_api_key_set && shelfKnown.isSuccess
+      && tab !== "music" && tab !== "podcasts",
     refetchInterval: (q) => (q.state.data?.sync.status === "running" ? 4000 : false),
   });
 
@@ -121,6 +124,15 @@ export function Shelf() {
       <div>
         {tabBar}
         <MusicTab />
+      </div>
+    );
+  }
+
+  if (tab === "podcasts") {
+    return (
+      <div>
+        {tabBar}
+        <Podcasts />
       </div>
     );
   }
