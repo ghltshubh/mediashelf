@@ -19,9 +19,9 @@ export function FilterChips({
           key={c.key}
           onClick={() => onSelect(c.key)}
           aria-pressed={active === c.key}
-          className={`hoverable rounded-full border px-3 py-1 text-[0.875rem] ${
+          className={`hoverable rounded-[6px] border px-3 py-1 font-mono text-[0.75rem] ${
             active === c.key
-              ? "border-owned bg-owned/15 text-owned"
+              ? "border-owned/60 bg-owned/15 text-owned"
               : "border-line text-muted hover:bg-bg2"
           }`}
         >

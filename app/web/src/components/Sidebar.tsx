@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { Logo } from "./Logo";
 
 const ITEMS = [
   { to: "/", glyph: "◆", label: "Shelf" },
@@ -18,8 +19,12 @@ export function Sidebar() {
                  min-[700px]:flex-col min-[700px]:border-r min-[700px]:border-t-0 min-[700px]:pt-5
                  min-[1100px]:w-[200px]"
     >
-      <div className="hidden px-4 pb-6 font-display text-[1.1rem] font-bold text-owned min-[1100px]:block">
-        MediaShelf
+      {/* Brand: mark + wordmark on the wide rail, mark-only on the icon rail. */}
+      <div className="hidden items-center gap-2 px-4 pb-6 min-[700px]:flex min-[700px]:justify-center min-[1100px]:justify-start">
+        <Logo className="h-7 w-7 shrink-0" />
+        <span className="hidden font-display text-[1.15rem] font-bold tracking-tight text-owned min-[1100px]:inline">
+          MediaShelf
+        </span>
       </div>
       {ITEMS.map((item) => (
         <NavLink
@@ -27,7 +32,8 @@ export function Sidebar() {
           to={item.to}
           end={item.to === "/"}
           className={({ isActive }) =>
-            `hoverable flex flex-1 items-center justify-center gap-3 px-3 py-3 text-[0.9rem]
+            `hoverable flex flex-1 items-center justify-center gap-3 px-3 py-3 font-display
+             text-[0.95rem] font-medium tracking-tight
              min-[700px]:flex-none min-[700px]:justify-center min-[1100px]:justify-start ${
                isActive ? "text-owned" : "text-muted hover:bg-bg2 hover:text-ink"
              }`
