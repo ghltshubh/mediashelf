@@ -45,7 +45,13 @@ export function MusicRail({ label = "Music" }: { label?: string }) {
   const groups = (library.data?.groups ?? []).filter(
     (g) => g.key === "spotify_like" || g.key === "youtube_music",
   );
-  const items = groups.flatMap((g) => g.items);
+  // Round-robin interleave so the visible slice shows every source — otherwise a
+  // large Spotify library would fill all 20 shown cards and hide YouTube Music.
+  const lists = groups.map((g) => g.items);
+  const items: typeof lists[number] = [];
+  for (let i = 0; i < Math.max(0, ...lists.map((l) => l.length)); i++) {
+    for (const l of lists) if (i < l.length) items.push(l[i]);
+  }
   const total = groups.reduce((n, g) => n + g.count, 0);
   if (items.length === 0) return null;
   const shown = items.slice(0, 20);
