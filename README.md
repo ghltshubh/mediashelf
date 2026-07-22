@@ -39,12 +39,16 @@ layer) is deferred.
 ## Quick start (Docker)
 
 ```sh
-docker compose -f docker/compose.yaml up --build
+docker compose -f docker/compose.yaml up --build -d
 ```
 
 Open http://localhost:8000 — onboarding asks for your own free TMDB API key
 (create one at https://www.themoviedb.org/settings/api) and your country, then lets you tick
 the services you subscribe to. That's all the app needs.
+
+**→ Full setup, key-by-key: see [docs/INSTALL.md](docs/INSTALL.md)** — step-by-step for every API
+key, connecting Spotify / YouTube / Apple, the optional yt-dlp plugin, remote hosting, and
+troubleshooting.
 
 Your data (SQLite DB, encrypted API keys, backups) lives in the `mediashelf-data` volume.
 
