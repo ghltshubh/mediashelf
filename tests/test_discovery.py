@@ -39,6 +39,17 @@ def test_similar_resolves_local_and_import(client):
         "type": "import", "media_type": "movie", "tmdb_id": 555}
 
 
+def test_similar_enriches_availability(client):
+    _set_key()
+    run_sync_now()
+    vid = _movie_id(client, "The Long Voyage")
+    items = client.get(f"/api/titles/{vid}/similar").json()["items"]
+    gem = next(i for i in items if i["title"] == "Hidden Gem")
+    # Not imported, but enrichment looked up its providers → shows where it streams.
+    assert gem["local"] is False
+    assert any(b["service_key"] == "netflix" for b in gem["badges"])
+
+
 def test_similar_without_key_is_empty(client):
     run_sync_now()  # catalog exists, but no TMDB key set → no recommendations
     vid = _movie_id(client, "The Long Voyage")

@@ -958,9 +958,43 @@ def resolve_discovery_cards(db: Session, raw: list[dict], country: str) -> list[
     return out
 
 
+PROVIDER_ENRICH_CAP = 30  # max not-yet-imported cards to look up availability for
+
+
+async def enrich_discovery_availability(db: Session, api_key: str | None,
+                                        cards: list[dict], country: str) -> None:
+    """Fill "where it streams" badges for not-yet-imported discovery cards from
+    TMDB watch-providers (the same data an import would store), so every card —
+    not just in-catalog ones — shows service logos, and ownership is accurate.
+    Concurrent + capped; provider data is cached ~6h upstream."""
+    from app.services.search import _badges_from_providers
+
+    targets = [c for c in cards if not c["local"] and c.get("tmdb_id")][:PROVIDER_ENRICH_CAP]
+    if not api_key or not targets:
+        return
+    services_by_key = {s.key: s for s in db.scalars(select(Service)).all()}
+    subs_ids = subscribed_service_ids(db)
+    subs_keys = {s.key for s in services_by_key.values() if s.id in subs_ids}
+    client = TMDBClient(api_key)
+    sem = asyncio.Semaphore(8)
+
+    async def one(card: dict) -> None:
+        async with sem:
+            try:
+                providers = await client.watch_providers(card["media_type"], card["tmdb_id"])
+            except Exception:
+                return
+        badges = _badges_from_providers(providers, card["title"], [country], subs_keys, services_by_key)
+        if badges:
+            card["badges"] = badges
+            card["owned"] = any(b["owned"] for b in badges)
+
+    await asyncio.gather(*(one(c) for c in targets))
+
+
 async def similar_titles(db: Session, item_id: int, api_key: str | None,
                          country: str, limit: int = 18) -> list[dict]:
-    """"More like this" for a title, resolved to discovery cards."""
+    """"More like this" for a title, resolved to discovery cards with availability."""
     item = db.get(MediaItem, item_id)
     if item is None or not api_key or item.tmdb_id is None:
         return []
@@ -969,11 +1003,13 @@ async def similar_titles(db: Session, item_id: int, api_key: str | None,
     except Exception as exc:
         logger.debug("recommendations fetch failed for %s: %s", item_id, exc)
         return []
-    return resolve_discovery_cards(db, recs[:limit], country)
+    cards = resolve_discovery_cards(db, recs[:limit], country)
+    await enrich_discovery_availability(db, api_key, cards, country)
+    return cards
 
 
 async def person_page(db: Session, person_id: int, api_key: str | None,
-                      country: str, limit: int = 40) -> dict | None:
+                      country: str, limit: int = 30) -> dict | None:
     """A person's profile + filmography as discovery cards. Acting roles and
     directing/writing/creator credits, most-recent first, deduped."""
     if not api_key:
@@ -993,6 +1029,7 @@ async def person_page(db: Session, person_id: int, api_key: str | None,
     # Most recent first; undated (unreleased) sink to the bottom.
     raw.sort(key=lambda r: (r.get("release_date") or r.get("first_air_date") or ""), reverse=True)
     cards = resolve_discovery_cards(db, raw[: limit * 2], country)[:limit]
+    await enrich_discovery_availability(db, api_key, cards, country)
     return {
         "id": person_id,
         "name": data.get("name") or "Unknown",
