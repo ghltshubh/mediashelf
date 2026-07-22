@@ -14,6 +14,7 @@ dependencies = [
     "spotipy>=2.24",
     "google-api-python-client>=2.130",
     "google-auth-oauthlib>=1.2",
+    "feedparser>=6.0",
 ]
 
 [project.optional-dependencies]

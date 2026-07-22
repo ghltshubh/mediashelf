@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
         # library refresh every 12h (runs in the scheduler's thread pool).
         scheduler.add_job(backups.create_backup, CronTrigger(hour=3, minute=45))
         scheduler.add_job(api._sync_job, CronTrigger(hour=4, minute=15))
+        scheduler.add_job(api._podcast_refresh_job, CronTrigger(hour=4, minute=30))
         scheduler.add_job(accounts.scheduled_sync_all, CronTrigger(hour="5,17", minute=0))
 
         async def resume_paused_migrations() -> None:

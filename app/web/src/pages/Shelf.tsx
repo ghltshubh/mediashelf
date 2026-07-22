@@ -11,6 +11,7 @@ import { RegionSwitcher } from "../components/RegionSwitcher";
 import { SortSelect } from "../components/SortSelect";
 import { StatusBanner } from "../components/StatusBanner";
 import { api } from "../lib/api";
+import { fmtNumber, useLocale } from "../lib/locale";
 import { ageOf, daysSince } from "../lib/time";
 import { MusicTab } from "./MusicTab";
 
@@ -40,6 +41,7 @@ function SkeletonRail() {
 
 export function Shelf() {
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const locale = useLocale();
   const [params, setParams] = useSearchParams();
   const tab = TABS.some(([k]) => k === params.get("tab")) ? params.get("tab")! : "all";
   const [view, setView] = useState<"categories" | "services">("categories");
@@ -164,7 +166,7 @@ export function Shelf() {
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[0.8rem] text-muted">
-          {data.stats.titles.toLocaleString()} titles across {data.stats.services} services ·{" "}
+          {fmtNumber(data.stats.titles, locale)} titles across {data.stats.services} services ·{" "}
           {data.stats.subscribed} subscribed
         </p>
         <div className="flex flex-wrap items-center gap-2">

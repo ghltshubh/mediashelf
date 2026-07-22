@@ -24,6 +24,9 @@ export interface Settings {
   omdb_configured: boolean;
   ytdlp_detected: boolean;
   ytdlp_enabled: boolean;
+  // Display locale (BCP-47) for date/number formatting; "" = follow browser.
+  // Independent of `country` (content region).
+  locale: string;
 }
 
 export interface RailPage {
@@ -51,7 +54,7 @@ export interface Connection {
 }
 
 export interface PlayOption {
-  engine: "spotify_sdk" | "musickit" | "youtube" | "spotify_embed" | "deeplink";
+  engine: "spotify_sdk" | "musickit" | "youtube" | "spotify_embed" | "audio" | "deeplink";
   service_key: string;
   label: string;
   kind: string;
@@ -265,6 +268,31 @@ export interface SearchResponse {
   providers: { key: string; state: "ok" | "unavailable" | "unconfigured" }[];
 }
 
+export interface PodcastEpisode {
+  id: number;
+  guid: string;
+  title: string;
+  description: string | null;
+  audio_url: string;
+  duration_seconds: number | null;
+  published_at: string | null;
+  image_url: string | null;
+}
+
+export interface Podcast {
+  id: number;
+  feed_url: string;
+  title: string;
+  author: string | null;
+  description: string | null;
+  image_url: string | null;
+  website: string | null;
+  episode_count: number;
+  last_fetched_at: string | null;
+  latest_episode: PodcastEpisode | null;
+  episodes?: PodcastEpisode[];
+}
+
 export interface Title extends ShelfItem {
   overview: string | null;
   runtime_minutes: number | null;
@@ -315,6 +343,7 @@ export const api = {
       google_client_secret: string;
       preferred_music_service: "auto" | "spotify" | "apple_music" | "youtube";
       ytdlp_enabled: boolean;
+      locale: string;
     }>,
   ) =>
     request<Settings>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),
@@ -421,4 +450,24 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ media_type, tmdb_id }),
     }),
+  podcasts: () => request<Podcast[]>("/api/podcasts"),
+  podcast: (id: number) => request<Podcast>(`/api/podcasts/${id}`),
+  subscribePodcast: (feed_url: string) =>
+    request<Podcast>("/api/podcasts", { method: "POST", body: JSON.stringify({ feed_url }) }),
+  unsubscribePodcast: async (id: number) => {
+    const res = await fetch(`/api/podcasts/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(`${res.status}`);
+  },
+  refreshPodcasts: () =>
+    request<{ new_episodes: number }>("/api/podcasts/refresh", { method: "POST" }),
+  importPodcastOpml: async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/podcasts/opml/import", { method: "POST", body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail ?? `${res.status}`);
+    }
+    return res.json() as Promise<{ subscribed: number }>;
+  },
 };

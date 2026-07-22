@@ -22,12 +22,14 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 - **"Popular right now"** aggregated from per-service Top 10s, **IMDb/RT/Metacritic** ratings
   (optional, via OMDb) alongside TMDB scores, service logos on every card, and studio-inferred
   **"expected on X"** hints for upcoming titles that aren't streaming yet.
+- **Podcasts** — subscribe by RSS feed URL or bulk-import an OPML file from any other app;
+  episodes stream in-app and auto-advance through the show. No account, no API key, no setup.
 
 - **Optional `yt-dlp`** metadata provider — zero-quota YouTube search behind a detected,
   off-by-default toggle (Settings → Plugins).
 
-**Milestones M1–M7 complete** (skeleton, search, accounts/playback, matching, migrations,
-yt-dlp, concierge & a11y polish). Next: more connectors (M8) and a social/feed layer (M9).
+**Milestones M1–M8 complete** (skeleton, search, accounts/playback, matching, migrations,
+yt-dlp, concierge & a11y polish, podcasts). Next: a social/feed layer (M9).
 
 ## Quick start (Docker)
 

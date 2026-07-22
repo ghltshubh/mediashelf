@@ -101,6 +101,58 @@ export class YouTubeEngine {
   }
 }
 
+// ---------- HTML5 audio (podcasts, M8) ----------
+
+// Streams an episode enclosure URL through a single <audio> element. No SDK,
+// no visible DOM slot, no DRM — plain progressive audio. `ended` drives the
+// player store's queue → next(), so an episode list auto-advances for free.
+export class Html5AudioEngine {
+  private audio: HTMLAudioElement | null = null;
+
+  async load(url: string, cb: EngineCallbacks): Promise<void> {
+    cb.onState("loading");
+    this.destroy();
+    const audio = new Audio(url);
+    this.audio = audio;
+    audio.addEventListener("playing", () => cb.onState("playing"));
+    audio.addEventListener("pause", () => {
+      if (!audio.ended) cb.onState("paused");
+    });
+    audio.addEventListener("ended", () => cb.onState("ended"));
+    audio.addEventListener("timeupdate", () =>
+      cb.onProgress(audio.currentTime, Number.isFinite(audio.duration) ? audio.duration : 0));
+    audio.addEventListener("error", () => cb.onFail("audio failed to load"));
+    try {
+      await audio.play();
+    } catch {
+      cb.onFail("audio playback was blocked");
+    }
+  }
+
+  toggle() {
+    if (!this.audio) return;
+    if (this.audio.paused) void this.audio.play();
+    else this.audio.pause();
+  }
+
+  seek(seconds: number) {
+    if (this.audio) this.audio.currentTime = seconds;
+  }
+
+  setVolume(v: number) {
+    if (this.audio) this.audio.volume = v;  // already 0..1, no scaling
+  }
+
+  destroy() {
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.removeAttribute("src");
+      this.audio.load();
+      this.audio = null;
+    }
+  }
+}
+
 // ---------- Spotify Web Playback SDK ----------
 
 export class SpotifySdkEngine {

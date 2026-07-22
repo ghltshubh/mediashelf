@@ -188,3 +188,44 @@ class FeedItem(Base):
     media_item_id: Mapped[int | None] = mapped_column(ForeignKey("media_items.id"), default=None)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class Podcast(Base):
+    """A podcast subscription (M8). Subscribed by RSS feed URL — no account, no
+    key: podcast RSS is an open standard, so there is nothing to authenticate."""
+
+    __tablename__ = "podcasts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    feed_url: Mapped[str] = mapped_column(String(1024), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(512), default="")
+    author: Mapped[str | None] = mapped_column(String(256), default=None)
+    description: Mapped[str | None] = mapped_column(Text, default=None)
+    image_url: Mapped[str | None] = mapped_column(Text, default=None)
+    website: Mapped[str | None] = mapped_column(Text, default=None)
+    # Conditional-GET validators so refreshes send If-None-Match / If-Modified-Since.
+    etag: Mapped[str | None] = mapped_column(String(512), default=None)
+    last_modified: Mapped[str | None] = mapped_column(String(128), default=None)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    episodes: Mapped[list["PodcastEpisode"]] = relationship(
+        back_populates="podcast", cascade="all, delete-orphan"
+    )
+
+
+class PodcastEpisode(Base):
+    __tablename__ = "podcast_episodes"
+    __table_args__ = (UniqueConstraint("podcast_id", "guid", name="uq_episode_guid"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    podcast_id: Mapped[int] = mapped_column(ForeignKey("podcasts.id"), index=True)
+    guid: Mapped[str] = mapped_column(String(1024))
+    title: Mapped[str] = mapped_column(String(512), default="")
+    description: Mapped[str | None] = mapped_column(Text, default=None)
+    audio_url: Mapped[str] = mapped_column(Text)  # enclosure URL streamed by <audio>
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, default=None)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    image_url: Mapped[str | None] = mapped_column(Text, default=None)
+
+    podcast: Mapped[Podcast] = relationship(back_populates="episodes")

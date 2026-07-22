@@ -7,6 +7,7 @@ import { RegionPicker } from "../components/RegionPicker";
 import { ServiceTile } from "../components/ServiceTile";
 import { StatusBanner } from "../components/StatusBanner";
 import { api, type Service } from "../lib/api";
+import { LOCALE_OPTIONS } from "../lib/locale";
 import { ageOf } from "../lib/time";
 
 const SECTIONS = [
@@ -244,6 +245,12 @@ export function Settings() {
 
   const saveDepth = useMutation({
     mutationFn: (pages: number) => api.updateSettings({ catalog_pages: pages }),
+    onSuccess: invalidate,
+    onError: (e: Error) => setKeyError(e.message),
+  });
+
+  const saveLocale = useMutation({
+    mutationFn: (loc: string) => api.updateSettings({ locale: loc }),
     onSuccess: invalidate,
     onError: (e: Error) => setKeyError(e.message),
   });
@@ -567,6 +574,29 @@ export function Settings() {
               onExtrasChange={(codes) => saveRegions.mutate(codes)}
               saving={saveRegions.isPending}
             />
+          </div>
+
+          {/* Language/formatting is deliberately SEPARATE from the region above:
+              region decides what streams where, this only changes how dates and
+              numbers are shown. Travelling doesn't force you to switch either. */}
+          <div className="mt-6 max-w-lg">
+            <label className="flex flex-wrap items-center gap-3">
+              <span className="font-mono text-[0.75rem] text-muted">DISPLAY LANGUAGE</span>
+              <select
+                value={s?.locale ?? ""}
+                onChange={(e) => saveLocale.mutate(e.target.value)}
+                aria-label="Display language and formatting"
+                className={`${inputCls} mt-0 w-auto`}
+              >
+                {LOCALE_OPTIONS.map((o) => (
+                  <option key={o.code} value={o.code}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            <p className="mt-2 font-mono text-[0.7rem] text-muted">
+              independent of your region — controls date &amp; number formatting only (interface
+              text stays English for now). defaults to your browser's language.
+            </p>
           </div>
           <div className="mt-4 flex max-w-lg flex-wrap items-end gap-3">
             <label>

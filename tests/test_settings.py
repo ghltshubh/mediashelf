@@ -34,6 +34,24 @@ def test_invalid_country_rejected(client):
     assert r.status_code == 422
 
 
+def test_locale_is_independent_of_country(client):
+    # Default: unset → empty (client falls back to browser language).
+    assert client.get("/api/settings").json()["locale"] == ""
+    # Set a locale that does NOT match the content region — they are decoupled.
+    r = client.put("/api/settings", json={"country": "FR", "locale": "en-US"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["country"] == "FR"
+    assert body["locale"] == "en-US"
+    # Clearing it (empty string) reverts to the browser-default sentinel.
+    assert client.put("/api/settings", json={"locale": ""}).json()["locale"] == ""
+
+
+def test_invalid_locale_rejected(client):
+    r = client.put("/api/settings", json={"locale": "not a locale!"})
+    assert r.status_code == 422
+
+
 def test_bad_tmdb_key_rejected_with_real_error(client):
     r = client.put("/api/settings", json={"tmdb_api_key": "badkey"})
     assert r.status_code == 400

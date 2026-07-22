@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ from app.services import backups, catalog
 from app.services import library as library_service
 from app.services import migrate as migrate_service
 from app.services import playback as playback_service
+from app.services import podcasts as podcasts_service
 from app.services import search as search_service
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,10 @@ class SettingsUpdate(BaseModel):
     google_client_secret: str | None = None
     preferred_music_service: str | None = None
     ytdlp_enabled: bool | None = None
+    # Display locale (BCP-47, e.g. "fr-FR") for date/number formatting.
+    # INDEPENDENT of `country`: language/formatting is presentation, region is
+    # content availability. Empty string clears it → follow the browser.
+    locale: str | None = None
 
 
 def _settings_payload(db: Session) -> dict:
@@ -80,6 +85,8 @@ def _settings_payload(db: Session) -> dict:
         "google_configured": bool(settings_store.get_setting(db, "google_client_id")
                                   and settings_store.get_setting(db, "google_client_secret")),
         "preferred_music_service": settings_store.get_setting(db, "preferred_music_service") or "auto",
+        # Empty when unset → the client falls back to the browser language.
+        "locale": settings_store.get_setting(db, "locale") or "",
         "catalog_pages": int(settings_store.get_setting(db, "catalog_pages")
                              or catalog.DEFAULT_SYNC_PAGES),
         # yt-dlp: a separately-installed community plugin (M6). `detected` is
@@ -175,6 +182,12 @@ async def update_settings(body: SettingsUpdate, db: Session = Depends(get_sessio
         if body.preferred_music_service not in ("auto", "spotify", "apple_music", "youtube"):
             raise HTTPException(422, "Unknown preferred music service")
         settings_store.set_setting(db, "preferred_music_service", body.preferred_music_service)
+    if body.locale is not None:
+        loc = body.locale.strip()
+        # Guard against junk while staying permissive about BCP-47 shapes.
+        if loc and not re.fullmatch(r"[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*", loc):
+            raise HTTPException(422, "Locale must be a BCP-47 tag, e.g. fr-FR")
+        settings_store.set_setting(db, "locale", loc or None)
     return _settings_payload(db)
 
 
@@ -839,6 +852,76 @@ async def import_backup(file: UploadFile) -> dict:
     shutil.copyfile(tmp, backups.db_path())
     app_db.reset_engine_for_tests()
     return {"status": "imported"}
+
+
+# ---------- Podcasts (M8): RSS/OPML, no accounts or keys ----------
+
+class PodcastSubscribeBody(BaseModel):
+    feed_url: str
+
+
+@router.get("/podcasts")
+def list_podcasts(db: Session = Depends(get_session)) -> list[dict]:
+    return podcasts_service.list_podcasts(db)
+
+
+@router.get("/podcasts/{podcast_id}")
+def get_podcast(podcast_id: int, db: Session = Depends(get_session)) -> dict:
+    from app.models import Podcast
+
+    podcast = db.get(Podcast, podcast_id)
+    if not podcast:
+        raise HTTPException(404, "Podcast not found")
+    return podcasts_service.podcast_dict(podcast, with_episodes=True)
+
+
+@router.post("/podcasts", status_code=201)
+async def subscribe_podcast(body: PodcastSubscribeBody,
+                            db: Session = Depends(get_session)) -> dict:
+    try:
+        podcast = await podcasts_service.subscribe(db, body.feed_url)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return podcasts_service.podcast_dict(podcast, with_episodes=True)
+
+
+@router.delete("/podcasts/{podcast_id}", status_code=204)
+def unsubscribe_podcast(podcast_id: int, db: Session = Depends(get_session)) -> None:
+    if not podcasts_service.unsubscribe(db, podcast_id):
+        raise HTTPException(404, "Podcast not found")
+
+
+@router.post("/podcasts/refresh")
+async def refresh_podcasts(db: Session = Depends(get_session)) -> dict:
+    added = await podcasts_service.refresh_all(db)
+    return {"new_episodes": added}
+
+
+@router.get("/podcasts/opml/export")
+def export_podcasts_opml(db: Session = Depends(get_session)) -> Response:
+    xml = podcasts_service.export_opml(db)
+    return Response(content=xml, media_type="text/x-opml",
+                    headers={"Content-Disposition": "attachment; filename=mediashelf-podcasts.opml"})
+
+
+@router.post("/podcasts/opml/import")
+async def import_podcasts_opml(file: UploadFile,
+                               db: Session = Depends(get_session)) -> dict:
+    raw = await file.read()
+    try:
+        subscribed = await podcasts_service.import_opml(db, raw)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"subscribed": len(subscribed)}
+
+
+async def _podcast_refresh_job() -> None:
+    with session_factory()() as db:
+        try:
+            added = await podcasts_service.refresh_all(db)
+            logger.info("podcast refresh done: %s new episodes", added)
+        except Exception:
+            logger.exception("podcast refresh job failed")
 
 
 # ---------- Sync scheduling ----------

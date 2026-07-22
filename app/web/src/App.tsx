@@ -11,6 +11,7 @@ import { DevComponents } from "./pages/DevComponents";
 import { Library } from "./pages/Library";
 import { Migrations } from "./pages/Migrations";
 import { Onboarding } from "./pages/Onboarding";
+import { Podcasts } from "./pages/Podcasts";
 import { SearchResults } from "./pages/SearchResults";
 import { Settings } from "./pages/Settings";
 import { Shelf } from "./pages/Shelf";
@@ -71,6 +72,7 @@ export function App() {
           <Route path="/browse/:railKey" element={<Browse />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/library" element={<Library />} />
+          <Route path="/podcasts" element={<Podcasts />} />
           <Route path="/migrations" element={<Migrations />} />
           <Route path="/settings" element={<Settings />} />
           {import.meta.env.DEV && <Route path="/dev/components" element={<DevComponents />} />}

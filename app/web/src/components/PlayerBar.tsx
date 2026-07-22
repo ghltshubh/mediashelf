@@ -5,6 +5,7 @@ const ENGINE_GLYPH: Record<string, string> = {
   spotify_embed: "Spotify preview",
   youtube: "YouTube",
   musickit: "Apple Music",
+  audio: "Podcast",
 };
 
 function fmt(s: number): string {
@@ -20,7 +21,10 @@ export function PlayerBar() {
   const active = p.request !== null && p.option !== null;
   const isVideo = p.option?.engine === "youtube";
   const isEmbed = p.option?.engine === "spotify_embed";
-  const canTransport = p.option?.engine === "youtube" || p.option?.engine === "spotify_sdk";
+  const canTransport =
+    p.option?.engine === "youtube" ||
+    p.option?.engine === "spotify_sdk" ||
+    p.option?.engine === "audio";
 
   return (
     <>

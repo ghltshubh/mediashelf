@@ -5,6 +5,7 @@ const ITEMS = [
   { to: "/", glyph: "◆", label: "Shelf" },
   { to: "/search", glyph: "⌕", label: "Search" },
   { to: "/library", glyph: "▤", label: "Library" },
+  { to: "/podcasts", glyph: "🎙", label: "Podcasts" },
   { to: "/migrations", glyph: "⇄", label: "Migrations" },
   { to: "/settings", glyph: "⚙", label: "Settings" },
 ];

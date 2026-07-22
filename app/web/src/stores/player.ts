@@ -4,7 +4,7 @@
 
 import { create } from "zustand";
 import type { PlayOption } from "../lib/api";
-import { SpotifySdkEngine, YouTubeEngine } from "../lib/engines";
+import { Html5AudioEngine, SpotifySdkEngine, YouTubeEngine } from "../lib/engines";
 
 export interface PlayRequest {
   title: string;
@@ -36,6 +36,7 @@ interface PlayerState {
 
 const youtube = new YouTubeEngine();
 const spotifySdk = new SpotifySdkEngine();
+const audio = new Html5AudioEngine();
 let toastTimer: number | undefined;
 
 export const YOUTUBE_CONTAINER_ID = "yt-theater-slot";
@@ -43,6 +44,7 @@ export const YOUTUBE_CONTAINER_ID = "yt-theater-slot";
 function stopEngines() {
   youtube.destroy();
   spotifySdk.destroy();
+  audio.destroy();
 }
 
 export const usePlayer = create<PlayerState>((set, get) => {
@@ -97,6 +99,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
       void spotifySdk.load(option.payload.spotify_uri, callbacks);
     } else if (option.engine === "spotify_embed") {
       set({ status: "playing" });  // embed manages itself; we just host it
+    } else if (option.engine === "audio" && option.payload.url) {
+      void audio.load(option.payload.url, callbacks);
     } else if (option.engine === "musickit") {
       callbacks.onFail("MusicKit playback not wired yet");
     }
@@ -157,12 +161,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const { option } = get();
       if (option?.engine === "youtube") youtube.toggle();
       else if (option?.engine === "spotify_sdk") spotifySdk.toggle();
+      else if (option?.engine === "audio") audio.toggle();
     },
 
     seek: (seconds) => {
       const { option } = get();
       if (option?.engine === "youtube") youtube.seek(seconds);
       else if (option?.engine === "spotify_sdk") spotifySdk.seek(seconds);
+      else if (option?.engine === "audio") audio.seek(seconds);
       set({ position: seconds });
     },
 
@@ -170,6 +176,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const { option } = get();
       if (option?.engine === "youtube") youtube.setVolume(v);
       else if (option?.engine === "spotify_sdk") spotifySdk.setVolume(v);
+      else if (option?.engine === "audio") audio.setVolume(v);
       set({ volume: v });
     },
 

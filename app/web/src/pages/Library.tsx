@@ -6,6 +6,7 @@ import { FilterChips } from "../components/FilterChips";
 import { SearchResultRow } from "../components/SearchResultRow";
 import { StatusBanner } from "../components/StatusBanner";
 import { api } from "../lib/api";
+import { fmtNumber, useLocale } from "../lib/locale";
 import { useActivate } from "../lib/searchData";
 
 /** Library (M3): synced likes/subs from connected accounts, playable in place. */
@@ -20,6 +21,7 @@ export function Library() {
     },
   });
   const { activate } = useActivate();
+  const locale = useLocale();
   const [chip, setChip] = useState("all");
 
   const syncNow = useMutation({
@@ -72,7 +74,7 @@ export function Library() {
         </div>
       </div>
       <p className="mb-5 font-mono text-[0.8rem] text-muted">
-        {data.groups.reduce((n, g) => n + g.count, 0).toLocaleString()} items ·{" "}
+        {fmtNumber(data.groups.reduce((n, g) => n + g.count, 0), locale)} items ·{" "}
         {data.groups.length} collections
       </p>
 
