@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme inline {
+  --color-bg0: var(--bg-0);
+  --color-bg1: var(--bg-1);
+  --color-bg2: var(--bg-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-owned: var(--owned);
+  --color-elsewhere: var(--elsewhere);
+  --color-play: var(--play);
+  --color-danger: var(--danger);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-meta);
+  --radius-card: var(--radius-card);
+  --radius-control: var(--radius-control);
+}
+
+html {
+  background: var(--bg-0);
+}
+
+body {
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Visible focus on every interactive element (Part 2 §8). */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+::selection {
+  background: var(--owned);
+  color: var(--bg-0);
+}
+
+/* --- The lit shelf ------------------------------------------------------ */
+
+/* Owned: full color + shelf-lamp under-glow. The lamps come on 400ms after
+   posters paint — the app's single orchestrated moment. */
+.lit {
+  animation: lamp-on 400ms ease-out 150ms both;
+}
+@keyframes lamp-on {
+  from { box-shadow: 0 10px 22px -6px transparent; }
+  to   { box-shadow: 0 10px 22px -6px var(--owned-glow), 0 14px 34px -8px var(--owned-glow); }
+}
+
+/* Elsewhere: dimmed and desaturated (85% saturation, 78% brightness). */
+.dimmed img.poster {
+  filter: saturate(0.85) brightness(0.78);
+}
+
+/* --- Motion (150ms hovers, 250ms panels; reduced-motion kills all) ------ */
+.hoverable {
+  transition: background-color 150ms ease-out, transform 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .lit {
+    box-shadow: 0 10px 22px -6px var(--owned-glow), 0 14px 34px -8px var(--owned-glow);
+  }
+}
+
+/* Horizontal rails: quiet scrollbars. */
+.rail {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* 3-line synopsis clamp. */
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

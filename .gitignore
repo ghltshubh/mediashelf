@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / frontend
+app/web/node_modules/
+app/web/dist/
+
+# Runtime data (SQLite, encrypted keys, backups)
+data/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Claude Code local files — never commit
+CLAUDE.md
+.claude/
+
+# Local planning doc (kept local per owner's choice)
+mediashelf-plan.md
+
+# Test / tooling scratch output
+/*.png
+.playwright-mcp/

@@ -1,0 +1,18 @@
+# Example self-host deployment. Data (SQLite, encrypted keys, backups) lives in
+# the named volume; the app needs nothing else.
+services:
+  mediashelf:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - mediashelf-data:/data
+    restart: unless-stopped
+    # Optional: bootstrap the TMDB key from the environment instead of onboarding.
+    # environment:
+    #   TMDB_API_KEY: "your-key-here"
+
+volumes:
+  mediashelf-data:

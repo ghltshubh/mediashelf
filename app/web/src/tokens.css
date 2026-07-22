@@ -1,0 +1,27 @@
+/* Design tokens — Part 2 §2 of the plan. Dark is the default and primary theme. */
+
+:root {
+  /* Color */
+  --bg-0: #141210;        /* app background — deep warm charcoal, never pure black */
+  --bg-1: #1c1916;        /* cards, rails */
+  --bg-2: #262220;        /* hover, raised surfaces */
+  --line: #38322d;        /* hairline borders */
+  --ink: #ede7de;         /* primary text — warm off-white */
+  --ink-muted: #9c948a;   /* secondary text */
+  --owned: #e3a84c;       /* brass/marquee — the "yours" hue */
+  --owned-glow: rgba(227, 168, 76, 0.14); /* the shelf-lamp under-glow */
+  --elsewhere: #6e7b8a;   /* cool slate — "not yours" accents, unlock tags */
+  --play: #7bc47f;        /* playable-now affordance (play controls ONLY) */
+  --danger: #c4574b;      /* destructive, errors */
+  --focus: #e3a84c;       /* focus rings reuse --owned at full strength */
+
+  /* Type */
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-meta: "Spline Sans Mono", ui-monospace, monospace;
+
+  /* Shape */
+  --radius-card: 10px;
+  --radius-control: 6px;
+  --radius-pill: 999px;
+}
