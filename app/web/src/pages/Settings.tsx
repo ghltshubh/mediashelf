@@ -470,8 +470,10 @@ export function Settings() {
                   <div>
                     <p className="font-semibold text-ink">✓ Tick a service</p>
                     <p className="text-muted">
-                      Marks what you pay for and lights up its titles across the shelf. No login —
-                      all most services need.
+                      Marks what you pay for and lights up its titles across the shelf (lit = on
+                      your services, dimmed = elsewhere). No login. That's <em>all</em> it does — it
+                      doesn't add anything to your watchlist, import a library, or connect an
+                      account.
                     </p>
                   </div>
                   <div>
