@@ -1,61 +1,14 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { Badge, ShelfItem } from "../lib/api";
+import type { ShelfItem } from "../lib/api";
 import { ServiceMark } from "./ServiceMark";
-
-/** Group badges into distinct services, split by ownership. Badges arrive
-    owned-first / streaming-first from the backend, so the first badge kept per
-    service_key reflects that service's owned status. A service counts as owned
-    if any of its offers is on one of your subscriptions. */
-function serviceSummary(badges: Badge[]): { owned: Badge[]; others: Badge[] } {
-  const byKey = new Map<string, Badge>();
-  for (const b of badges) {
-    if (!byKey.has(b.service_key)) byKey.set(b.service_key, b);
-  }
-  const distinct = [...byKey.values()];
-  return {
-    owned: distinct.filter((b) => b.owned),
-    others: distinct.filter((b) => !b.owned),
-  };
-}
+import { serviceMarksNode } from "./serviceMarks";
 
 /** Poster card with the lit-shelf ownership treatment (Part 2 §4.2).
     `fluid` stretches to the grid cell (browse page) instead of rail width. */
 export function MediaCard({ item, fluid = false }: { item: ShelfItem; fluid?: boolean }) {
-  const { owned: ownedServices, others: otherServices } = serviceSummary(item.badges);
-
-  // Where it actually streams. Owned items: your subscribed logo(s) that fit (up
-  // to 3) + a "+N more" count. Non-owned: 2–3 logos so you can pick. This wins
-  // over list_source everywhere — a watchlist card shows where to watch, not just
-  // the list you added it from (which may differ from where it streams).
-  let serviceMarks: ReactNode = null;
-  if (item.owned) {
-    const shownOwned = ownedServices.slice(0, 3);
-    const moreCount = ownedServices.length - shownOwned.length + otherServices.length;
-    serviceMarks = (
-      <span className="flex min-w-0 items-center gap-1">
-        {shownOwned.map((b) => (
-          <ServiceMark key={b.service_key} name={b.service_name} logo={b.logo} owned />
-        ))}
-        {moreCount > 0 && (
-          <span className="shrink-0 text-muted" title={`also on ${moreCount} other service${moreCount > 1 ? "s" : ""}`}>
-            +{moreCount}
-          </span>
-        )}
-      </span>
-    );
-  } else if (otherServices.length > 0) {
-    serviceMarks = (
-      <span className="flex min-w-0 items-center gap-1">
-        {otherServices.slice(0, 3).map((b) => (
-          <ServiceMark key={b.service_key} name={b.service_name} logo={b.logo} owned={false} />
-        ))}
-        {otherServices.length > 3 && (
-          <span className="shrink-0 text-muted">+{otherServices.length - 3}</span>
-        )}
-      </span>
-    );
-  }
+  // Where it actually streams — owned logo(s) + "+N", or 2–3 options if not owned.
+  // Wins over list_source everywhere (a watchlist card shows where to watch).
+  const serviceMarks = serviceMarksNode(item.badges, item.owned);
   return (
     <Link
       to={`/title/${item.id}`}

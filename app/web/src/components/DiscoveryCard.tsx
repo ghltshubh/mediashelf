@@ -1,14 +1,16 @@
 import type { VideoResult } from "../lib/api";
 import { useActivate } from "../lib/searchData";
+import { serviceMarksNode } from "./serviceMarks";
 
 /** Poster card for discovery rows ("More like this", a person's filmography).
     Local titles link to their page; not-yet-imported ones import on click, both
-    via the shared useActivate flow. Ownership drives the lit/dimmed treatment. */
+    via the shared useActivate flow. Ownership drives the lit/dimmed treatment,
+    and in-catalog titles show the same service logos as the shelf cards. */
 export function DiscoveryCard({ item }: { item: VideoResult }) {
   const { activate, importing } = useActivate();
-  const subtitle = item.role
-    ? item.role
-    : [item.year, item.owned ? "on your services" : null].filter(Boolean).join(" · ");
+  const marks = serviceMarksNode(item.badges, item.owned);
+  // Left of the meta row: the person-page role (character/job) if present, else year.
+  const lead = item.role ?? (item.year != null ? String(item.year) : "—");
   return (
     <button
       onClick={() => void activate(item)}
@@ -31,7 +33,10 @@ export function DiscoveryCard({ item }: { item: VideoResult }) {
         )}
       </div>
       <p className="mt-1.5 truncate text-[0.82rem] leading-tight">{item.title}</p>
-      {subtitle && <p className="truncate font-mono text-[0.68rem] text-muted">{subtitle}</p>}
+      <p className="mt-0.5 flex items-center justify-between gap-2 font-mono text-[0.68rem] text-muted">
+        <span className="min-w-0 truncate">{lead}</span>
+        {marks}
+      </p>
     </button>
   );
 }
