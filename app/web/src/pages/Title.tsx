@@ -267,18 +267,44 @@ export function TitlePage() {
         </div>
       </div>
 
-      {(similar.data?.items.length ?? 0) > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-muted">MORE LIKE THIS</h2>
+      {(() => {
+        // Two soft sections: titles confirmed on your services vs the rest.
+        // Recommendations aren't all imported, so the rest have *unknown*
+        // availability — labelled "more like this", never "not on my services".
+        const items = similar.data?.items ?? [];
+        if (items.length === 0) return null;
+        const mine = items.filter((i) => i.owned);
+        const rest = items.filter((i) => !i.owned);
+        const rail = (list: typeof items) => (
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {similar.data!.items.map((it) => (
+            {list.map((it) => (
               <div key={`${it.media_type}-${it.tmdb_id ?? it.id}`} className="w-[130px] shrink-0 sm:w-[150px]">
                 <DiscoveryCard item={it} />
               </div>
             ))}
           </div>
-        </section>
-      )}
+        );
+        return (
+          <>
+            {mine.length > 0 && (
+              <section className="mt-12">
+                <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-owned">
+                  SIMILAR · ON YOUR SERVICES
+                </h2>
+                {rail(mine)}
+              </section>
+            )}
+            {rest.length > 0 && (
+              <section className="mt-12">
+                <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-muted">
+                  MORE LIKE THIS
+                </h2>
+                {rail(rest)}
+              </section>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
