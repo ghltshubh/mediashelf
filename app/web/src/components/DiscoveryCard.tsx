@@ -14,7 +14,7 @@ export function DiscoveryCard({ item }: { item: VideoResult }) {
       onClick={() => void activate(item)}
       disabled={importing}
       title={item.title}
-      className="block w-full text-left disabled:opacity-60"
+      className="block w-full cursor-pointer text-left disabled:cursor-default disabled:opacity-60"
     >
       <div className={`${item.owned ? "lit" : "dimmed"} overflow-hidden rounded-[10px]`}>
         {item.poster ? (
