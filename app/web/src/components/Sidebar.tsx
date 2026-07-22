@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useT } from "../lib/i18n";
 import { Logo } from "./Logo";
 
@@ -21,13 +21,18 @@ export function Sidebar() {
                  min-[700px]:flex-col min-[700px]:border-r min-[700px]:border-t-0 min-[700px]:pt-5
                  min-[1100px]:w-[200px]"
     >
-      {/* Brand: mark + wordmark on the wide rail, mark-only on the icon rail. */}
-      <div className="hidden items-center gap-2 px-4 pb-6 min-[700px]:flex min-[700px]:justify-center min-[1100px]:justify-start">
+      {/* Brand: mark + wordmark on the wide rail, mark-only on the icon rail.
+          Links home. */}
+      <Link
+        to="/"
+        aria-label="MediaShelf — home"
+        className="hoverable hidden items-center gap-2 rounded-[8px] px-4 pb-6 min-[700px]:flex min-[700px]:justify-center min-[1100px]:justify-start"
+      >
         <Logo className="h-7 w-7 shrink-0" />
         <span className="hidden font-display text-[1.15rem] font-bold tracking-tight text-owned min-[1100px]:inline">
           MediaShelf
         </span>
-      </div>
+      </Link>
       {ITEMS.map((item) => {
         const label = t(item.key);
         return (

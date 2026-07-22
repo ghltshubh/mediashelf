@@ -67,16 +67,22 @@ export function useUniversalSearch(q: string) {
     staleTime: 60_000,
   });
 
-  // YOUR LIBRARY pinned first when it has hits (§4.3).
-  const groups: SearchGroup[] = [
-    ...(library.data?.groups ?? []),
-    ...(video.data?.groups ?? []),
-    ...(music.data?.groups ?? []),
-  ];
-  const notices = [...(video.data?.providers ?? []), ...(music.data?.providers ?? [])]
-    .filter((p) => p.state !== "ok")
-    .map((p) => PROVIDER_MESSAGES[p.key]?.[p.state])
-    .filter((m): m is string => !!m);
+  // YOUR LIBRARY pinned first when it has hits (§4.3). When the query is cleared
+  // or too short, show nothing — otherwise keepPreviousData would leave the last
+  // results on screen after the box is emptied.
+  const groups: SearchGroup[] = enabled
+    ? [
+        ...(library.data?.groups ?? []),
+        ...(video.data?.groups ?? []),
+        ...(music.data?.groups ?? []),
+      ]
+    : [];
+  const notices = enabled
+    ? [...(video.data?.providers ?? []), ...(music.data?.providers ?? [])]
+        .filter((p) => p.state !== "ok")
+        .map((p) => PROVIDER_MESSAGES[p.key]?.[p.state])
+        .filter((m): m is string => !!m)
+    : [];
 
   return {
     enabled,
