@@ -6,6 +6,32 @@ export function musicSource(item: MusicResult): string | null {
   return item.playback?.default?.service_key ?? item.services?.[0]?.service_key ?? null;
 }
 
+/** The brand a service key maps to, so "youtube" and "youtube_music" don't draw
+    two identical marks. Used to dedupe the row badges. */
+export function brandKey(serviceKey: string | null): string {
+  if (serviceKey === "spotify") return "spotify";
+  if (serviceKey === "youtube" || serviceKey === "youtube_music") return "ytmusic";
+  if (serviceKey === "apple_music") return "apple";
+  return serviceKey ?? "other";
+}
+
+/** Distinct music services by brand (first occurrence wins), capped. */
+export function distinctMusicServices<T extends { service_key: string }>(
+  services: T[],
+  n = 4,
+): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const s of services) {
+    const b = brandKey(s.service_key);
+    if (seen.has(b)) continue;
+    seen.add(b);
+    out.push(s);
+    if (out.length >= n) break;
+  }
+  return out;
+}
+
 /** Small brand mark for a music service, drawn inline (no external assets, no
     catalog logo needed — music services carry none). Spotify / YouTube Music /
     Apple Music are recognizable; anything else falls back to a neutral ♪ chip. */

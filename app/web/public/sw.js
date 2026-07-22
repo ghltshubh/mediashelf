@@ -8,8 +8,8 @@
 // Short-lived tokens, OAuth URLs, and downloads are never cached (see below),
 // and mutations (POST/PUT/DELETE) are never touched — data stays live online.
 
-const SHELL = "mediashelf-shell-v1";
-const API = "mediashelf-api-v1";
+const SHELL = "mediashelf-shell-v2";
+const API = "mediashelf-api-v2";
 const CURRENT = [SHELL, API];
 const API_CACHE_LIMIT = 80;
 

@@ -1,6 +1,6 @@
 import type { SearchResult } from "../lib/api";
 import { isVideo } from "../lib/searchData";
-import { MusicServiceBadge, musicSource } from "./MusicServiceBadge";
+import { MusicServiceBadge, distinctMusicServices } from "./MusicServiceBadge";
 import { ServiceMark, distinctServices } from "./ServiceMark";
 
 function ThumbFallback({ label }: { label: string }) {
@@ -34,9 +34,10 @@ export function SearchResultRow({
   const sub = video
     ? item.media_type === "tv" ? "show" : "movie"
     : item.entity === "artist" ? "artist" : `${item.entity} · ${item.artists.slice(0, 2).join(", ")}`;
-  // Video shows deduped service LOGOS (like the cards); music keeps name pills
-  // (music services carry no logos in the catalog).
+  // Both show deduped service marks; video uses catalog logos, music uses inline
+  // brand marks. Deduped by brand so a service never repeats on a row.
   const videoMarks = video ? distinctServices(item.badges, 4) : [];
+  const musicMarks = video ? [] : distinctMusicServices(item.services, 4);
 
   return (
     <div
@@ -74,20 +75,22 @@ export function SearchResultRow({
             ? videoMarks.map((b) => (
                 <ServiceMark key={b.service_key} name={b.service_name} logo={b.logo} owned={b.owned} />
               ))
-            : item.services.map((s) => (
+            : musicMarks.map((s) => (
                 <MusicServiceBadge key={s.service_key} serviceKey={s.service_key} className="h-4 w-4" />
               ))}
         </div>
       </div>
+      {/* Right side is the action: video shows its hint text; music shows a play
+          glyph (the source logo already sits inline — no repeat). */}
       {video ? (
         <span className="shrink-0 font-mono text-[0.75rem] text-muted">{item.hint}</span>
       ) : (
         <span
+          aria-label="Play"
           title={item.hint}
-          className="flex shrink-0 items-center gap-1 font-mono text-[0.75rem] text-[color:var(--play)]"
+          className="shrink-0 font-mono text-[0.9rem] text-[color:var(--play)]"
         >
-          <span aria-hidden>▶</span>
-          <MusicServiceBadge serviceKey={musicSource(item)} className="h-4 w-4" />
+          ▶
         </span>
       )}
     </div>
