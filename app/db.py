@@ -4,7 +4,7 @@ import os
 from collections.abc import Iterator
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
@@ -30,6 +30,19 @@ def get_engine():
             f"sqlite:///{db_path}",
             connect_args={"check_same_thread": False},
         )
+
+        # WAL lets interactive reads (shelf, title pages) proceed WHILE the
+        # catalog sync is writing, instead of blocking on SQLite's single-writer
+        # lock; busy_timeout waits briefly for the lock instead of erroring;
+        # synchronous=NORMAL is the WAL-recommended, faster durability level.
+        @event.listens_for(_engine, "connect")
+        def _sqlite_pragmas(dbapi_conn, _record):  # type: ignore[no-untyped-def]
+            cur = dbapi_conn.cursor()
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA busy_timeout=5000")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.close()
+
         _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
 

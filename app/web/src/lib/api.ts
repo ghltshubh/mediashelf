@@ -322,14 +322,20 @@ export const api = {
       throw new Error(body.detail ?? `${res.status}`);
     }
   },
-  shelf: (view: "categories" | "services" = "categories", region = "", filter = "all", type = "") =>
+  shelf: (
+    view: "categories" | "services" = "categories",
+    region = "",
+    filter = "all",
+    type = "",
+    sort = "popularity",
+  ) =>
     request<Shelf>(
-      `/api/shelf?view=${view}&region=${region}&filter=${encodeURIComponent(filter)}&type=${type}`,
+      `/api/shelf?view=${view}&region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}`,
     ),
   title: (id: number, region = "") => request<Title>(`/api/titles/${id}?region=${region}`),
-  rail: (key: string, region = "", filter = "all", type = "") =>
+  rail: (key: string, region = "", filter = "all", type = "", sort = "popularity") =>
     request<RailPage>(
-      `/api/shelf/rail/${encodeURIComponent(key)}?region=${region}&filter=${encodeURIComponent(filter)}&type=${type}`,
+      `/api/shelf/rail/${encodeURIComponent(key)}?region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}`,
     ),
   regions: () => request<{ code: string; name: string }[]>("/api/regions"),
   sync: () => request<{ status: string }>("/api/sync", { method: "POST" }),

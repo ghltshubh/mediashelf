@@ -7,6 +7,7 @@ import { MediaCard } from "../components/MediaCard";
 import { MusicRail } from "../components/MusicRail";
 import { RailSection } from "../components/RailSection";
 import { RegionSwitcher } from "../components/RegionSwitcher";
+import { SortSelect } from "../components/SortSelect";
 import { StatusBanner } from "../components/StatusBanner";
 import { api } from "../lib/api";
 import { ageOf, daysSince } from "../lib/time";
@@ -43,6 +44,7 @@ export function Shelf() {
   const [view, setView] = useState<"categories" | "services">("categories");
   const [region, setRegion] = useState("");
   const [filter, setFilter] = useState<string | null>(null);
+  const [sort, setSort] = useState("popularity");
   const mediaType = TAB_TYPE[tab] ?? "";
 
   // "On my services" is the default chip once anything is subscribed (§4.2);
@@ -57,8 +59,8 @@ export function Shelf() {
   const active = filter ?? (hasSubs ? "mine" : "all");
 
   const shelf = useQuery({
-    queryKey: ["shelf", view, region, active, mediaType],
-    queryFn: () => api.shelf(view, region, active, mediaType),
+    queryKey: ["shelf", view, region, active, mediaType, sort],
+    queryFn: () => api.shelf(view, region, active, mediaType, sort),
     enabled: !!settings.data?.tmdb_api_key_set && shelfKnown.isSuccess && tab !== "music",
     refetchInterval: (q) => (q.state.data?.sync.status === "running" ? 4000 : false),
   });
@@ -98,7 +100,7 @@ export function Shelf() {
           role="tab"
           aria-selected={tab === key}
           onClick={() => setParams(key === "all" ? {} : { tab: key }, { replace: true })}
-          className={`-mb-px border-b-2 px-4 py-2 font-display text-[1rem] font-semibold ${
+          className={`-mb-px border-b-2 px-4 py-2 font-display text-[1.05rem] font-semibold tracking-tight ${
             tab === key
               ? "border-[var(--owned)] text-owned"
               : "border-transparent text-muted hover:text-ink"
@@ -164,6 +166,7 @@ export function Shelf() {
           {data.stats.subscribed} subscribed
         </p>
         <div className="flex items-center gap-2">
+          <SortSelect value={sort} onChange={setSort} />
           <RegionSwitcher regions={data.regions} active={data.country} onSelect={setRegion} />
           <div role="group" aria-label="Shelf view" className="flex rounded-[6px] border border-line">
             {(["categories", "services"] as const).map((v) => (

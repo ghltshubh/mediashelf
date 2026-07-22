@@ -330,15 +330,19 @@ def _valid_filter(filter: str) -> str:
     return "all"
 
 
+def _valid_sort(sort: str) -> str:
+    return sort if sort in ("popularity", "title", "year") else "popularity"
+
+
 @router.get("/shelf")
 def shelf(view: str = "categories", region: str = "", filter: str = "all",
-          type: str = "", db: Session = Depends(get_session)) -> dict:
+          type: str = "", sort: str = "popularity", db: Session = Depends(get_session)) -> dict:
     country, all_countries = _region_or_home(db, region)
     data = catalog.build_shelf(db, country,
                                view=view if view in ("categories", "services") else "categories",
                                flt=_valid_filter(filter),
                                media_type=type if type in ("movie", "tv") else None,
-                               all_countries=all_countries)
+                               all_countries=all_countries, sort=_valid_sort(sort))
     data["regions"] = _tracked_countries(db)
     return data
 
@@ -361,11 +365,11 @@ async def available_regions(db: Session = Depends(get_session)) -> list[dict]:
 
 @router.get("/shelf/rail/{rail_key}")
 def shelf_rail(rail_key: str, region: str = "", filter: str = "all", type: str = "",
-               db: Session = Depends(get_session)) -> dict:
+               sort: str = "popularity", db: Session = Depends(get_session)) -> dict:
     country, all_countries = _region_or_home(db, region)
     data = catalog.build_rail(db, country, rail_key, flt=_valid_filter(filter),
                               media_type=type if type in ("movie", "tv") else None,
-                              all_countries=all_countries)
+                              all_countries=all_countries, sort=_valid_sort(sort))
     if data is None:
         raise HTTPException(404, "Unknown rail")
     data["country"] = country

@@ -88,3 +88,24 @@ def test_sync_requires_key(client):
     r = client.post("/api/sync")
     assert r.status_code == 400
     assert "TMDB key" in r.json()["detail"]
+
+
+def test_sort_reorders_catalog_rails(client):
+    run_sync_now()
+
+    def movie_titles(sort: str) -> list[str]:
+        shelf = client.get(f"/api/shelf?sort={sort}").json()
+        rails = {r["key"]: r for r in shelf["rails"]}
+        return [i["title"] for i in rails["movies"]["items"]]
+
+    # Default: TMDB popularity-desc (Long Voyage 90 > Neon Alley 80).
+    assert movie_titles("popularity") == ["The Long Voyage", "Neon Alley"]
+    # A→Z: case-insensitive title order ("neon" < "the long").
+    assert movie_titles("title") == ["Neon Alley", "The Long Voyage"]
+    # Newest first: Neon Alley (2024) before The Long Voyage (2023).
+    assert movie_titles("year") == ["Neon Alley", "The Long Voyage"]
+    # Unknown sort falls back to popularity.
+    assert movie_titles("bogus") == ["The Long Voyage", "Neon Alley"]
+    # The "see all" browse rail respects sort too.
+    r = client.get("/api/shelf/rail/movies?sort=title").json()
+    assert [i["title"] for i in r["items"]] == ["Neon Alley", "The Long Voyage"]

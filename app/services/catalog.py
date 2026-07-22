@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from sqlalchemy import delete as sa_delete
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import settings_store
@@ -268,11 +268,17 @@ async def run_sync(db: Session, api_key: str, country: str,
                     return it, {}
 
         results = await asyncio.gather(*(fetch(it) for it in items))
-        for item, regions in results:
+        # Write in chunks: commit every N titles (releasing the write-lock so
+        # interactive requests get a turn) and yield the event loop between
+        # chunks, instead of one long lock-held transaction that stalls reads.
+        for i, (item, regions) in enumerate(results):
             for c in countries:
                 country_data = regions.get(c)
                 if country_data:
                     _upsert_availability(db, item, c, country_data, by_tmdb_id, by_key)
+            if (i + 1) % 100 == 0:
+                db.commit()
+                await asyncio.sleep(0)
         # Prune regions no longer tracked.
         db.execute(sa_delete(Availability).where(Availability.country.notin_(countries)))
         db.commit()
@@ -562,8 +568,10 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
                       "items": list(watchlist_map.values())})
     if popular:
         ranked = sorted(popular.values(), key=lambda a: (-len(a["services"]), a["best"]))
+        # No per-rail cap here — the shelf's general 40-item rail cap applies, with
+        # a "see all N" into the full browse grid for the remainder.
         rails.append({"key": "popular", "label": "Popular right now",
-                      "items": [a["item"] for a in ranked][:24]})
+                      "items": [a["item"] for a in ranked]})
     for svc_key, g in sorted(leaving.items(), key=lambda kv: -len(kv[1]["items"])):
         rails.append({"key": f"leaving_{svc_key}", "label": f"Leaving {g['name']} soon",
                       "items": g["items"]})
@@ -603,14 +611,26 @@ def _category_rails(pool: list[dict]) -> list[dict]:
     return rails
 
 
+def _sort_clause(sort: str) -> list:
+    """order_by terms for the user-chosen sort. Default popularity-desc; A→Z is
+    case-insensitive; newest-first leaves NULL years last (SQLite sorts them last
+    under DESC) and breaks ties by popularity."""
+    if sort == "title":
+        return [func.lower(MediaItem.title).asc()]
+    if sort == "year":
+        return [MediaItem.year.desc(), MediaItem.popularity.desc()]
+    return [MediaItem.popularity.desc()]
+
+
 def build_shelf(db: Session, country: str, view: str = "categories",
                 flt: str = "all", media_type: str | None = None,
-                all_countries: list[str] | None = None) -> dict:
+                all_countries: list[str] | None = None,
+                sort: str = "popularity") -> dict:
     items = db.scalars(
         select(MediaItem)
         .where(MediaItem.media_type.in_(["movie", "tv"]))
         .options(selectinload(MediaItem.availabilities).selectinload(Availability.service))
-        .order_by(MediaItem.popularity.desc())
+        .order_by(*_sort_clause(sort))
     ).all()
     subs = subscribed_service_ids(db)
     serialized = _serialize_pool(items, subs, country, all_countries)
@@ -619,12 +639,18 @@ def build_shelf(db: Session, country: str, view: str = "categories",
         serialized = [s for s in serialized if s["media_type"] == media_type]
 
     # Imported-list rails (Watchlist, Top 10, Leaving soon) are personal, not
-    # catalog rails: they lead BOTH views (so switching view never adds/removes
-    # them). They respect the ownership filter like everything else — so under
-    # "On my services" they show only what you can actually watch (all gold, no
-    # gray) — but stay out of the elsewhere / single-service filters.
-    list_rails = (_imported_list_rails(db, {s["id"]: s for s in _apply_filter(serialized, flt)})
-                  if flt in ("all", "mine") else [])
+    # catalog rails: they lead BOTH views. Under "All"/"On my services" they
+    # respect the ownership filter (so "On my services" shows only what you can
+    # actually watch — all gold, no gray). Exception: "Popular right now" is a
+    # discovery rail, so under "Not on my services" it shows the FULL aggregated
+    # trending list (Watchlist/Leaving stay hidden there — they're personal).
+    if flt in ("all", "mine"):
+        list_rails = _imported_list_rails(db, {s["id"]: s for s in _apply_filter(serialized, flt)})
+    elif flt == "elsewhere":
+        list_rails = [r for r in _imported_list_rails(db, {s["id"]: s for s in serialized})
+                      if r["key"] == "popular"]
+    else:
+        list_rails = []
 
     if view == "services":
         # Rails are built from everything; the filter then selects RAILS —
@@ -678,13 +704,14 @@ def build_shelf(db: Session, country: str, view: str = "categories",
 
 def build_rail(db: Session, country: str, rail_key: str, flt: str = "all",
                media_type: str | None = None,
-               all_countries: list[str] | None = None) -> dict | None:
+               all_countries: list[str] | None = None,
+               sort: str = "popularity") -> dict | None:
     """Full, uncapped contents of one shelf rail — the "see all" browse page."""
     items = db.scalars(
         select(MediaItem)
         .where(MediaItem.media_type.in_(["movie", "tv"]))
         .options(selectinload(MediaItem.availabilities).selectinload(Availability.service))
-        .order_by(MediaItem.popularity.desc())
+        .order_by(*_sort_clause(sort))
     ).all()
     subs = subscribed_service_ids(db)
     serialized = _serialize_pool(items, subs, country, all_countries)
@@ -704,7 +731,10 @@ def build_rail(db: Session, country: str, rail_key: str, flt: str = "all",
 
     pool = _apply_filter(serialized, flt)
     if rail_key in ("watchlist", "popular") or rail_key.startswith("leaving_"):
-        rail = next((r for r in _imported_list_rails(db, {s["id"]: s for s in pool})
+        # "Popular right now" is a discovery rail: under "Not on my services" it
+        # uses the full trending list (matching the shelf), not the not-owned slice.
+        lookup = serialized if (rail_key == "popular" and flt == "elsewhere") else pool
+        rail = next((r for r in _imported_list_rails(db, {s["id"]: s for s in lookup})
                      if r["key"] == rail_key), None)
         return rail  # None → 404 in the endpoint
     if rail_key == "movies":

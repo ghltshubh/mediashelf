@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { MediaCard } from "../components/MediaCard";
 import { RegionSwitcher } from "../components/RegionSwitcher";
+import { SortSelect } from "../components/SortSelect";
 import { api } from "../lib/api";
 
 /** "See all" page: the full contents of one shelf rail as a wrapping grid. */
@@ -12,10 +14,11 @@ export function Browse() {
   const region = params.get("region") ?? "";
   const filter = params.get("filter") ?? "all";
   const type = params.get("type") ?? "";
+  const [sort, setSort] = useState("popularity");
   const navigate = useNavigate();
   const query = useQuery({
-    queryKey: ["rail", railKey, region, filter, type],
-    queryFn: () => api.rail(railKey!, region, filter, type),
+    queryKey: ["rail", railKey, region, filter, type, sort],
+    queryFn: () => api.rail(railKey!, region, filter, type, sort),
     enabled: !!railKey,
   });
 
@@ -42,6 +45,7 @@ export function Browse() {
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <h1 className="font-display text-[1.6rem] font-bold">{rail.label}</h1>
         <span className="font-mono text-[0.8rem] text-muted">{rail.items.length} titles</span>
+        <SortSelect value={sort} onChange={setSort} />
         {filter !== "all" && (
           <span className="rounded-full border border-owned/50 px-2 py-0.5 font-mono text-[0.7rem] text-owned">
             {filter === "mine" ? "on my services" : filter === "elsewhere" ? "not on my services" : filter}
