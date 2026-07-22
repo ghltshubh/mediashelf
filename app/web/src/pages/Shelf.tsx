@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { FilterChips } from "../components/FilterChips";
+import { GenreSelect } from "../components/GenreSelect";
 import { MediaCard } from "../components/MediaCard";
 import { MusicRail } from "../components/MusicRail";
 import { RailSection } from "../components/RailSection";
@@ -45,6 +46,7 @@ export function Shelf() {
   const [region, setRegion] = useState("");
   const [filter, setFilter] = useState<string | null>(null);
   const [sort, setSort] = useState("popularity");
+  const [genre, setGenre] = useState("");
   const mediaType = TAB_TYPE[tab] ?? "";
 
   // "On my services" is the default chip once anything is subscribed (§4.2);
@@ -59,8 +61,8 @@ export function Shelf() {
   const active = filter ?? (hasSubs ? "mine" : "all");
 
   const shelf = useQuery({
-    queryKey: ["shelf", view, region, active, mediaType, sort],
-    queryFn: () => api.shelf(view, region, active, mediaType, sort),
+    queryKey: ["shelf", view, region, active, mediaType, sort, genre],
+    queryFn: () => api.shelf(view, region, active, mediaType, sort, genre),
     enabled: !!settings.data?.tmdb_api_key_set && shelfKnown.isSuccess && tab !== "music",
     refetchInterval: (q) => (q.state.data?.sync.status === "running" ? 4000 : false),
   });
@@ -165,7 +167,8 @@ export function Shelf() {
           {data.stats.titles.toLocaleString()} titles across {data.stats.services} services ·{" "}
           {data.stats.subscribed} subscribed
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <GenreSelect value={genre} genres={data.all_genres} onChange={setGenre} />
           <SortSelect value={sort} onChange={setSort} />
           <RegionSwitcher regions={data.regions} active={data.country} onSelect={setRegion} />
           <div role="group" aria-label="Shelf view" className="flex rounded-[6px] border border-line">
@@ -247,6 +250,7 @@ export function Shelf() {
           region={data.country}
           filter={active}
           mediaType={mediaType}
+          genre={genre}
         >
           {rail.items.map((item) => (
             <MediaCard key={`${rail.key}-${item.id}`} item={item} />

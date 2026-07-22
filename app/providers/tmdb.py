@@ -111,6 +111,11 @@ class TMDBClient:
     async def detail(self, media_type: str, tmdb_id: int) -> dict:
         return await self._get(f"/{media_type}/{tmdb_id}")
 
+    async def title_extras(self, media_type: str, tmdb_id: int) -> dict:
+        """Keywords + cast in one call via append_to_response (M7 tags & cast)."""
+        return await self._get(f"/{media_type}/{tmdb_id}",
+                               append_to_response="keywords,credits")
+
     async def watch_provider_regions(self) -> list[dict]:
         """All regions TMDB reports availability for: [{iso_3166_1, english_name}]."""
         data = await self._get("/watch/providers/regions")

@@ -309,6 +309,10 @@ export function Settings() {
       };
     }
     if (sv.integration_kind === "connector") {
+      if (sv.connected && sv.expired) {
+        // Token present but expired — match the Library banner / Accounts card.
+        return { label: "Reconnect account", href: "#accounts", done: false };
+      }
       return { label: sv.connected ? "Account connected · manage" : "Connect account",
                href: "#accounts", done: sv.connected };
     }
@@ -481,6 +485,10 @@ export function Settings() {
         </Section>
 
         <Section id="accounts" title="Accounts">
+          <p className="mb-3 text-[0.9rem] text-muted">
+            Connect accounts for in-app playback and library sync. Your API keys live under{" "}
+            <a href="#keys" className="text-owned hover:underline">Keys</a>.
+          </p>
           {justConnected && (
             <StatusBanner kind="info">
               {justConnected === "spotify" ? "Spotify" : "YouTube"} connected — library sync started.
@@ -498,45 +506,6 @@ export function Settings() {
             {(connections.data ?? []).map((c) => (
               <ConnectionCard key={c.provider} conn={c} origin="settings" onError={setConnectError} />
             ))}
-          </div>
-
-          <div className="mt-6 rounded-[10px] border border-line bg-bg1 p-4">
-            <h3 className="font-display text-[1rem] font-semibold">Google API (for YouTube)</h3>
-            <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
-              YouTube needs your own free Google Cloud OAuth client: console.cloud.google.com →
-              new project → enable "YouTube Data API v3" → OAuth consent screen (External, add
-              yourself as test user) → Credentials → OAuth client ID (Web application) with
-              redirect URI <code className="font-mono text-[0.8rem]">http://127.0.0.1:8000/oauth2callback</code>.
-            </p>
-            <p className="mt-2 font-mono text-[0.8rem] text-muted">
-              status: {s?.google_configured ? "configured" : "not configured"}
-            </p>
-            <GoogleKeysForm onSaved={() => queryClient.invalidateQueries({ queryKey: ["connections"] })} />
-          </div>
-
-          <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
-            <h3 className="font-display text-[1rem] font-semibold">Apple Music developer token</h3>
-            <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
-              Optional — needs a paid Apple Developer account. Paste a MusicKit developer token
-              (JWT); tokens last ≤6 months and MediaShelf warns 14 days before expiry.
-            </p>
-            <div className="mt-3 flex max-w-lg items-end gap-3">
-              <label className="flex-1">
-                <span className="font-mono text-[0.75rem] text-muted">DEVELOPER TOKEN</span>
-                <input type="password" value={appleToken}
-                       onChange={(e) => setAppleToken(e.target.value)} className={inputCls} />
-              </label>
-              <button
-                disabled={!appleToken.trim() || saveApple.isPending}
-                onClick={() => saveApple.mutate()}
-                className={primaryBtn}
-              >
-                Save
-              </button>
-            </div>
-            {appleError && (
-              <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{appleError}</p>
-            )}
           </div>
         </Section>
 
@@ -665,6 +634,45 @@ export function Settings() {
             </div>
             {spotifyError && (
               <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{spotifyError}</p>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
+            <h3 className="font-display text-[1rem] font-semibold">Google API (for YouTube)</h3>
+            <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
+              YouTube needs your own free Google Cloud OAuth client: console.cloud.google.com →
+              new project → enable "YouTube Data API v3" → OAuth consent screen (External, add
+              yourself as test user) → Credentials → OAuth client ID (Web application) with
+              redirect URI <code className="font-mono text-[0.8rem]">http://127.0.0.1:8000/oauth2callback</code>.
+            </p>
+            <p className="mt-2 font-mono text-[0.8rem] text-muted">
+              status: {s?.google_configured ? "configured" : "not configured"}
+            </p>
+            <GoogleKeysForm onSaved={() => queryClient.invalidateQueries({ queryKey: ["connections"] })} />
+          </div>
+
+          <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
+            <h3 className="font-display text-[1rem] font-semibold">Apple Music developer token</h3>
+            <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
+              Optional — needs a paid Apple Developer account. Paste a MusicKit developer token
+              (JWT); tokens last ≤6 months and MediaShelf warns 14 days before expiry.
+            </p>
+            <div className="mt-3 flex max-w-lg items-end gap-3">
+              <label className="flex-1">
+                <span className="font-mono text-[0.75rem] text-muted">DEVELOPER TOKEN</span>
+                <input type="password" value={appleToken}
+                       onChange={(e) => setAppleToken(e.target.value)} className={inputCls} />
+              </label>
+              <button
+                disabled={!appleToken.trim() || saveApple.isPending}
+                onClick={() => saveApple.mutate()}
+                className={primaryBtn}
+              >
+                Save
+              </button>
+            </div>
+            {appleError && (
+              <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{appleError}</p>
             )}
           </div>
         </Section>

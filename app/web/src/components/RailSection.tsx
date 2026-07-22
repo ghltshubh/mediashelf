@@ -9,6 +9,7 @@ export function RailSection({
   region,
   filter,
   mediaType,
+  genre,
   children,
 }: {
   label: string;
@@ -18,12 +19,14 @@ export function RailSection({
   region?: string;
   filter?: string;
   mediaType?: string;
+  genre?: string;
   children: ReactNode;
 }) {
   const params = new URLSearchParams();
   if (region) params.set("region", region);
   if (filter && filter !== "all" && !railKey?.startsWith("svc_")) params.set("filter", filter);
   if (mediaType) params.set("type", mediaType);
+  if (genre) params.set("genre", genre);
   const qs = params.toString();
   const to = railKey ? `/browse/${railKey}${qs ? `?${qs}` : ""}` : undefined;
   // Only offer "see all" when there's genuinely more than the rail shows.

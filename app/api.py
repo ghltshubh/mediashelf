@@ -217,6 +217,13 @@ def list_services(db: Session = Depends(get_session)) -> list[dict]:
         connected_keys |= {"youtube", "youtube_music"}
     if settings_store.get_setting(db, "apple_developer_token"):
         connected_keys.add("apple_music")
+    # A token can be present but expired (refresh failed) — the tile should say
+    # "Reconnect", matching the Library banner and the Accounts card.
+    expired_keys = set()
+    if settings_store.get_setting(db, "spotify_auth_error") == "true":
+        expired_keys.add("spotify")
+    if settings_store.get_setting(db, "youtube_auth_error") == "true":
+        expired_keys |= {"youtube", "youtube_music"}
 
     out = []
     for s, sub in rows:
@@ -224,6 +231,7 @@ def list_services(db: Session = Depends(get_session)) -> list[dict]:
             s.key, s.tier, s.capabilities)
         out.append({
             "connected": s.key in connected_keys,
+            "expired": s.key in expired_keys,
             "watchlist_count": wl_counts.get(s.id, 0),
             "id": s.id, "key": s.key, "name": s.name, "kind": s.kind, "tier": s.tier,
             "subscribed": bool(sub and sub.subscribed),
@@ -336,13 +344,15 @@ def _valid_sort(sort: str) -> str:
 
 @router.get("/shelf")
 def shelf(view: str = "categories", region: str = "", filter: str = "all",
-          type: str = "", sort: str = "popularity", db: Session = Depends(get_session)) -> dict:
+          type: str = "", sort: str = "popularity", genre: str = "",
+          db: Session = Depends(get_session)) -> dict:
     country, all_countries = _region_or_home(db, region)
     data = catalog.build_shelf(db, country,
                                view=view if view in ("categories", "services") else "categories",
                                flt=_valid_filter(filter),
                                media_type=type if type in ("movie", "tv") else None,
-                               all_countries=all_countries, sort=_valid_sort(sort))
+                               all_countries=all_countries, sort=_valid_sort(sort),
+                               genre=genre or None)
     data["regions"] = _tracked_countries(db)
     return data
 
@@ -385,6 +395,7 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     await catalog.ensure_ratings(db, item_id, api_key,
                                  settings_store.get_setting(db, "omdb_api_key"))
     await catalog.ensure_expected_service(db, item_id, api_key)
+    await catalog.ensure_details(db, item_id, api_key)
     data = catalog.build_title(db, item_id, country, all_countries=all_countries)
     if data is None:
         raise HTTPException(404, "Title not found")

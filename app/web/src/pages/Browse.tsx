@@ -14,11 +14,12 @@ export function Browse() {
   const region = params.get("region") ?? "";
   const filter = params.get("filter") ?? "all";
   const type = params.get("type") ?? "";
+  const genre = params.get("genre") ?? "";
   const [sort, setSort] = useState("popularity");
   const navigate = useNavigate();
   const query = useQuery({
-    queryKey: ["rail", railKey, region, filter, type, sort],
-    queryFn: () => api.rail(railKey!, region, filter, type, sort),
+    queryKey: ["rail", railKey, region, filter, type, sort, genre],
+    queryFn: () => api.rail(railKey!, region, filter, type, sort, genre),
     enabled: !!railKey,
   });
 

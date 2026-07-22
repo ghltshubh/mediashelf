@@ -625,7 +625,7 @@ def _sort_clause(sort: str) -> list:
 def build_shelf(db: Session, country: str, view: str = "categories",
                 flt: str = "all", media_type: str | None = None,
                 all_countries: list[str] | None = None,
-                sort: str = "popularity") -> dict:
+                sort: str = "popularity", genre: str | None = None) -> dict:
     items = db.scalars(
         select(MediaItem)
         .where(MediaItem.media_type.in_(["movie", "tv"]))
@@ -637,6 +637,11 @@ def build_shelf(db: Session, country: str, view: str = "categories",
     # Media-type tabs (Movies/Shows) scope everything below; "All" leaves it unified.
     if media_type in ("movie", "tv"):
         serialized = [s for s in serialized if s["media_type"] == media_type]
+    # Every genre present (for the picker), taken BEFORE the genre filter narrows.
+    all_genres = sorted({g for s in serialized for g in s["genres"]})
+    # Genre filter scopes every rail to titles carrying that genre.
+    if genre:
+        serialized = [s for s in serialized if genre in s["genres"]]
 
     # Imported-list rails (Watchlist, Top 10, Leaving soon) are personal, not
     # catalog rails: they lead BOTH views. Under "All"/"On my services" they
@@ -694,6 +699,7 @@ def build_shelf(db: Session, country: str, view: str = "categories",
                   "subscribed": len(subs)},
         "rails": [r for r in rails if r["items"]],
         "subscribed_services": subscribed_services,
+        "all_genres": all_genres,
         "filter": flt,
         "sync": dict(sync_state),
         "country": country,
@@ -705,7 +711,7 @@ def build_shelf(db: Session, country: str, view: str = "categories",
 def build_rail(db: Session, country: str, rail_key: str, flt: str = "all",
                media_type: str | None = None,
                all_countries: list[str] | None = None,
-               sort: str = "popularity") -> dict | None:
+               sort: str = "popularity", genre: str | None = None) -> dict | None:
     """Full, uncapped contents of one shelf rail — the "see all" browse page."""
     items = db.scalars(
         select(MediaItem)
@@ -717,6 +723,8 @@ def build_rail(db: Session, country: str, rail_key: str, flt: str = "all",
     serialized = _serialize_pool(items, subs, country, all_countries)
     if media_type in ("movie", "tv"):
         serialized = [s for s in serialized if s["media_type"] == media_type]
+    if genre:  # keep "see all" consistent with the shelf's genre filter
+        serialized = [s for s in serialized if genre in s["genres"]]
 
     if rail_key.startswith("svc_"):
         # Reuse the exact rail construction (channel folds, other, none) so
@@ -872,6 +880,30 @@ async def ensure_expected_service(db: Session, item_id: int, api_key: str | None
     db.commit()
 
 
+async def ensure_details(db: Session, item_id: int, api_key: str | None) -> None:
+    """Lazily fetch a title's keywords (tags) + top cast on first view, in one
+    appended TMDB call. Cached in ``extra`` like the other enrichers."""
+    item = db.get(MediaItem, item_id)
+    if item is None or not api_key or item.tmdb_id is None:
+        return
+    if item.extra.get("details_checked"):
+        return
+    try:
+        data = await TMDBClient(api_key).title_extras(item.media_type, item.tmdb_id)
+    except Exception as exc:
+        logger.debug("title_extras fetch failed for %s: %s", item_id, exc)
+        return  # transient — don't mark checked, retry next view
+    kw = data.get("keywords") or {}
+    # Movies expose keywords under "keywords", TV under "results".
+    raw_kw = kw.get("keywords") or kw.get("results") or []
+    keywords = [k["name"] for k in raw_kw if k.get("name")][:15]
+    cast = [{"name": c.get("name"), "character": c.get("character") or None,
+             "profile": poster_url(c.get("profile_path"), "w185") if c.get("profile_path") else None}
+            for c in (data.get("credits") or {}).get("cast", [])[:12] if c.get("name")]
+    item.extra = {**item.extra, "details_checked": True, "keywords": keywords, "cast": cast}
+    db.commit()
+
+
 def build_title(db: Session, item_id: int, country: str,
                 all_countries: list[str] | None = None) -> dict | None:
     from app.services import playback as playback_service
@@ -894,4 +926,6 @@ def build_title(db: Session, item_id: int, country: str,
     data["play"] = playback_service.video_options(data["badges"])
     data["trailer_youtube_id"] = item.extra.get("trailer_youtube_id")
     data["ratings"] = item.extra.get("ratings") or {}  # imdb/rt/metacritic (OMDb)
+    data["keywords"] = item.extra.get("keywords") or []  # tags (M7)
+    data["cast"] = item.extra.get("cast") or []
     return data

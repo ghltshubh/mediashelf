@@ -85,6 +85,17 @@ export function TitlePage() {
           )}
           {t.overview && <p className="clamp-3 mt-4 max-w-2xl text-[0.95rem] text-ink/90">{t.overview}</p>}
 
+          {t.keywords?.length > 0 && (
+            <div className="mt-3 flex max-w-2xl flex-wrap gap-1.5">
+              {t.keywords.map((k) => (
+                <span key={k}
+                      className="rounded-full border border-line px-2 py-0.5 font-mono text-[0.7rem] text-muted">
+                  {k}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Exactly one primary Play button, routed per the M3 chain — movies/TV
               only ever get deep-link options (DRM stays browse-and-link). */}
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -115,6 +126,32 @@ export function TitlePage() {
               </button>
             )}
           </div>
+
+          {t.cast?.length > 0 && (
+            <section className="mt-8 max-w-2xl">
+              <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-muted">CAST</h2>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {t.cast.map((c, i) => (
+                  <div key={`${c.name}-${i}`} className="w-[76px] shrink-0 text-center">
+                    {c.profile ? (
+                      <img src={c.profile} alt="" loading="lazy"
+                           className="mx-auto h-[76px] w-[76px] rounded-full object-cover" />
+                    ) : (
+                      <div className="mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-full bg-bg2 text-muted">
+                        {c.name.slice(0, 1)}
+                      </div>
+                    )}
+                    <p className="mt-1 truncate text-[0.72rem] leading-tight" title={c.name}>{c.name}</p>
+                    {c.character && (
+                      <p className="truncate font-mono text-[0.62rem] text-muted" title={c.character}>
+                        {c.character}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Availability block — the product's money shot (Part 2 §4.4). */}
           <div className="mt-8 max-w-2xl space-y-6">

@@ -163,6 +163,7 @@ export interface Service {
   integration: string;
   integration_kind: "connector" | "watchlist" | "basic";
   connected: boolean;
+  expired: boolean;
   watchlist_count: number;
 }
 
@@ -202,6 +203,7 @@ export interface Shelf {
   stats: { titles: number; services: number; subscribed: number };
   rails: { key: string; label: string; items: ShelfItem[]; total: number; owned?: boolean }[];
   subscribed_services: { key: string; name: string }[];
+  all_genres: string[];
   filter: string;
   sync: SyncState;
   country: string;
@@ -273,6 +275,8 @@ export interface Title extends ShelfItem {
   regions: string[];
   world: { country: string; services: string[]; more: number }[];
   ratings: { imdb?: number; imdb_votes?: string; rt?: string; metacritic?: string };
+  keywords: string[];
+  cast: { name: string; character: string | null; profile: string | null }[];
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -345,14 +349,15 @@ export const api = {
     filter = "all",
     type = "",
     sort = "popularity",
+    genre = "",
   ) =>
     request<Shelf>(
-      `/api/shelf?view=${view}&region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}`,
+      `/api/shelf?view=${view}&region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}&genre=${encodeURIComponent(genre)}`,
     ),
   title: (id: number, region = "") => request<Title>(`/api/titles/${id}?region=${region}`),
-  rail: (key: string, region = "", filter = "all", type = "", sort = "popularity") =>
+  rail: (key: string, region = "", filter = "all", type = "", sort = "popularity", genre = "") =>
     request<RailPage>(
-      `/api/shelf/rail/${encodeURIComponent(key)}?region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}`,
+      `/api/shelf/rail/${encodeURIComponent(key)}?region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}&genre=${encodeURIComponent(genre)}`,
     ),
   regions: () => request<{ code: string; name: string }[]>("/api/regions"),
   sync: () => request<{ status: string }>("/api/sync", { method: "POST" }),

@@ -90,6 +90,35 @@ def test_sync_requires_key(client):
     assert "TMDB key" in r.json()["detail"]
 
 
+def test_tags_and_cast_on_title(client):
+    client.put("/api/settings", json={"tmdb_api_key": "goodkey"})  # enrichers need the key
+    run_sync_now()
+    shelf = client.get("/api/shelf").json()
+    mid = next(i["id"] for r in shelf["rails"] if r["key"] == "movies" for i in r["items"])
+    t = client.get(f"/api/titles/{mid}").json()
+    assert "adventure" in t["keywords"] and "ocean" in t["keywords"]
+    assert t["cast"][0] == {"name": "Jane Doe", "character": "Captain",
+                            "profile": "https://image.tmdb.org/t/p/w185/jane.jpg"}
+    assert t["cast"][1]["profile"] is None  # missing photo → None, no crash
+
+
+def test_genre_filter_scopes_shelf(client):
+    run_sync_now()
+    shelf = client.get("/api/shelf").json()
+    assert shelf["all_genres"] and all(isinstance(g, str) for g in shelf["all_genres"])
+    genre = "Drama"  # The Long Voyage carries genre 18 → Drama (conftest)
+    assert genre in shelf["all_genres"]
+    filtered = client.get(f"/api/shelf?genre={genre}").json()
+    catalog_rails = [r for r in filtered["rails"]
+                     if r["key"] in ("movies", "shows") or r["key"].startswith("genre_")]
+    assert catalog_rails
+    for r in catalog_rails:
+        assert all(genre in i["genres"] for i in r["items"])
+    # Unknown genre → no catalog rails at all.
+    empty = client.get("/api/shelf?genre=Nonexistent").json()
+    assert not any(r["key"] in ("movies", "shows") for r in empty["rails"])
+
+
 def test_sort_reorders_catalog_rails(client):
     run_sync_now()
 

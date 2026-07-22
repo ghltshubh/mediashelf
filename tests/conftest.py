@@ -69,11 +69,23 @@ def fake_tmdb(monkeypatch):
     async def watch_providers(self, media_type, tmdb_id):
         return PROVIDERS.get((tmdb_id, media_type), {})
 
+    async def title_extras(self, media_type, tmdb_id):
+        # Movies expose keywords under "keywords", TV under "results".
+        kw_field = "keywords" if media_type == "movie" else "results"
+        return {
+            "keywords": {kw_field: [{"id": 1, "name": "adventure"}, {"id": 2, "name": "ocean"}]},
+            "credits": {"cast": [
+                {"name": "Jane Doe", "character": "Captain", "profile_path": "/jane.jpg"},
+                {"name": "John Roe", "character": "Mate", "profile_path": None},
+            ]},
+        }
+
     monkeypatch.setattr(tmdb_mod.TMDBClient, "validate_key", validate_key)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "genres", genres)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "titles_list", titles_list)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "popular", popular)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "watch_providers", watch_providers)
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "title_extras", title_extras)
 
 
 @pytest.fixture
