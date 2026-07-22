@@ -39,7 +39,9 @@ def get_engine():
         def _sqlite_pragmas(dbapi_conn, _record):  # type: ignore[no-untyped-def]
             cur = dbapi_conn.cursor()
             cur.execute("PRAGMA journal_mode=WAL")
-            cur.execute("PRAGMA busy_timeout=5000")
+            # Wait out the sync's brief write bursts instead of erroring — its
+            # chunked commits release the lock frequently, so a write just retries.
+            cur.execute("PRAGMA busy_timeout=15000")
             cur.execute("PRAGMA synchronous=NORMAL")
             cur.close()
 

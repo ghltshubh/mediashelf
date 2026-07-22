@@ -264,8 +264,13 @@ def create_custom_service(body: CustomServiceBody, db: Session = Depends(get_ses
         raise HTTPException(422, "Give the service a name")
     if not url.startswith(("http://", "https://")):
         raise HTTPException(422, "Homepage must be a full URL (https://…)")
-    if body.kind not in ("video", "music", "podcast", "meta"):
-        raise HTTPException(422, "Unknown service kind")
+    # Custom services are browse-and-link markers only. That's useful for video
+    # (deep-link to its site), but a marker can never surface MUSIC — that needs a
+    # real catalog/library connector — so we don't let one pretend it will.
+    if body.kind != "video":
+        raise HTTPException(422, "Custom services are video-only. Music can't be added as a "
+                                 "marker — connect Spotify, YouTube, or Apple Music instead "
+                                 "(they have real catalogs/libraries).")
     key_base = "custom_" + "".join(c if c.isalnum() else "_" for c in name.lower()).strip("_")
     key = key_base
     n = 2

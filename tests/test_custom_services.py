@@ -37,6 +37,10 @@ def test_custom_service_validation(client):
     assert client.post("/api/services", json={"name": "X", "homepage_url": "not-a-url"}).status_code == 422
     assert client.post("/api/services", json={"name": "X", "homepage_url": "https://x.example.com",
                                               "kind": "hologram"}).status_code == 422
+    # Custom services are video-only: a music marker can't surface tracks.
+    music = client.post("/api/services", json={"name": "Gaana", "homepage_url": "https://gaana.com",
+                                               "kind": "music"})
+    assert music.status_code == 422 and "video-only" in music.json()["detail"]
 
 
 def test_seeded_service_cannot_be_deleted(client):

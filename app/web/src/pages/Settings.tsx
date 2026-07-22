@@ -109,10 +109,10 @@ function AddServiceForm() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
-  const [kind, setKind] = useState("video");
   const [error, setError] = useState<string | null>(null);
   const create = useMutation({
-    mutationFn: () => api.createService({ name, homepage_url: url, kind }),
+    // Custom services are video-only browse-and-link markers (see below).
+    mutationFn: () => api.createService({ name, homepage_url: url, kind: "video" }),
     onSuccess: () => {
       setName("");
       setUrl("");
@@ -124,10 +124,13 @@ function AddServiceForm() {
 
   return (
     <div className="mt-6 rounded-[10px] border border-line bg-bg1 p-4">
-      <h3 className="font-display text-[1rem] font-semibold">Add a service</h3>
-      <p className="mt-1 text-[0.85rem] text-muted">
-        For services we don't know. It joins your checklist and opens via its site — availability
-        per title can't be shown (no data source knows its catalog).
+      <h3 className="font-display text-[1rem] font-semibold">Add a video service</h3>
+      <p className="mt-1 max-w-xl text-[0.85rem] text-muted">
+        For a streaming app we don't know. It joins your checklist and opens via its site;
+        per-title availability can't be shown (no data source knows its catalog).{" "}
+        <strong>Music can't be added this way</strong> — a marker can't surface tracks. For music,
+        connect Spotify, YouTube, or Apple Music under{" "}
+        <a href="#keys" className="text-owned hover:underline">Keys</a>.
       </p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <label className="min-w-40 flex-1">
@@ -139,15 +142,6 @@ function AddServiceForm() {
           <span className="font-mono text-[0.75rem] text-muted">HOMEPAGE URL</span>
           <input value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls}
                  placeholder="https://www.kanopy.com" />
-        </label>
-        <label>
-          <span className="font-mono text-[0.75rem] text-muted">KIND</span>
-          <select value={kind} onChange={(e) => setKind(e.target.value)}
-                  className={`${inputCls} w-auto`}>
-            <option value="video">video</option>
-            <option value="music">music</option>
-            <option value="podcast">podcast</option>
-          </select>
         </label>
         <button
           disabled={!name.trim() || !url.trim() || create.isPending}
