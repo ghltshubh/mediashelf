@@ -97,7 +97,8 @@ def sync_all_connected(db: Session) -> None:
 
 def _entity_for(group_key: str) -> str:
     return {"spotify_like": "track", "spotify_follow": "artist",
-            "youtube_like": "video", "youtube_follow": "channel"}.get(group_key, "track")
+            "youtube_music": "track", "youtube_like": "video",
+            "youtube_follow": "channel"}.get(group_key, "track")
 
 
 def to_search_row(provider: str, group_key: str, e: dict,
@@ -149,12 +150,25 @@ def library_groups(db: Session, query: str | None = None) -> list[dict]:
                         if qn in (r.payload.get("title") or "").lower()
                         or any(qn in a.lower() for a in r.payload.get("artists", []))
                         or qn in (r.payload.get("channel") or "").lower()][:8]
-            if rows:
-                groups.append({
-                    "key": f"{provider}_{entry_type}",
-                    "provider": provider,
-                    "label": f"{connector.name} {label}",
-                    "count": len(rows),
-                    "items": [{"external_id": r.external_id, **r.payload} for r in rows],
-                })
+            for key, glabel, grows in _split_rows(provider, entry_type, connector, label, rows):
+                if grows:
+                    groups.append({
+                        "key": key,
+                        "provider": provider,
+                        "label": glabel,
+                        "count": len(grows),
+                        "items": [{"external_id": r.external_id, **r.payload} for r in grows],
+                    })
     return groups
+
+
+def _split_rows(provider, entry_type, connector, label, rows):
+    """One group per (provider, entry_type) — except YouTube likes, which split
+    into "YouTube Music" (category 10, → Music tab) and "YouTube videos" (the
+    rest, → Library) so mixed liked-videos land in their respective categories."""
+    if provider == "youtube" and entry_type == "like":
+        music = [r for r in rows if r.payload.get("is_music")]
+        videos = [r for r in rows if not r.payload.get("is_music")]
+        return [("youtube_music", "YouTube Music", music),
+                ("youtube_like", "YouTube videos", videos)]
+    return [(f"{provider}_{entry_type}", f"{connector.name} {label}", rows)]

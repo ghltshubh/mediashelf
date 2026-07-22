@@ -35,20 +35,24 @@ export function MusicTab() {
   const data = library.data;
   if (!data) return <div className="h-40 animate-pulse rounded-[10px] bg-bg1" />;
 
-  const likes = data.groups.find((g) => g.key === "spotify_like");
+  // Liked songs across every music source — Spotify plus YouTube's Music-category
+  // likes (regular YouTube video likes stay in the Library tab).
+  const likeGroups = data.groups.filter(
+    (g) => g.key === "spotify_like" || g.key === "youtube_music",
+  );
   const artists = data.groups.find((g) => g.key === "spotify_follow");
-  const anyMusic = (likes?.count ?? 0) + (artists?.count ?? 0) > 0;
+  const anyMusic = likeGroups.some((g) => g.count > 0) || (artists?.count ?? 0) > 0;
 
   if (!anyMusic) {
     return (
       <EmptyState
-        message="Connect Spotify to bring your music here — liked songs and followed artists, playable in place."
+        message="Connect Spotify or YouTube to bring your music here — liked songs and followed artists, playable in place."
         action={
           <Link
             to="/settings#accounts"
             className="inline-block rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0"
           >
-            Connect Spotify
+            Connect a music service
           </Link>
         }
       />
@@ -57,21 +61,23 @@ export function MusicTab() {
 
   return (
     <div>
-      {likes && likes.items.length > 0 && (
-        <section className="mb-10">
-          <div className="mb-3 flex items-baseline gap-3">
-            <h2 className="font-display text-[1.25rem] font-semibold">Liked songs</h2>
-            <Link to="/library" className="font-mono text-[0.75rem] text-muted hover:text-owned">
-              see all {likes.count} →
-            </Link>
-          </div>
-          <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
-            {likes.items.slice(0, 24).map((item, i) => (
-              <MusicCard key={i} item={item}
-                         onPlay={() => void activate(item, undefined, likes.items.slice(0, 24))} />
-            ))}
-          </div>
-        </section>
+      {likeGroups.map((lg) =>
+        lg.items.length > 0 ? (
+          <section key={lg.key} className="mb-10">
+            <div className="mb-3 flex items-baseline gap-3">
+              <h2 className="font-display text-[1.25rem] font-semibold">{lg.label}</h2>
+              <Link to="/library" className="font-mono text-[0.75rem] text-muted hover:text-owned">
+                see all {lg.count} →
+              </Link>
+            </div>
+            <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
+              {lg.items.slice(0, 24).map((item, i) => (
+                <MusicCard key={i} item={item}
+                           onPlay={() => void activate(item, undefined, lg.items.slice(0, 24))} />
+              ))}
+            </div>
+          </section>
+        ) : null,
       )}
 
       {artists && artists.items.length > 0 && (

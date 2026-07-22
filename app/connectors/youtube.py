@@ -305,22 +305,43 @@ class YouTubeConnector:
         likes_playlist = items[0]["contentDetails"]["relatedPlaylists"].get("likes")
         if not likes_playlist:
             return []
-        out: list[dict] = []
+        raw: list[tuple[str, dict]] = []
         req = yt.playlistItems().list(part="snippet", playlistId=likes_playlist, maxResults=50)
         while req is not None:
             resp = req.execute()
             for item in resp.get("items", []):
                 sn = item["snippet"]
-                video_id = sn["resourceId"]["videoId"]
-                out.append({
-                    "external_id": video_id,
-                    "payload": {
-                        "title": sn["title"],
-                        "channel": sn.get("videoOwnerChannelTitle"),
-                        "thumb": (sn.get("thumbnails", {}).get("default") or {}).get("url"),
-                        "url": f"https://www.youtube.com/watch?v={video_id}",
-                        "video_id": video_id,
-                    },
-                })
+                raw.append((sn["resourceId"]["videoId"], sn))
             req = yt.playlistItems().list_next(req, resp)
+        # The liked-videos list mixes songs and regular videos. Fetch each video's
+        # category (10 = Music) so the library can route music into the Music tab
+        # and the rest into "YouTube videos".
+        music_ids = self._music_video_ids(yt, [vid for vid, _ in raw])
+        out: list[dict] = []
+        for vid, sn in raw:
+            channel = sn.get("videoOwnerChannelTitle")
+            is_music = vid in music_ids
+            out.append({
+                "external_id": vid,
+                "payload": {
+                    "title": sn["title"],
+                    "channel": channel,
+                    "artists": [channel] if is_music and channel else [],
+                    "thumb": (sn.get("thumbnails", {}).get("default") or {}).get("url"),
+                    "url": f"https://www.youtube.com/watch?v={vid}",
+                    "video_id": vid,
+                    "is_music": is_music,
+                },
+            })
         return out
+
+    def _music_video_ids(self, yt: Any, ids: list[str]) -> set[str]:
+        """Which of these video ids are in YouTube's Music category (id 10).
+        videos.list is 1 quota unit per call; 50 ids per page."""
+        music: set[str] = set()
+        for i in range(0, len(ids), 50):
+            resp = yt.videos().list(part="snippet", id=",".join(ids[i:i + 50])).execute()
+            for v in resp.get("items", []):
+                if (v.get("snippet") or {}).get("categoryId") == "10":
+                    music.add(v["id"])
+        return music
