@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app import settings_store
 from app.connectors.base import AuthExpired, NotConnected, QuotaExhausted
+from app.providers import ytdlp_meta
 
 logger = logging.getLogger(__name__)
 
@@ -156,10 +157,16 @@ class YouTubeConnector:
         return json.loads(profile).get("id") if profile else None
 
     def search_track(self, db: Session, title: str, artists: list[str]) -> list[dict]:
-        """search.list costs 100 units — the expensive read (plan: M6's yt-dlp
-        toggle makes this free). Music category, small page, durations batched."""
-        yt = self._yt(db)
+        """search.list costs 100 units — the expensive read. When the yt-dlp
+        toggle is on (M6) this runs at zero quota; yt-dlp errors degrade silently
+        to the official API. Music category, small page, durations batched."""
         q = f"{artists[0]} {title}" if artists else title
+        if ytdlp_meta.active(db):
+            try:
+                return ytdlp_meta.search_music(q)
+            except ytdlp_meta.YtDlpError:
+                pass  # degrade to the official API below
+        yt = self._yt(db)
         try:
             resp = yt.search().list(part="snippet", q=q, type="video",
                                     videoCategoryId="10", maxResults=5).execute()
@@ -187,6 +194,11 @@ class YouTubeConnector:
         return out
 
     def search_channel(self, db: Session, name: str) -> list[dict]:
+        if ytdlp_meta.active(db):
+            try:
+                return ytdlp_meta.search_channel(name)
+            except ytdlp_meta.YtDlpError:
+                pass  # degrade to the official API below
         yt = self._yt(db)
         try:
             resp = yt.search().list(part="snippet", q=name, type="channel",

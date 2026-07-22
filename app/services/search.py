@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 from app import settings_store
 from app.models import Availability, MediaItem, Service
 from app.providers import spotify as spotify_api
+from app.providers import ytdlp_meta
 from app.providers.tmdb import TMDBClient, poster_url
 from app.services import catalog
 from app.services import playback as playback_service
@@ -137,6 +138,8 @@ class TMDBSearchProvider:
                 "title": r.get("title") or r.get("name") or "Untitled",
                 "year": int(date[:4]) if date[:4].isdigit() else None,
                 "poster": poster_url(r.get("poster_path"), "w92"),
+                "rating": r.get("vote_average") or None,
+                "genres": [],
                 "popularity": r.get("popularity", 0.0),
                 "owned": False,
                 "badges": [],
@@ -178,8 +181,54 @@ class SpotifyCatalogProvider:
         return out
 
 
+class YouTubeSearchProvider:
+    """YouTube joins the music fan-out only behind the yt-dlp toggle — the
+    official `search.list` costs 100 quota units/call (M6). When on, reads go
+    through yt-dlp at zero quota; if yt-dlp errors mid-search, fall back to the
+    official API but only when the user actually connected YouTube, else stay
+    silent. Rows carry `youtube_video_id`, which `attach_music_playback` already
+    turns into in-app playback."""
+
+    key = "youtube"
+    scope = "music"
+    service_key = "youtube_music"
+    service_name = "YouTube Music"
+
+    def __init__(self) -> None:
+        from app.connectors.youtube import YouTubeConnector
+        self._connector = YouTubeConnector()
+
+    def configured(self, db: Session) -> bool:
+        return ytdlp_meta.active(db)
+
+    async def search(self, db: Session, query: str, country: str) -> list[dict]:
+        try:
+            rows = await asyncio.to_thread(ytdlp_meta.search_music, query)
+        except ytdlp_meta.YtDlpError:
+            if not self._connector.connected(db):
+                return []
+            rows = await asyncio.to_thread(self._connector.search_track, db, query, [])
+        return [self._to_music_row(r) for r in rows]
+
+    @staticmethod
+    def _to_music_row(r: dict) -> dict:
+        return {
+            "entity": "track",
+            "title": r.get("title") or "",
+            "artists": r.get("artists") or [],
+            "year": None,
+            "thumb": r.get("thumb"),
+            "duration_ms": r.get("duration_ms"),
+            "youtube_video_id": r.get("external_id"),
+            "popularity": None,
+            "services": [{"service_key": "youtube_music",
+                          "service_name": "YouTube Music", "url": r.get("url")}],
+        }
+
+
 # Registration point: append here — nothing else changes.
-PROVIDERS: list[Any] = [LocalCatalogProvider(), TMDBSearchProvider(), SpotifyCatalogProvider()]
+PROVIDERS: list[Any] = [LocalCatalogProvider(), TMDBSearchProvider(),
+                        SpotifyCatalogProvider(), YouTubeSearchProvider()]
 _breakers: dict[str, CircuitBreaker] = {}
 
 
@@ -248,6 +297,7 @@ def _badges_from_providers(providers_map: dict, title: str, countries: list[str]
                 badges.append({
                     "service_key": key,
                     "service_name": display if c == home else f"{display} · {c}",
+                    "logo": svc.logo_url if svc else None,
                     "offer_type": offer_type,
                     "owned": key in subscribed_keys and offer_type in ("flatrate", "free", "ads"),
                     "deep_link": link,
@@ -323,9 +373,14 @@ def _merge_music(query: str, per_provider: dict[str, list[dict]],
             key = (item["entity"], _norm(item["title"]),
                    _norm(item["artists"][0]) if item["artists"] else "")
             if key in rows:
-                existing = rows[key]["services"]
-                have = {s["service_key"] for s in existing}
-                existing.extend(s for s in item["services"] if s["service_key"] not in have)
+                row = rows[key]
+                have = {s["service_key"] for s in row["services"]}
+                row["services"].extend(s for s in item["services"] if s["service_key"] not in have)
+                # Carry over playback identifiers a later provider supplies (e.g.
+                # YouTube's video id) so in-app playback lights up on the merged row.
+                for f in ("spotify_id", "spotify_uri", "apple_id", "youtube_video_id"):
+                    if not row.get(f) and item.get(f):
+                        row[f] = item[f]
             else:
                 rows[key] = {k: v for k, v in item.items()}
                 order.append(key)

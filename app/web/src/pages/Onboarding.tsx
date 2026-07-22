@@ -145,6 +145,13 @@ function StepTwo({ onDone }: { onDone: () => void }) {
 
 function StepThree({ onDone }: { onDone: () => void }) {
   const connections = useQuery({ queryKey: ["connections"], queryFn: api.connections });
+  const queryClient = useQueryClient();
+  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const setYtdlp = useMutation({
+    mutationFn: (enabled: boolean) => api.updateSettings({ ytdlp_enabled: enabled }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
+  });
+  const s = settings.data;
   const [error, setError] = useState<string | null>(null);
 
   return (
@@ -164,6 +171,36 @@ function StepThree({ onDone }: { onDone: () => void }) {
       <p className="mt-3 max-w-xl font-mono text-[0.75rem] text-muted">
         YouTube and Apple Music need keys added in Settings → Accounts first — both are guided there.
       </p>
+
+      {/* yt-dlp suggestion — honest one-paragraph explanation (M6), off by default. */}
+      <div className="mt-6 max-w-xl rounded-[10px] border border-line bg-bg1 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="font-display text-[1.05rem] font-semibold">yt-dlp (optional)</h2>
+          {s?.ytdlp_detected ? (
+            <label className="flex shrink-0 items-center gap-2 text-[0.85rem]">
+              <input
+                type="checkbox"
+                checked={!!s?.ytdlp_enabled}
+                onChange={(e) => setYtdlp.mutate(e.target.checked)}
+                className="accent-[var(--owned)]"
+              />
+              enable
+            </label>
+          ) : (
+            <span className="shrink-0 font-mono text-[0.72rem] text-muted">not installed</span>
+          )}
+        </div>
+        <p className="mt-1 text-[0.9rem] text-muted">
+          Saves API quota, especially for search — it reads YouTube's public pages via unofficial
+          access (ToS-gray), metadata only, never downloads or plays media. Off by default; change
+          it any time in Settings → Plugins.
+        </p>
+        {!s?.ytdlp_detected && (
+          <p className="mt-2 font-mono text-[0.72rem] text-muted">
+            Install it locally with <code>pipx install yt-dlp</code> to enable.
+          </p>
+        )}
+      </div>
 
       {/* "Do this later" is a first-class button, not a text link (Part 2 §4.1). */}
       <div className="mt-8 flex items-center gap-4">

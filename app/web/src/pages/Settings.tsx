@@ -190,6 +190,11 @@ export function Settings() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
   });
 
+  const setYtdlp = useMutation({
+    mutationFn: (enabled: boolean) => api.updateSettings({ ytdlp_enabled: enabled }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
+  });
+
   const [newKey, setNewKey] = useState("");
   const [keyError, setKeyError] = useState<string | null>(null);
   const [spotifyId, setSpotifyId] = useState("");
@@ -299,13 +304,13 @@ export function Settings() {
     if (sv.integration_kind === "watchlist") {
       const done = sv.watchlist_count > 0;
       return {
-        label: done ? `${sv.watchlist_count} imported · update` : "set up watchlist import",
+        label: done ? `${sv.watchlist_count} in your watchlist · refresh` : "Import your list",
         href: `http://127.0.0.1:8765/#${sv.key}`, external: true, done,
       };
     }
     if (sv.integration_kind === "connector") {
-      return { label: sv.connected ? "connected · manage" : "connect", href: "#accounts",
-               done: sv.connected };
+      return { label: sv.connected ? "Account connected · manage" : "Connect account",
+               href: "#accounts", done: sv.connected };
     }
     return undefined;
   };
@@ -344,7 +349,7 @@ export function Settings() {
         ))}
       </nav>
 
-      <div className="min-w-0 max-w-3xl flex-1">
+      <div className="min-w-0 max-w-5xl flex-1">
         <h1 className="font-display text-[1.6rem] font-bold">Settings</h1>
 
         {s?.restore_notice && (
@@ -370,72 +375,109 @@ export function Settings() {
             className="mb-4 w-full max-w-sm rounded-[6px] border border-line bg-bg1 px-3 py-2 text-[0.9rem] outline-none placeholder:text-muted/60 focus:border-owned/60"
           />
 
-          {!searching && subscribed.length > 0 && (
-            <div className="mb-5">
-              <p className="mb-2 font-mono text-[0.7rem] tracking-widest text-muted">
-                YOUR SERVICES · {subscribed.length}
-              </p>
-              {grid(subscribed, true)}
-            </div>
-          )}
+          <div className="flex flex-col gap-8 lg:flex-row">
+            <div className="min-w-0 flex-1">
+              {!searching && subscribed.length > 0 && (
+                <div className="mb-5">
+                  <p className="mb-2 font-mono text-[0.7rem] tracking-widest text-muted">
+                    YOUR SERVICES · {subscribed.length}
+                  </p>
+                  {grid(subscribed, true)}
+                </div>
+              )}
 
-          {(connect.length > 0 || watchlist.length > 0) && (
-            <div>
-              <p className="mb-2 font-mono text-[0.7rem] tracking-widest text-muted">
-                DEEPER INTEGRATION
-              </p>
               {connect.length > 0 && (
-                <>
-                  <p className="mb-1.5 font-mono text-[0.65rem] text-muted/70">
-                    connect · library sync &amp; in-app playback
+                <div className="mb-5">
+                  <p className="mb-1.5 text-[0.8rem] text-muted">
+                    <span className="text-ink">Connect an account</span> — optional · sync your
+                    library &amp; play in-app
                   </p>
                   {grid(connect, true)}
-                </>
+                </div>
               )}
               {watchlist.length > 0 && (
-                <>
-                  <p className="mb-1.5 mt-3 font-mono text-[0.65rem] text-muted/70">
-                    watchlist import · pull your "My List" into the shelf
+                <div className="mb-5">
+                  <p className="mb-1.5 text-[0.8rem] text-muted">
+                    <span className="text-ink">Import a watchlist</span> — optional · pull your
+                    saved list into your Watchlist
                   </p>
                   {grid(watchlist, true)}
-                </>
-              )}
-            </div>
-          )}
-
-          {group("ALL VIDEO SERVICES", restVideo, "browse & deep-link — tick any you subscribe to")}
-          {group("ALL MUSIC SERVICES", restMusic, "browse & deep-link")}
-          {group("PODCASTS", restPodcast, "")}
-          {group("CHANNELS & ADD-ONS", channels,
-            "separate purchases sold through Amazon / Apple TV / Roku")}
-
-          {searching && subscribed.length + connect.length + watchlist.length + restVideo.length +
-            restMusic.length + restPodcast.length + channels.length === 0 && (
-            <p className="mt-4 font-mono text-[0.8rem] text-muted">no services match “{serviceQuery}”</p>
-          )}
-
-          {!searching && customServices.length > 0 && (
-            <div className="mt-4 space-y-1">
-              {customServices.map((sv) => (
-                <div key={sv.id} className="flex items-center gap-3 font-mono text-[0.8rem] text-muted">
-                  <span>{sv.name}</span>
-                  {sv.homepage_url && (
-                    <a href={sv.homepage_url} target="_blank" rel="noreferrer"
-                       className="text-owned hover:underline">
-                      ↗ open
-                    </a>
-                  )}
-                  <button
-                    onClick={() => removeService.mutate(sv.id)}
-                    className="text-[color:var(--danger)] hover:underline"
-                  >
-                    remove
-                  </button>
                 </div>
-              ))}
+              )}
+
+              {group("ALL VIDEO SERVICES", restVideo, "browse & deep-link — tick any you subscribe to")}
+              {group("ALL MUSIC SERVICES", restMusic, "browse & deep-link")}
+              {group("PODCASTS", restPodcast, "")}
+              {group("CHANNELS & ADD-ONS", channels,
+                "separate purchases sold through Amazon / Apple TV / Roku")}
+
+              {searching && subscribed.length + connect.length + watchlist.length + restVideo.length +
+                restMusic.length + restPodcast.length + channels.length === 0 && (
+                <p className="mt-4 font-mono text-[0.8rem] text-muted">no services match “{serviceQuery}”</p>
+              )}
+
+              {!searching && customServices.length > 0 && (
+                <div className="mt-4 space-y-1">
+                  {customServices.map((sv) => (
+                    <div key={sv.id} className="flex items-center gap-3 font-mono text-[0.8rem] text-muted">
+                      <span>{sv.name}</span>
+                      {sv.homepage_url && (
+                        <a href={sv.homepage_url} target="_blank" rel="noreferrer"
+                           className="text-owned hover:underline">
+                          ↗ open
+                        </a>
+                      )}
+                      <button
+                        onClick={() => removeService.mutate(sv.id)}
+                        className="text-[color:var(--danger)] hover:underline"
+                      >
+                        remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!searching && <AddServiceForm />}
             </div>
-          )}
-          {!searching && <AddServiceForm />}
+
+            {/* Right-side legend: the three mechanisms, plainly, so tick / connect /
+                import stop reading as one confusing chain. */}
+            <aside className="shrink-0 lg:sticky lg:top-6 lg:h-fit lg:w-64">
+              <div className="rounded-[10px] border border-line bg-bg1 p-4">
+                <p className="mb-3 font-mono text-[0.7rem] tracking-widest text-muted">HOW THIS WORKS</p>
+                <div className="space-y-3 text-[0.8rem] leading-snug">
+                  <div>
+                    <p className="font-semibold text-ink">✓ Tick a service</p>
+                    <p className="text-muted">
+                      Marks what you pay for and lights up its titles across the shelf. No login —
+                      all most services need.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-ink">
+                      Connect <span className="font-normal text-muted">(optional)</span>
+                    </p>
+                    <p className="text-muted">
+                      Spotify · YouTube · Apple Music. Links your account with your own key to sync
+                      your library and play in-app.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-ink">
+                      Import your list <span className="font-normal text-muted">(optional)</span>
+                    </p>
+                    <p className="text-muted">
+                      Pulls your saved "My List" from streaming apps into your Watchlist, via the
+                      local companion tool.
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 border-t border-line pt-3 text-[0.75rem] text-muted">
+                  Tick and connect are independent — do either without the other.
+                </p>
+              </div>
+            </aside>
+          </div>
         </Section>
 
         <Section id="accounts" title="Accounts">
@@ -649,7 +691,45 @@ export function Settings() {
         </Section>
 
         <Section id="plugins" title="Plugins">
-          <KeyValueMono pairs={[["yt-dlp", "not detected — optional metadata plugin, arrives in M6"]]} />
+          <div className="rounded-[10px] border border-line bg-bg1 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-display text-[1rem] font-semibold">yt-dlp</h3>
+                <p className="mt-0.5 font-mono text-[0.72rem] text-muted">
+                  {s?.ytdlp_detected ? (
+                    <span className="text-[color:var(--play)]">✓ detected</span>
+                  ) : (
+                    "not detected"
+                  )}
+                  {" · optional metadata plugin"}
+                </p>
+              </div>
+              <label className="flex shrink-0 items-center gap-2 text-[0.85rem]">
+                <input
+                  type="checkbox"
+                  checked={!!s?.ytdlp_enabled}
+                  disabled={!s?.ytdlp_detected || setYtdlp.isPending}
+                  onChange={(e) => setYtdlp.mutate(e.target.checked)}
+                  className="accent-[var(--owned)]"
+                />
+                use for YouTube
+              </label>
+            </div>
+            <p className="mt-2 max-w-lg text-[0.85rem] text-muted">
+              Saves API quota — especially for search, where YouTube's official API charges 100
+              units per query. When on, YouTube search and public channel/playlist reads route
+              through yt-dlp at zero quota, falling back to the official API if yt-dlp errors.
+              It reads YouTube's public pages via unofficial access (ToS-gray), so it's{" "}
+              <strong>off by default</strong> and only ever reads metadata — never downloads or
+              plays media.
+            </p>
+            {!s?.ytdlp_detected && (
+              <p className="mt-2 font-mono text-[0.75rem] text-muted">
+                To enable, install it locally: <code>pipx install yt-dlp</code> (or{" "}
+                <code>pip install yt-dlp</code>), then reload.
+              </p>
+            )}
+          </div>
           <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
             <h3 className="font-display text-[1rem] font-semibold">Watchlist importer</h3>
             <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
@@ -671,7 +751,7 @@ export function Settings() {
         <Section id="about" title="About">
           <KeyValueMono
             pairs={[
-              ["MediaShelf", "0.1.0 (M1 — skeleton & catalog)"],
+              ["MediaShelf", "0.1.0 (M1–M6)"],
               ["Data", "TMDB — this product uses the TMDB API but is not endorsed or certified by TMDB"],
               ["Storage", "SQLite in your data dir · keys encrypted at rest · nightly backups (keep 7)"],
             ]}

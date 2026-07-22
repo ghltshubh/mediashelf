@@ -1,21 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Badge, ShelfItem } from "../lib/api";
-
-/** Small service mark: logo when available, else short name. Owned services get
-    a faint brass ring so the ownership signal survives on the logos. */
-function ServiceMark({ name, logo, owned }: { name: string; logo?: string | null; owned: boolean }) {
-  if (logo) {
-    return (
-      <img src={logo} alt={name} title={name}
-           className={`h-4 w-4 shrink-0 rounded-[3px] object-contain ${owned ? "ring-1 ring-owned/60" : ""}`} />
-    );
-  }
-  return (
-    <span title={name}
-          className={`shrink-0 ${owned ? "text-owned" : "text-muted"}`}>{name.slice(0, 3)}</span>
-  );
-}
+import { ServiceMark } from "./ServiceMark";
 
 /** Group badges into distinct services, split by ownership. Badges arrive
     owned-first / streaming-first from the backend, so the first badge kept per
@@ -100,14 +86,6 @@ export function MediaCard({ item, fluid = false }: { item: ShelfItem; fluid?: bo
         ) : null}
       </div>
 
-      {!item.owned && item.unlock_service && (
-        <span
-          title={`$ ${item.unlock_service}`}
-          className="absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate whitespace-nowrap rounded-full bg-bg0/85 px-2 py-0.5 font-mono text-[0.7rem] text-owned"
-        >
-          $ {item.unlock_service}
-        </span>
-      )}
       {item.badges.length === 0 && (
         <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate whitespace-nowrap rounded-full bg-bg0/85 px-2 py-0.5 font-mono text-[0.7rem] text-muted">
           not streaming yet

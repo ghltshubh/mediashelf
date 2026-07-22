@@ -1,5 +1,6 @@
 import type { SearchResult } from "../lib/api";
 import { isVideo } from "../lib/searchData";
+import { ServiceMark, distinctServices } from "./ServiceMark";
 
 function ThumbFallback({ label }: { label: string }) {
   return (
@@ -26,12 +27,15 @@ export function SearchResultRow({
 }) {
   const video = isVideo(item);
   const thumb = video ? item.poster : item.thumb;
+  // Video sub-line: "movie/show", rating, and a lead genre — matching the shelf
+  // cards. Music keeps its entity · artists line.
+  const genre = video ? item.genres?.[0] : undefined;
   const sub = video
     ? item.media_type === "tv" ? "show" : "movie"
     : item.entity === "artist" ? "artist" : `${item.entity} · ${item.artists.slice(0, 2).join(", ")}`;
-  const pills = video
-    ? item.badges.slice(0, 4).map((b) => ({ key: b.service_key, name: b.service_name, owned: b.owned }))
-    : item.services.map((s) => ({ key: s.service_key, name: s.service_name, owned: s.owned }));
+  // Video shows deduped service LOGOS (like the cards); music keeps name pills
+  // (music services carry no logos in the catalog).
+  const videoMarks = video ? distinctServices(item.badges, 4) : [];
 
   return (
     <div
@@ -59,16 +63,26 @@ export function SearchResultRow({
         </p>
         <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden">
           <span className="shrink-0 font-mono text-[0.7rem] text-muted">{sub}</span>
-          {pills.map((p) => (
-            <span
-              key={p.key}
-              className={`shrink-0 rounded-full border px-1.5 font-mono text-[0.65rem] ${
-                p.owned ? "border-owned/50 text-owned" : "border-line text-muted"
-              }`}
-            >
-              {p.name}
-            </span>
-          ))}
+          {video && item.rating ? (
+            <span className="shrink-0 font-mono text-[0.7rem] text-muted">★ {item.rating.toFixed(1)}</span>
+          ) : null}
+          {genre ? (
+            <span className="shrink-0 truncate font-mono text-[0.7rem] text-muted">· {genre}</span>
+          ) : null}
+          {video
+            ? videoMarks.map((b) => (
+                <ServiceMark key={b.service_key} name={b.service_name} logo={b.logo} owned={b.owned} />
+              ))
+            : item.services.map((s) => (
+                <span
+                  key={s.service_key}
+                  className={`shrink-0 rounded-full border px-1.5 font-mono text-[0.65rem] ${
+                    s.owned ? "border-owned/50 text-owned" : "border-line text-muted"
+                  }`}
+                >
+                  {s.service_name}
+                </span>
+              ))}
         </div>
       </div>
       <span className="shrink-0 font-mono text-[0.75rem] text-muted">{item.hint}</span>

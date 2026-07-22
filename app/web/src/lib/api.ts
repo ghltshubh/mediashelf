@@ -22,6 +22,8 @@ export interface Settings {
   preferred_music_service: "auto" | "spotify" | "apple_music" | "youtube";
   catalog_pages: number;
   omdb_configured: boolean;
+  ytdlp_detected: boolean;
+  ytdlp_enabled: boolean;
 }
 
 export interface RailPage {
@@ -206,6 +208,8 @@ export interface VideoResult {
   title: string;
   year: number | null;
   poster: string | null;
+  rating?: number | null;
+  genres?: string[];
   owned: boolean;
   badges: Badge[];
   unlock_service: string | null;
@@ -288,6 +292,7 @@ export const api = {
       google_client_id: string;
       google_client_secret: string;
       preferred_music_service: "auto" | "spotify" | "apple_music" | "youtube";
+      ytdlp_enabled: boolean;
     }>,
   ) =>
     request<Settings>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),

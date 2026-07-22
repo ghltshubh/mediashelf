@@ -18,6 +18,7 @@ from app import settings_store
 from app.db import get_session, session_factory
 from app.models import Availability, Service, UserSub
 from app.providers import spotify as spotify_api
+from app.providers import ytdlp_meta
 from app.providers.tmdb import TMDBClient, TMDBError
 from app.secrets import mask
 from app.services import backups, catalog
@@ -57,6 +58,7 @@ class SettingsUpdate(BaseModel):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     preferred_music_service: str | None = None
+    ytdlp_enabled: bool | None = None
 
 
 def _settings_payload(db: Session) -> dict:
@@ -80,6 +82,10 @@ def _settings_payload(db: Session) -> dict:
         "preferred_music_service": settings_store.get_setting(db, "preferred_music_service") or "auto",
         "catalog_pages": int(settings_store.get_setting(db, "catalog_pages")
                              or catalog.DEFAULT_SYNC_PAGES),
+        # yt-dlp: a separately-installed community plugin (M6). `detected` is
+        # whether the binary is on PATH; `enabled` is the user's toggle.
+        "ytdlp_detected": ytdlp_meta.detected(),
+        "ytdlp_enabled": settings_store.get_setting(db, "ytdlp_enabled") == "true",
     }
 
 
@@ -120,6 +126,8 @@ async def update_settings(body: SettingsUpdate, db: Session = Depends(get_sessio
             schedule_sync()
     if body.onboarded is not None:
         settings_store.set_setting(db, "onboarded", "true" if body.onboarded else "false")
+    if body.ytdlp_enabled is not None:
+        settings_store.set_setting(db, "ytdlp_enabled", "true" if body.ytdlp_enabled else "false")
     if body.dismiss_restore_notice:
         settings_store.set_setting(db, "restore_notice", None)
     if body.omdb_api_key is not None:

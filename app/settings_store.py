@@ -20,6 +20,7 @@ SECRET_KEYS = {
 DEFAULTS = {
     "country": "US",
     "onboarded": "false",
+    "ytdlp_enabled": "false",
 }
 
 

@@ -23,6 +23,12 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
 ]
+# Optional community plugin (M6): metadata-only, zero-quota YouTube reads.
+# Deliberately NOT a runtime dependency — it is detected at runtime, never
+# bundled, and never ships in a paid build (plan Appendix B).
+ytdlp = [
+    "yt-dlp>=2024.1",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

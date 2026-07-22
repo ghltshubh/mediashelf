@@ -31,11 +31,6 @@ export function ServiceTile({
         <span className="font-mono text-[0.7rem] text-muted">
           {service.kind}{on ? " · subscribed" : ""}
         </span>
-        {service.featured && !service.custom && (
-          <span className={`mt-0.5 font-mono text-[0.62rem] ${on ? "text-owned/80" : "text-muted/70"}`}>
-            {service.integration}
-          </span>
-        )}
         {service.custom && (
           <span className="mt-0.5 font-mono text-[0.65rem] text-muted/80">
             your service · opens {hostOf(service.homepage_url)} · no availability data
