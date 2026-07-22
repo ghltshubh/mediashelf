@@ -24,12 +24,17 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
   **"expected on X"** hints for upcoming titles that aren't streaming yet.
 - **Podcasts** — subscribe by RSS feed URL or bulk-import an OPML file from any other app;
   episodes stream in-app and auto-advance through the show. No account, no API key, no setup.
+- **Display language** — the interface follows a locale you pick (or your browser's), independent
+  of your content region; dates and numbers format to match.
+- **Installable PWA** — add it to your phone or desktop home screen; the app shell is cached for
+  instant loads and offline shell rendering (live data still needs the network).
 
 - **Optional `yt-dlp`** metadata provider — zero-quota YouTube search behind a detected,
   off-by-default toggle (Settings → Plugins).
 
 **Milestones M1–M8 complete** (skeleton, search, accounts/playback, matching, migrations,
-yt-dlp, concierge & a11y polish, podcasts). Next: a social/feed layer (M9).
+yt-dlp, concierge & a11y polish, podcasts) plus i18n and PWA installability. M9 (social/feed
+layer) is deferred.
 
 ## Quick start (Docker)
 
