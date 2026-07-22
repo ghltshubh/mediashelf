@@ -5,9 +5,26 @@ what you subscribe to vs what's elsewhere, with working deep links into the owni
 
 MediaShelf never stores, serves, or plays media files. DRM services are browse-and-link only.
 
-**Status: M1 — skeleton & catalog.** Shelf, title pages, subscription checklist, custom
-services, TMDB catalog sync with per-country availability, nightly DB backups.
-Search (M2), accounts & in-app playback (M3), and migrations (M5) come next per `mediashelf-plan.md`.
+## What it does today
+
+- **One lit shelf** across your services — titles you can watch on what you subscribe to are
+  lit; everything else is dimmed, each with working deep links into the owning app.
+- **Universal search** over movies/TV (TMDB) and music (Spotify catalog), fanned out per source.
+- **Accounts & in-app playback** — connect Spotify / YouTube / Apple Music with your own keys;
+  video is browse-and-link only (never DRM playback).
+- **Matching engine & migrations** — move playlists/likes/follows between music services, with a
+  reviewable, revertible job log.
+- **Per-region availability** — the same title can stream on different services by country, and
+  the shelf reflects the region you pick.
+- **Media-type tabs** (All / Movies / Shows / Music) and a personal **Watchlist** rail imported
+  from your streaming apps via a separate local companion tool (logged-in scraping stays out of
+  the product).
+- **"Popular right now"** aggregated from per-service Top 10s, **IMDb/RT/Metacritic** ratings
+  (optional, via OMDb) alongside TMDB scores, service logos on every card, and studio-inferred
+  **"expected on X"** hints for upcoming titles that aren't streaming yet.
+
+**Milestones M1–M5 complete.** Next: optional `yt-dlp` metadata provider (M6), concierge &
+accessibility polish (M7), more connectors (M8), and a social/feed layer (M9).
 
 ## Quick start (Docker)
 
@@ -38,7 +55,8 @@ Component demo page (dev builds): http://localhost:5173/dev/components
 ## Notes
 
 - **Your own API keys.** MediaShelf never ships or embeds shared keys; setup walks you through
-  creating your own (a commercial requirement, see plan Appendix B).
+  creating your own. Only a TMDB key is required; connectors (Spotify/YouTube/Apple) and the
+  optional OMDb ratings key are added when you want those features.
 - **Secrets** are encrypted at rest (NaCl SecretBox; per-install key in the data dir) and never logged.
 - **Backups**: nightly SQLite backups (keeps 7) in the data dir; Settings → About has one-click
   export/import; a corrupt DB is auto-restored from the latest good backup on boot.
