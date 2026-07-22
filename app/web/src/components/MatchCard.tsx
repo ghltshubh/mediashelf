@@ -87,8 +87,11 @@ export function MatchCard({
       : null;
 
   return (
+    // Mouse click OR keyboard focus of any inner control marks this the active
+    // row (for the A/S/P shortcuts) — no bogus button role on a container.
     <div
       onClick={onFocus}
+      onFocusCapture={onFocus}
       className={`rounded-[10px] border bg-bg1 p-4 ${
         active ? "border-owned/60" : "border-line"
       }`}

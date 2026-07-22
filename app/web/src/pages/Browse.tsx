@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { MediaCard } from "../components/MediaCard";
 import { RegionSwitcher } from "../components/RegionSwitcher";
@@ -23,7 +23,17 @@ export function Browse() {
     enabled: !!railKey,
   });
 
-  if (query.isError) return <EmptyState message="That rail doesn't exist anymore." />;
+  if (query.isError)
+    return (
+      <EmptyState
+        message="That rail doesn't exist anymore."
+        action={
+          <Link to="/" className="inline-block rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0">
+            Back to shelf
+          </Link>
+        }
+      />
+    );
   if (!query.data) {
     return (
       <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">

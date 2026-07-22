@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { AvailabilityRow } from "../components/AvailabilityRow";
 import { EmptyState } from "../components/EmptyState";
 import { PlayButton } from "../components/PlayButton";
@@ -20,7 +20,21 @@ export function TitlePage() {
   });
 
   if (query.isError) {
-    return <EmptyState message="Title not found. It may have rotated out of the catalog on the last sync." />;
+    return (
+      <EmptyState
+        message="Title not found. It may have rotated out of the catalog on the last sync."
+        action={
+          <div className="flex items-center gap-3">
+            <Link to="/" className="inline-block rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0">
+              Back to shelf
+            </Link>
+            <Link to="/search" className="inline-block rounded-[6px] border border-line px-4 py-2 hover:bg-bg2">
+              Search
+            </Link>
+          </div>
+        }
+      />
+    );
   }
   if (!query.data) {
     return (

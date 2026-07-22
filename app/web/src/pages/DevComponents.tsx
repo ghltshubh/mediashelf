@@ -9,7 +9,7 @@ import type { Badge as BadgeT, ShelfItem } from "../lib/api";
 
 const owned: BadgeT = {
   service_key: "netflix", service_name: "Netflix", logo: null, offer_type: "flatrate", owned: true,
-  deep_link: "#", price: null, signup_url: null, sso_note: null,
+  deep_link: "#", price: null, signup_url: null, sso_note: null, plan_price: null,
   checked_at: new Date(Date.now() - 3600e3).toISOString(),
 };
 const elsewhere: BadgeT = { ...owned, service_key: "max", service_name: "Max", owned: false, signup_url: "#" };

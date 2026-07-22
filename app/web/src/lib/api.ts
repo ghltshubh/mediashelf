@@ -177,6 +177,7 @@ export interface Badge {
   price: string | null;
   signup_url: string | null;
   sso_note: string | null;
+  plan_price: string | null;
   checked_at: string | null;
 }
 

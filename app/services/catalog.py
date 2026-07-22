@@ -16,7 +16,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app import settings_store
+from app import pricing, settings_store
 from app.models import Availability, MediaItem, Service, UserSub
 from app.providers.tmdb import IMAGE_BASE, TMDBClient, TMDBError, poster_url
 
@@ -391,6 +391,7 @@ def _badge(avail: Availability, item: MediaItem, subscribed_ids: set[int]) -> di
         "price": avail.price,
         "signup_url": svc.signup_url,
         "sso_note": svc.sso_note,
+        "plan_price": pricing.price_for(svc.key),  # concierge: known base-plan price
         "country": avail.country,
         # Availability rows show last-checked age on hover (plan failure modes).
         "checked_at": avail.updated_at.isoformat() if avail.updated_at else None,
