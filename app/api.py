@@ -195,12 +195,22 @@ async def validate_tmdb(body: ValidateBody) -> dict:
 # ---------- Services / subscription checklist ----------
 
 @router.get("/services")
-def list_services(db: Session = Depends(get_session)) -> list[dict]:
+def list_services(region: str = "", db: Session = Depends(get_session)) -> list[dict]:
     rows = db.execute(
         select(Service, UserSub).outerjoin(UserSub, UserSub.service_id == Service.id)
         .order_by(Service.tier, Service.name)
     ).all()
     from app.models import LibraryEntry
+
+    # Checklist region scope: video is shown only where it's actually available,
+    # so you don't scroll every region's providers. Default = your home country;
+    # "ALL" shows every region's providers. Availability from other regions still
+    # works on the shelf — this only trims the tick-list.
+    scope = (region or "").strip().upper() or (settings_store.get_setting(db, "country") or "US")
+    region_svc_ids: set[int] = set()
+    if scope != "ALL":
+        region_svc_ids = set(db.scalars(
+            select(Availability.service_id).where(Availability.country == scope).distinct()))
 
     # State so tiles can show what's already set up vs untouched.
     wl_counts: dict[int, int] = {
@@ -243,8 +253,15 @@ def list_services(db: Session = Depends(get_session)) -> list[dict]:
             if integ_kind != "connector":
                 continue
         elif s.kind == "video" and synced:
-            if not (s.custom or s.tmdb_provider_id is not None
-                    or integ_kind in ("watchlist", "connector")):
+            # Always keep watchlist/connector/custom. Otherwise: in "ALL" mode keep
+            # anything TMDB tracks anywhere (prunes the truly-dead like DAZN); for a
+            # specific region keep only what's actually available there.
+            if s.custom or integ_kind in ("watchlist", "connector"):
+                pass
+            elif scope == "ALL":
+                if s.tmdb_provider_id is None:
+                    continue
+            elif s.id not in region_svc_ids:
                 continue
         out.append({
             "connected": s.key in connected_keys,

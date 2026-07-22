@@ -160,7 +160,11 @@ export function Settings() {
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const services = useQuery({ queryKey: ["services"], queryFn: api.services });
+  const [svcRegion, setSvcRegion] = useState("");  // "" = home; "ALL" = every region
+  const services = useQuery({
+    queryKey: ["services", svcRegion],
+    queryFn: () => api.services(svcRegion),
+  });
   const connections = useQuery({ queryKey: ["connections"], queryFn: api.connections });
   const [connectError, setConnectError] = useState<string | null>(params.get("connect_error"));
   const justConnected = params.get("connected");
@@ -365,13 +369,32 @@ export function Settings() {
           <p className="mb-3 text-[0.9rem] text-muted">
             Tick what you subscribe to — this drives the lit/dimmed split everywhere. No logins needed.
           </p>
-          <input
-            value={serviceQuery}
-            onChange={(e) => setServiceQuery(e.target.value)}
-            placeholder="🔍  filter services…"
-            aria-label="Filter services"
-            className="mb-4 w-full max-w-sm rounded-[6px] border border-line bg-bg1 px-3 py-2 text-[0.9rem] outline-none placeholder:text-muted/60 focus:border-owned/60"
-          />
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <input
+              value={serviceQuery}
+              onChange={(e) => setServiceQuery(e.target.value)}
+              placeholder="🔍  filter services…"
+              aria-label="Filter services"
+              className="w-full max-w-sm rounded-[6px] border border-line bg-bg1 px-3 py-2 text-[0.9rem] outline-none placeholder:text-muted/60 focus:border-owned/60"
+            />
+            {/* Show only services available in a region, so the list isn't every
+                region's providers at once. Availability elsewhere still works. */}
+            <label className="flex items-center gap-1.5">
+              <span className="font-mono text-[0.7rem] text-muted">region</span>
+              <select
+                value={svcRegion}
+                onChange={(e) => setSvcRegion(e.target.value)}
+                aria-label="Services region"
+                className="rounded-[6px] border border-line bg-bg1 px-2 py-1 font-mono text-[0.75rem] outline-none focus:border-owned/60"
+              >
+                <option value="">{s?.country ?? "home"} (home)</option>
+                {(s?.extra_countries ?? []).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                <option value="ALL">All regions</option>
+              </select>
+            </label>
+          </div>
 
           <div className="flex flex-col gap-8 lg:flex-row">
             <div className="min-w-0 flex-1">

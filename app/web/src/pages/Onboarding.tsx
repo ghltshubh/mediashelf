@@ -104,7 +104,7 @@ function StepOne({ onDone }: { onDone: () => void }) {
 
 function StepTwo({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient();
-  const services = useQuery({ queryKey: ["services"], queryFn: api.services });
+  const services = useQuery({ queryKey: ["services"], queryFn: () => api.services() });
   const toggle = useMutation({
     mutationFn: ({ id, subscribed }: { id: number; subscribed: boolean }) =>
       api.setSubscription(id, subscribed),

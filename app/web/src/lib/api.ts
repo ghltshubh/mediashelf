@@ -322,7 +322,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ tmdb_api_key: key }),
     }),
-  services: () => request<Service[]>("/api/services"),
+  services: (region = "") => request<Service[]>(`/api/services?region=${region}`),
   setSubscription: (id: number, subscribed: boolean) =>
     request<{ id: number; subscribed: boolean }>(`/api/services/${id}/subscription`, {
       method: "PUT",

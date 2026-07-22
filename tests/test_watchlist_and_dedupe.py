@@ -40,7 +40,8 @@ def test_services_payload_flags_channels(client):
         db.flush()
         db.add(UserSub(service_id=svc.id, subscribed=False))
         db.commit()
-    services = client.get("/api/services").json()
+    # region=ALL so the checklist isn't scoped to a single region's availability.
+    services = client.get("/api/services?region=ALL").json()
     row = next(s for s in services if s["name"] == "Animax Amazon Channel")
     assert row["is_channel"] is True
     assert next(s for s in services if s["key"] == "netflix")["is_channel"] is False
