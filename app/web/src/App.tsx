@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { GlobalLoadingBar } from "./components/GlobalLoadingBar";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { PlayerBar } from "./components/PlayerBar";
 import { SearchPalette } from "./components/SearchPalette";
@@ -63,6 +64,7 @@ export function App() {
 
   return (
     <div className="min-h-screen">
+      <GlobalLoadingBar />
       <OfflineBanner />
       <Sidebar />
       <SearchPalette />

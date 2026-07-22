@@ -11,6 +11,9 @@ export interface PlayRequest {
   subtitle: string;
   artwork: string | null;
   options: PlayOption[];
+  // Music via YouTube: hide the video theater and play audio only (the iframe
+  // stays alive off-screen). Trailers/actual videos leave this unset.
+  audioOnly?: boolean;
 }
 
 interface PlayerState {

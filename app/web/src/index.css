@@ -64,6 +64,21 @@ body {
   transition: background-color 150ms ease-out, transform 150ms ease-out;
 }
 
+/* Global loading bar — an indeterminate segment sliding while data is in flight
+   (page switches, title/person loads). Static under reduced-motion. */
+.loading-seg {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, var(--owned), transparent);
+  animation: loading-slide 1.05s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  0%   { left: -35%; }
+  100% { left: 100%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

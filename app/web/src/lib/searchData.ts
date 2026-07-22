@@ -106,6 +106,8 @@ function toRequest(m: MusicResult): PlayRequest {
     subtitle: m.artists.join(", "),
     artwork: m.thumb,
     options: m.playback!.options,
+    // Songs play audio-only (hide the YouTube video); actual videos keep theirs.
+    audioOnly: m.entity === "track",
   };
 }
 
@@ -135,6 +137,7 @@ export function useActivate() {
           subtitle: item.artists.join(", "),
           artwork: item.thumb,
           options: item.playback.options,
+          audioOnly: item.entity === "track",
         });
       }
       onDone?.();

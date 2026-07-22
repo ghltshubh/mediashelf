@@ -19,7 +19,11 @@ function fmt(s: number): string {
 export function PlayerBar() {
   const p = usePlayer();
   const active = p.request !== null && p.option !== null;
-  const isVideo = p.option?.engine === "youtube";
+  const isYouTube = p.option?.engine === "youtube";
+  const audioOnly = p.request?.audioOnly ?? false;
+  // Show the video theater only for actual video (trailers, YouTube videos) —
+  // songs play audio-only with the iframe parked off-screen.
+  const showTheater = active && isYouTube && !audioOnly;
   const isEmbed = p.option?.engine === "spotify_embed";
   const canTransport =
     p.option?.engine === "youtube" ||
@@ -38,10 +42,15 @@ export function PlayerBar() {
         </div>
       )}
 
-      {/* Theater panel — the YouTube slot div must always exist for the iframe API. */}
+      {/* YouTube slot — must stay mounted for the iframe API. Visible theater for
+          videos/trailers; for audio-only songs it's parked off-screen but alive,
+          so audio keeps playing without showing the video. */}
       <div
-        className={`fixed bottom-[88px] right-4 z-40 overflow-hidden rounded-[10px] border border-line bg-black
-                    ${active && isVideo ? "block" : "hidden"} w-[min(480px,calc(100vw-2rem))]`}
+        className={
+          showTheater
+            ? "fixed bottom-[88px] right-4 z-40 block w-[min(480px,calc(100vw-2rem))] overflow-hidden rounded-[10px] border border-line bg-black"
+            : "pointer-events-none fixed -left-[9999px] top-0 h-[135px] w-[240px] overflow-hidden opacity-0"
+        }
       >
         <div className="aspect-video w-full">
           <div id={YOUTUBE_CONTAINER_ID} className="h-full w-full" />
