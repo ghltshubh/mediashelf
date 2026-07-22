@@ -368,7 +368,7 @@ export function Settings() {
             <StatusBanner kind="quota">
               {s.restore_notice}{" "}
               <button onClick={() => dismissRestore.mutate()} className="underline underline-offset-2">
-                Dismiss
+                {t("common.dismiss")}
               </button>
             </StatusBanner>
           </div>
@@ -376,7 +376,7 @@ export function Settings() {
 
         <Section id="services" title={t("settings.section.services")}>
           <p className="mb-3 text-[0.9rem] text-muted">
-            Tick what you subscribe to — this drives the lit/dimmed split everywhere. No logins needed.
+            {t("settings.services.intro")}
           </p>
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <input
@@ -474,38 +474,29 @@ export function Settings() {
                 import stop reading as one confusing chain. */}
             <aside className="shrink-0 lg:sticky lg:top-6 lg:h-fit lg:w-64">
               <div className="rounded-[10px] border border-line bg-bg1 p-4">
-                <p className="mb-3 font-mono text-[0.7rem] tracking-widest text-muted">HOW THIS WORKS</p>
+                <p className="mb-3 font-mono text-[0.7rem] tracking-widest text-muted">{t("settings.legend.title")}</p>
                 <div className="space-y-3 text-[0.8rem] leading-snug">
                   <div>
-                    <p className="font-semibold text-ink">✓ Tick a service</p>
-                    <p className="text-muted">
-                      Marks what you pay for and lights up its titles across the shelf (lit = on
-                      your services, dimmed = elsewhere). No login. That's <em>all</em> it does — it
-                      doesn't add anything to your watchlist, import a library, or connect an
-                      account.
-                    </p>
+                    <p className="font-semibold text-ink">{t("settings.legend.tickTitle")}</p>
+                    <p className="text-muted">{t("settings.legend.tickBody")}</p>
                   </div>
                   <div>
                     <p className="font-semibold text-ink">
-                      Connect <span className="font-normal text-muted">(optional)</span>
+                      {t("settings.legend.connectTitle")}{" "}
+                      <span className="font-normal text-muted">{t("settings.legend.optional")}</span>
                     </p>
-                    <p className="text-muted">
-                      Spotify · YouTube · Apple Music. Links your account with your own key to sync
-                      your library and play in-app.
-                    </p>
+                    <p className="text-muted">{t("settings.legend.connectBody")}</p>
                   </div>
                   <div>
                     <p className="font-semibold text-ink">
-                      Import your list <span className="font-normal text-muted">(optional)</span>
+                      {t("settings.legend.importTitle")}{" "}
+                      <span className="font-normal text-muted">{t("settings.legend.optional")}</span>
                     </p>
-                    <p className="text-muted">
-                      Pulls your saved "My List" from streaming apps into your Watchlist, via the
-                      local companion tool.
-                    </p>
+                    <p className="text-muted">{t("settings.legend.importBody")}</p>
                   </div>
                 </div>
                 <p className="mt-3 border-t border-line pt-3 text-[0.75rem] text-muted">
-                  Tick and connect are independent — do either without the other.
+                  {t("settings.legend.footer")}
                 </p>
               </div>
             </aside>
@@ -514,8 +505,8 @@ export function Settings() {
 
         <Section id="accounts" title={t("settings.section.accounts")}>
           <p className="mb-3 text-[0.9rem] text-muted">
-            Connect accounts for in-app playback and library sync. Your API keys live under{" "}
-            <a href="#keys" className="text-owned hover:underline">Keys</a>.
+            {t("settings.accounts.introPre")}
+            <a href="#keys" className="text-owned hover:underline">{t("settings.section.keys")}</a>.
           </p>
           {justConnected && (
             <StatusBanner kind="info">
@@ -526,7 +517,7 @@ export function Settings() {
             <StatusBanner kind="danger">
               {connectError}{" "}
               <button onClick={() => setConnectError(null)} className="underline underline-offset-2">
-                Dismiss
+                {t("common.dismiss")}
               </button>
             </StatusBanner>
           )}
@@ -565,7 +556,7 @@ export function Settings() {
               onClick={() => saveKey.mutate()}
               className={primaryBtn}
             >
-              Save
+              {t("common.save")}
             </button>
           </div>
           <div className="mt-6">
@@ -622,7 +613,7 @@ export function Settings() {
               onClick={() => syncNow.mutate()}
               className={quietBtn}
             >
-              {s?.sync.status === "running" ? "Syncing…" : "Sync now"}
+              {s?.sync.status === "running" ? t("common.syncing") : t("common.syncNow")}
             </button>
           </div>
           <p className="mt-2 max-w-lg font-mono text-[0.7rem] text-muted">
