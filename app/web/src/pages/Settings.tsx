@@ -7,6 +7,7 @@ import { RegionPicker } from "../components/RegionPicker";
 import { ServiceTile } from "../components/ServiceTile";
 import { StatusBanner } from "../components/StatusBanner";
 import { api, type Service } from "../lib/api";
+import { useT } from "../lib/i18n";
 import { LOCALE_OPTIONS } from "../lib/locale";
 import { ageOf } from "../lib/time";
 
@@ -159,6 +160,7 @@ function AddServiceForm() {
 
 export function Settings() {
   const queryClient = useQueryClient();
+  const t = useT();
   const [params] = useSearchParams();
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const [svcRegion, setSvcRegion] = useState("");  // "" = home; "ALL" = every region
@@ -347,19 +349,19 @@ export function Settings() {
   return (
     <div className="flex gap-10">
       <nav aria-label="Settings sections" className="sticky top-6 hidden h-fit w-40 shrink-0 md:block">
-        {SECTIONS.map(([id, label]) => (
+        {SECTIONS.map(([id]) => (
           <a
             key={id}
             href={`#${id}`}
             className="hoverable block rounded-[6px] px-3 py-1.5 text-[0.875rem] text-muted hover:bg-bg2 hover:text-ink"
           >
-            {label}
+            {t(`settings.section.${id}`)}
           </a>
         ))}
       </nav>
 
       <div className="min-w-0 max-w-5xl flex-1">
-        <h1 className="font-display text-[1.6rem] font-bold">Settings</h1>
+        <h1 className="font-display text-[1.6rem] font-bold">{t("settings.title")}</h1>
 
         {s?.restore_notice && (
           <div className="mt-4">
@@ -372,7 +374,7 @@ export function Settings() {
           </div>
         )}
 
-        <Section id="services" title="Services">
+        <Section id="services" title={t("settings.section.services")}>
           <p className="mb-3 text-[0.9rem] text-muted">
             Tick what you subscribe to — this drives the lit/dimmed split everywhere. No logins needed.
           </p>
@@ -510,7 +512,7 @@ export function Settings() {
           </div>
         </Section>
 
-        <Section id="accounts" title="Accounts">
+        <Section id="accounts" title={t("settings.section.accounts")}>
           <p className="mb-3 text-[0.9rem] text-muted">
             Connect accounts for in-app playback and library sync. Your API keys live under{" "}
             <a href="#keys" className="text-owned hover:underline">Keys</a>.
@@ -535,7 +537,7 @@ export function Settings() {
           </div>
         </Section>
 
-        <Section id="keys" title="Keys">
+        <Section id="keys" title={t("settings.section.keys")}>
           {s?.sync.status === "error" && s.sync.error_kind === "auth" && (
             <StatusBanner kind="danger">TMDB rejected your key — {s.sync.detail}</StatusBanner>
           )}
@@ -728,7 +730,7 @@ export function Settings() {
           </div>
         </Section>
 
-        <Section id="playback" title="Playback">
+        <Section id="playback" title={t("settings.section.playback")}>
           <p className="mb-3 text-[0.9rem] text-muted">
             Where the play button routes by default. "Auto" follows the chain — Spotify
             (Premium) → Apple Music → YouTube → previews → deep link. A pinned service
@@ -749,7 +751,7 @@ export function Settings() {
           </label>
         </Section>
 
-        <Section id="plugins" title="Plugins">
+        <Section id="plugins" title={t("settings.section.plugins")}>
           <div className="rounded-[10px] border border-line bg-bg1 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -807,7 +809,7 @@ export function Settings() {
           </div>
         </Section>
 
-        <Section id="about" title="About">
+        <Section id="about" title={t("settings.section.about")}>
           <KeyValueMono
             pairs={[
               ["MediaShelf", "0.1.0 (M1–M6)"],

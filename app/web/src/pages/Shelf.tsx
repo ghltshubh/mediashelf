@@ -81,13 +81,13 @@ export function Shelf() {
   if (settings.data && !settings.data.tmdb_api_key_set) {
     return (
       <EmptyState
-        message="Add your TMDB key to load the catalog."
+        message={t("empty.tmdb")}
         action={
           <Link
             to="/onboarding"
             className="inline-block rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0"
           >
-            Add TMDB key
+            {t("empty.tmdbCta")}
           </Link>
         }
       />
@@ -180,8 +180,11 @@ export function Shelf() {
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[0.8rem] text-muted">
-          {fmtNumber(data.stats.titles, locale)} titles across {data.stats.services} services ·{" "}
-          {data.stats.subscribed} subscribed
+          {t("stats.line", {
+            titles: fmtNumber(data.stats.titles, locale),
+            services: data.stats.services,
+            subscribed: data.stats.subscribed,
+          })}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <GenreSelect value={genre} genres={data.all_genres} onChange={setGenre} />
@@ -220,31 +223,27 @@ export function Shelf() {
 
       {data.rails.length === 0 && data.stats.titles === 0 && data.sync.status !== "running" && (
         <EmptyState
-          message="The catalog is empty. Run a sync to pull titles from TMDB."
+          message={t("empty.catalog")}
           action={
             <button
               onClick={() => api.sync().then(() => shelf.refetch())}
               className="rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0"
             >
-              Sync now
+              {t("empty.syncNow")}
             </button>
           }
         />
       )}
       {data.rails.length === 0 && data.stats.titles > 0 && (
         <EmptyState
-          message={
-            active === "mine"
-              ? "Nothing on your services yet. Tick the services you subscribe to in Settings."
-              : "No titles match this filter."
-          }
+          message={active === "mine" ? t("empty.mine") : t("empty.noMatch")}
           action={
             active === "mine" ? (
               <Link
                 to="/settings"
                 className="inline-block rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0"
               >
-                Pick your services
+                {t("empty.mineCta")}
               </Link>
             ) : (
               <button
@@ -254,7 +253,7 @@ export function Shelf() {
                 }}
                 className="rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0"
               >
-                Show all titles
+                {t("empty.showAll")}
               </button>
             )
           }

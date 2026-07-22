@@ -4,6 +4,7 @@ import { EmptyState } from "../components/EmptyState";
 import { StatusBanner } from "../components/StatusBanner";
 import { api } from "../lib/api";
 import type { Podcast, PodcastEpisode, PlayOption, Playback } from "../lib/api";
+import { useT } from "../lib/i18n";
 import { fmtDate, useLocale } from "../lib/locale";
 import { usePlayer } from "../stores/player";
 
@@ -35,6 +36,7 @@ function episodeRequest(podcast: Podcast, ep: PodcastEpisode) {
 function EpisodeList({ podcast }: { podcast: Podcast }) {
   const player = usePlayer();
   const locale = useLocale();
+  const t = useT();
   const detail = useQuery({
     queryKey: ["podcast", podcast.id],
     queryFn: () => api.podcast(podcast.id),
@@ -43,7 +45,7 @@ function EpisodeList({ podcast }: { podcast: Podcast }) {
 
   if (detail.isLoading) return <div className="h-24 animate-pulse rounded-[8px] bg-bg2" />;
   if (eps.length === 0) {
-    return <p className="px-1 py-4 font-mono text-[0.8rem] text-muted">No episodes with audio found.</p>;
+    return <p className="px-1 py-4 font-mono text-[0.8rem] text-muted">{t("podcasts.noEpisodes")}</p>;
   }
 
   const queue = eps.map((e) => episodeRequest(detail.data!, e));
@@ -77,6 +79,7 @@ function EpisodeList({ podcast }: { podcast: Podcast }) {
 /** Podcasts (M8): subscribe by RSS feed / OPML, play episodes in-app. */
 export function Podcasts() {
   const queryClient = useQueryClient();
+  const t = useT();
   const podcasts = useQuery({ queryKey: ["podcasts"], queryFn: api.podcasts });
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +116,7 @@ export function Podcasts() {
     <div className="max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[0.8rem] text-muted">
-          {shows.length} subscription{shows.length === 1 ? "" : "s"} · no account or API key needed
+          {t("podcasts.count", { n: shows.length })}
         </p>
         <div className="flex gap-2">
           <button
@@ -121,20 +124,20 @@ export function Podcasts() {
             disabled={refresh.isPending || shows.length === 0}
             className="rounded-[6px] border border-line px-3 py-1 font-mono text-[0.75rem] text-muted hover:bg-bg2 disabled:opacity-40"
           >
-            {refresh.isPending ? "refreshing…" : "refresh all"}
+            {refresh.isPending ? t("podcasts.refreshing") : t("podcasts.refresh")}
           </button>
           <a
             href="/api/podcasts/opml/export"
             className="rounded-[6px] border border-line px-3 py-1 font-mono text-[0.75rem] text-muted hover:bg-bg2"
           >
-            export OPML
+            {t("podcasts.exportOpml")}
           </a>
           <button
             onClick={() => fileRef.current?.click()}
             disabled={importOpml.isPending}
             className="rounded-[6px] border border-line px-3 py-1 font-mono text-[0.75rem] text-muted hover:bg-bg2 disabled:opacity-40"
           >
-            {importOpml.isPending ? "importing…" : "import OPML"}
+            {importOpml.isPending ? t("podcasts.importing") : t("podcasts.importOpml")}
           </button>
           <input
             ref={fileRef}
@@ -157,7 +160,7 @@ export function Podcasts() {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste a podcast RSS feed URL…"
+          placeholder={t("podcasts.placeholder")}
           aria-label="Podcast RSS feed URL"
           className="flex-1 rounded-[6px] border border-line bg-bg1 px-3 py-2 text-[0.9rem] outline-none placeholder:text-muted/50 focus:border-owned/60"
         />
@@ -166,14 +169,14 @@ export function Podcasts() {
           disabled={subscribe.isPending || !url.trim()}
           className="rounded-[6px] bg-owned px-4 py-2 font-medium text-bg0 disabled:opacity-40"
         >
-          {subscribe.isPending ? "adding…" : "Subscribe"}
+          {subscribe.isPending ? t("podcasts.adding") : t("podcasts.subscribe")}
         </button>
       </form>
 
       {error && <StatusBanner kind="danger">{error}</StatusBanner>}
 
       {shows.length === 0 ? (
-        <EmptyState message="No podcasts yet. Paste an RSS feed URL above, or import an OPML file from another app." />
+        <EmptyState message={t("podcasts.empty")} />
       ) : (
         <div className="space-y-3">
           {shows.map((pod) => (
