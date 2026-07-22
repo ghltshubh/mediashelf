@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AvailabilityRow } from "../components/AvailabilityRow";
+import { DiscoveryCard } from "../components/DiscoveryCard";
 import { EmptyState } from "../components/EmptyState";
 import { PlayButton } from "../components/PlayButton";
 import { countryName, RegionSwitcher } from "../components/RegionSwitcher";
@@ -16,6 +17,11 @@ export function TitlePage() {
   const query = useQuery({
     queryKey: ["title", id, region],
     queryFn: () => api.title(Number(id), region),
+    enabled: !!id,
+  });
+  const similar = useQuery({
+    queryKey: ["similar", id, region],
+    queryFn: () => api.similar(Number(id), region),
     enabled: !!id,
   });
 
@@ -145,24 +151,37 @@ export function TitlePage() {
             <section className="mt-8 max-w-2xl">
               <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-muted">CAST</h2>
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {t.cast.map((c, i) => (
-                  <div key={`${c.name}-${i}`} className="w-[76px] shrink-0 text-center">
-                    {c.profile ? (
-                      <img src={c.profile} alt="" loading="lazy"
-                           className="mx-auto h-[76px] w-[76px] rounded-full object-cover" />
-                    ) : (
-                      <div className="mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-full bg-bg2 text-muted">
-                        {c.name.slice(0, 1)}
-                      </div>
-                    )}
-                    <p className="mt-1 truncate text-[0.72rem] leading-tight" title={c.name}>{c.name}</p>
-                    {c.character && (
-                      <p className="truncate font-mono text-[0.62rem] text-muted" title={c.character}>
-                        {c.character}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                {t.cast.map((c, i) => {
+                  const inner = (
+                    <>
+                      {c.profile ? (
+                        <img src={c.profile} alt="" loading="lazy"
+                             className="mx-auto h-[76px] w-[76px] rounded-full object-cover" />
+                      ) : (
+                        <div className="mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-full bg-bg2 text-muted">
+                          {c.name.slice(0, 1)}
+                        </div>
+                      )}
+                      <p className="mt-1 truncate text-[0.72rem] leading-tight" title={c.name}>{c.name}</p>
+                      {c.character && (
+                        <p className="truncate font-mono text-[0.62rem] text-muted" title={c.character}>
+                          {c.character}
+                        </p>
+                      )}
+                    </>
+                  );
+                  // Clickable → person page when TMDB gave us the person id.
+                  return c.id != null ? (
+                    <Link key={`${c.name}-${i}`} to={`/person/${c.id}`}
+                          className="hoverable w-[76px] shrink-0 rounded-[8px] p-1 text-center hover:bg-bg2">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div key={`${c.name}-${i}`} className="w-[76px] shrink-0 p-1 text-center">
+                      {inner}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -247,6 +266,19 @@ export function TitlePage() {
           </div>
         </div>
       </div>
+
+      {(similar.data?.items.length ?? 0) > 0 && (
+        <section className="mt-12">
+          <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-muted">MORE LIKE THIS</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {similar.data!.items.map((it) => (
+              <div key={`${it.media_type}-${it.tmdb_id ?? it.id}`} className="w-[130px] shrink-0 sm:w-[150px]">
+                <DiscoveryCard item={it} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -97,7 +97,7 @@ def test_tags_and_cast_on_title(client):
     mid = next(i["id"] for r in shelf["rails"] if r["key"] == "movies" for i in r["items"])
     t = client.get(f"/api/titles/{mid}").json()
     assert "adventure" in t["keywords"] and "ocean" in t["keywords"]
-    assert t["cast"][0] == {"name": "Jane Doe", "character": "Captain",
+    assert t["cast"][0] == {"id": 500, "name": "Jane Doe", "character": "Captain",
                             "profile": "https://image.tmdb.org/t/p/w185/jane.jpg"}
     assert t["cast"][1]["profile"] is None  # missing photo → None, no crash
 

@@ -133,6 +133,17 @@ class TMDBClient:
         data = await self._get("/search/multi", query=query, include_adult="false", page=page)
         return data.get("results", [])
 
+    async def recommendations(self, media_type: str, tmdb_id: int) -> list[dict]:
+        """"More like this" — TMDB's own recommendations for a title. Each result
+        already carries media_type, so it maps straight to a discovery card."""
+        data = await self._get(f"/{media_type}/{tmdb_id}/recommendations")
+        return [r for r in data.get("results", []) if r.get("media_type") in ("movie", "tv")]
+
+    async def person(self, person_id: int) -> dict:
+        """Person bio + full filmography (cast + crew) in one call."""
+        return await self._get(f"/person/{person_id}",
+                               append_to_response="combined_credits")
+
     async def watch_providers(self, media_type: str, tmdb_id: int) -> dict:
         """Returns {country: {link, flatrate: [...], rent: [...], buy: [...], ads/free}}."""
         data = await self._get(f"/{media_type}/{tmdb_id}/watch/providers")

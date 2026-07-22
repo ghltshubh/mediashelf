@@ -458,6 +458,30 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     return data
 
 
+@router.get("/titles/{item_id}/similar")
+async def title_similar(item_id: int, region: str = "",
+                        db: Session = Depends(get_session)) -> dict:
+    """"More like this" — TMDB recommendations resolved to discovery cards."""
+    country, _ = _region_or_home(db, region)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    cards = await catalog.similar_titles(db, item_id, api_key, country)
+    return {"items": cards}
+
+
+@router.get("/person/{person_id}")
+async def person(person_id: int, region: str = "",
+                 db: Session = Depends(get_session)) -> dict:
+    """A person's profile + filmography (browse-by-actor/director)."""
+    country, _ = _region_or_home(db, region)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    if not api_key:
+        raise HTTPException(400, "Add your TMDB key first")
+    data = await catalog.person_page(db, person_id, api_key, country)
+    if data is None:
+        raise HTTPException(404, "Person not found")
+    return data
+
+
 @router.post("/sync")
 async def trigger_sync(db: Session = Depends(get_session)) -> dict:
     if not settings_store.get_setting(db, "tmdb_api_key"):

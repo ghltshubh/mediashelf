@@ -238,6 +238,16 @@ export interface VideoResult {
   unlock_service: string | null;
   action: SearchAction;
   hint: string;
+  role?: string | null; // discovery cards: character or crew job
+}
+
+export interface PersonPage {
+  id: number;
+  name: string;
+  profile: string | null;
+  known_for: string | null;
+  biography: string | null;
+  credits: VideoResult[];
 }
 
 export interface MusicServiceLink {
@@ -305,7 +315,7 @@ export interface Title extends ShelfItem {
   world: { country: string; services: string[]; more: number }[];
   ratings: { imdb?: number; imdb_votes?: string; rt?: string; metacritic?: string };
   keywords: string[];
-  cast: { name: string; character: string | null; profile: string | null }[];
+  cast: { id: number | null; name: string; character: string | null; profile: string | null }[];
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -385,6 +395,10 @@ export const api = {
       `/api/shelf?view=${view}&region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}&genre=${encodeURIComponent(genre)}`,
     ),
   title: (id: number, region = "") => request<Title>(`/api/titles/${id}?region=${region}`),
+  similar: (id: number, region = "") =>
+    request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
+  person: (id: number, region = "") =>
+    request<PersonPage>(`/api/person/${id}?region=${region}`),
   rail: (key: string, region = "", filter = "all", type = "", sort = "popularity", genre = "") =>
     request<RailPage>(
       `/api/shelf/rail/${encodeURIComponent(key)}?region=${region}&filter=${encodeURIComponent(filter)}&type=${type}&sort=${sort}&genre=${encodeURIComponent(genre)}`,

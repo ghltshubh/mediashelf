@@ -887,7 +887,9 @@ async def ensure_details(db: Session, item_id: int, api_key: str | None) -> None
     item = db.get(MediaItem, item_id)
     if item is None or not api_key or item.tmdb_id is None:
         return
-    if item.extra.get("details_checked"):
+    # details_v 2 added each cast member's person `id` (clickable → person page);
+    # older cached details (details_checked only) re-fetch once to gain it.
+    if item.extra.get("details_v") == 2:
         return
     try:
         data = await TMDBClient(api_key).title_extras(item.media_type, item.tmdb_id)
@@ -898,11 +900,107 @@ async def ensure_details(db: Session, item_id: int, api_key: str | None) -> None
     # Movies expose keywords under "keywords", TV under "results".
     raw_kw = kw.get("keywords") or kw.get("results") or []
     keywords = [k["name"] for k in raw_kw if k.get("name")][:15]
-    cast = [{"name": c.get("name"), "character": c.get("character") or None,
+    cast = [{"id": c.get("id"), "name": c.get("name"), "character": c.get("character") or None,
              "profile": poster_url(c.get("profile_path"), "w185") if c.get("profile_path") else None}
             for c in (data.get("credits") or {}).get("cast", [])[:12] if c.get("name")]
-    item.extra = {**item.extra, "details_checked": True, "keywords": keywords, "cast": cast}
+    item.extra = {**item.extra, "details_checked": True, "details_v": 2,
+                  "keywords": keywords, "cast": cast}
     db.commit()
+
+
+# ---------- Discovery: "More like this" + people (browse-by-actor/director) ----------
+
+def resolve_discovery_cards(db: Session, raw: list[dict], country: str) -> list[dict]:
+    """Turn raw TMDB items (recommendations / a person's credits) into cards.
+    Titles already in the catalog get full availability + ownership and link
+    straight to their page; the rest carry an import-on-click action (mirrors
+    how search resolves TMDB hits). Deduped by (media_type, tmdb_id)."""
+    subs = subscribed_service_ids(db)
+    wanted = {(r.get("media_type"), r.get("id"))
+              for r in raw if r.get("media_type") in ("movie", "tv") and r.get("id")}
+    locals_: dict[tuple, MediaItem] = {}
+    if wanted:
+        rows = db.scalars(
+            select(MediaItem)
+            .where(MediaItem.media_type.in_(["movie", "tv"]),
+                   MediaItem.tmdb_id.in_({tid for _, tid in wanted}))
+            .options(selectinload(MediaItem.availabilities).selectinload(Availability.service))
+        ).all()
+        locals_ = {(m.media_type, m.tmdb_id): m for m in rows}
+
+    out: list[dict] = []
+    seen: set[tuple] = set()
+    for r in raw:
+        mt, tid = r.get("media_type"), r.get("id")
+        if mt not in ("movie", "tv") or not tid or (mt, tid) in seen:
+            continue
+        seen.add((mt, tid))
+        item = locals_.get((mt, tid))
+        if item is not None:
+            card = serialize_item(item, subs, country)
+            card["local"] = True
+            card["action"] = {"type": "title", "title_id": item.id}
+        else:
+            date = r.get("release_date") or r.get("first_air_date") or ""
+            card = {
+                "local": False, "media_type": mt, "tmdb_id": tid, "id": None,
+                "title": r.get("title") or r.get("name") or "Untitled",
+                "year": int(date[:4]) if date[:4].isdigit() else None,
+                "poster": poster_url(r.get("poster_path")),
+                "rating": r.get("vote_average"), "genres": [],
+                "owned": False, "unlock_service": None, "badges": [],
+                "action": {"type": "import", "media_type": mt, "tmdb_id": tid},
+            }
+        card["hint"] = ""
+        if r.get("_role"):
+            card["role"] = r["_role"]
+        out.append(card)
+    return out
+
+
+async def similar_titles(db: Session, item_id: int, api_key: str | None,
+                         country: str, limit: int = 18) -> list[dict]:
+    """"More like this" for a title, resolved to discovery cards."""
+    item = db.get(MediaItem, item_id)
+    if item is None or not api_key or item.tmdb_id is None:
+        return []
+    try:
+        recs = await TMDBClient(api_key).recommendations(item.media_type, item.tmdb_id)
+    except Exception as exc:
+        logger.debug("recommendations fetch failed for %s: %s", item_id, exc)
+        return []
+    return resolve_discovery_cards(db, recs[:limit], country)
+
+
+async def person_page(db: Session, person_id: int, api_key: str | None,
+                      country: str, limit: int = 40) -> dict | None:
+    """A person's profile + filmography as discovery cards. Acting roles and
+    directing/writing/creator credits, most-recent first, deduped."""
+    if not api_key:
+        return None
+    try:
+        data = await TMDBClient(api_key).person(person_id)
+    except Exception as exc:
+        logger.debug("person fetch failed for %s: %s", person_id, exc)
+        return None
+    credits = data.get("combined_credits") or {}
+    raw: list[dict] = []
+    for c in credits.get("cast", []):
+        raw.append({**c, "_role": c.get("character") or None})
+    for c in credits.get("crew", []):
+        if c.get("job") in ("Director", "Writer", "Creator", "Executive Producer"):
+            raw.append({**c, "_role": c.get("job")})
+    # Most recent first; undated (unreleased) sink to the bottom.
+    raw.sort(key=lambda r: (r.get("release_date") or r.get("first_air_date") or ""), reverse=True)
+    cards = resolve_discovery_cards(db, raw[: limit * 2], country)[:limit]
+    return {
+        "id": person_id,
+        "name": data.get("name") or "Unknown",
+        "profile": poster_url(data.get("profile_path"), "w185"),
+        "known_for": data.get("known_for_department"),
+        "biography": (data.get("biography") or "").strip() or None,
+        "credits": cards,
+    }
 
 
 def build_title(db: Session, item_id: int, country: str,

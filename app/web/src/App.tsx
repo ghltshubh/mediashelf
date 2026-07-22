@@ -12,6 +12,7 @@ import { DevComponents } from "./pages/DevComponents";
 import { Library } from "./pages/Library";
 import { Migrations } from "./pages/Migrations";
 import { Onboarding } from "./pages/Onboarding";
+import { Person } from "./pages/Person";
 import { SearchResults } from "./pages/SearchResults";
 import { Settings } from "./pages/Settings";
 import { Shelf } from "./pages/Shelf";
@@ -70,6 +71,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Shelf />} />
           <Route path="/title/:id" element={<TitlePage />} />
+          <Route path="/person/:id" element={<Person />} />
           <Route path="/browse/:railKey" element={<Browse />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/library" element={<Library />} />
