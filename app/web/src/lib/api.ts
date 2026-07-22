@@ -64,6 +64,9 @@ export interface PlayOption {
     video_id?: string;
     apple_id?: string;
     url?: string;
+    // MusicKit resolves by title/artist when no apple_id is known.
+    title?: string;
+    artists?: string[];
   };
 }
 

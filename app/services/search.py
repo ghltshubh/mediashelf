@@ -402,6 +402,10 @@ def attach_music_playback(row: dict, playback_state: dict | None) -> None:
         "spotify_uri": row.get("spotify_uri"),
         "apple_id": row.get("apple_id"),
         "youtube_video_id": row.get("youtube_video_id"),
+        # Title/artists let the MusicKit engine resolve a track in Apple's catalog
+        # when we don't already hold its apple_id (which is the usual case).
+        "title": row.get("title"),
+        "artists": row.get("artists") or [],
         "links": row.get("services", []),
     }
     routed = playback_service.music_options(entity, playback_state or {

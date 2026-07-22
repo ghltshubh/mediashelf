@@ -43,10 +43,14 @@ def music_options(entity: dict, state: dict) -> dict:
                         "label": "Spotify", "kind": "full",
                         "payload": {"spotify_uri": entity.get("spotify_uri")
                                     or f"spotify:track:{spotify_id}"}})
-    if entity.get("apple_id") and state["apple_configured"]:
+    # Apple Music: play by apple_id when known, else the MusicKit engine resolves
+    # the track by title/artist against Apple's catalog at play time.
+    if state["apple_configured"] and (entity.get("apple_id") or entity.get("title")):
         options.append({"engine": "musickit", "service_key": "apple_music",
                         "label": "Apple Music", "kind": "full",
-                        "payload": {"apple_id": entity["apple_id"]}})
+                        "payload": {"apple_id": entity.get("apple_id"),
+                                    "title": entity.get("title"),
+                                    "artists": entity.get("artists") or []}})
     if entity.get("youtube_video_id"):
         options.append({"engine": "youtube", "service_key": "youtube",
                         "label": "YouTube", "kind": "full · ads",

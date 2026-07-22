@@ -28,7 +28,8 @@ export function PlayerBar() {
   const canTransport =
     p.option?.engine === "youtube" ||
     p.option?.engine === "spotify_sdk" ||
-    p.option?.engine === "audio";
+    p.option?.engine === "audio" ||
+    p.option?.engine === "musickit";
 
   return (
     <>

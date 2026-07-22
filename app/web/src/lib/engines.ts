@@ -9,6 +9,7 @@ declare global {
     onYouTubeIframeAPIReady?: () => void;
     Spotify?: any;
     onSpotifyWebPlaybackSDKReady?: () => void;
+    MusicKit?: any;
   }
 }
 
@@ -253,5 +254,119 @@ export class SpotifySdkEngine {
     window.clearInterval(this.timer);
     this.player?.pause?.();
     // Keep the SDK device alive for the session — reconnecting is slow.
+  }
+}
+
+// ---------- Apple Music (MusicKit JS v3) ----------
+//
+// NOTE: implemented against the MusicKit JS v3 API but UNTESTED — it needs a
+// paid Apple Developer token (Settings → Keys) plus an Apple Music subscription
+// to authorize in the browser. Plays by Apple catalog id when known, else
+// resolves the track by title/artist via Apple's catalog search at play time.
+
+let musicKitReady: Promise<void> | null = null;
+
+function ensureMusicKitScript(): Promise<void> {
+  if (!musicKitReady) {
+    musicKitReady = new Promise((resolve, reject) => {
+      if (window.MusicKit) return resolve();
+      document.addEventListener("musickitloaded", () => resolve(), { once: true });
+      loadScript("https://js-cdn.music.apple.com/musickit/v3/musickit.js", "musickit-js")
+        .catch(reject);
+      if (window.MusicKit) resolve();
+    });
+  }
+  return musicKitReady;
+}
+
+export interface MusicKitPayload {
+  apple_id?: string;
+  title?: string;
+  artists?: string[];
+}
+
+export class MusicKitEngine {
+  private music: any = null;
+  private configuring: Promise<any> | null = null;
+
+  private async devToken(): Promise<string> {
+    const res = await fetch("/api/playback/apple/token");
+    if (!res.ok) throw new Error((await res.json()).detail ?? "no Apple Music token");
+    return (await res.json()).developer_token;
+  }
+
+  private async instance(cb: EngineCallbacks): Promise<any> {
+    if (this.music) return this.music;
+    if (!this.configuring) {
+      this.configuring = (async () => {
+        const token = await this.devToken();
+        await ensureMusicKitScript();
+        const MK = window.MusicKit;
+        const music = await MK.configure({
+          developerToken: token,
+          app: { name: "MediaShelf", build: "1.0" },
+        });
+        music.addEventListener("playbackStateDidChange", (e: any) => {
+          const S = MK.PlaybackStates;
+          const s = e.state ?? e.oldState;
+          if (s === S.playing) cb.onState("playing");
+          else if (s === S.paused) cb.onState("paused");
+          else if (s === S.loading || s === S.waiting || s === S.stalled) cb.onState("loading");
+          else if (s === S.completed || s === S.ended) cb.onState("ended");
+        });
+        music.addEventListener("playbackTimeDidChange", (e: any) => {
+          cb.onProgress(e.currentPlaybackTime ?? 0,
+                        e.currentPlaybackDuration ?? music.currentPlaybackDuration ?? 0);
+        });
+        this.music = music;
+        return music;
+      })();
+    }
+    return this.configuring;
+  }
+
+  private async resolveId(music: any, payload: MusicKitPayload): Promise<string | null> {
+    if (payload.apple_id) return payload.apple_id;
+    const term = `${payload.title ?? ""} ${(payload.artists ?? []).join(" ")}`.trim();
+    if (!term) return null;
+    const storefront = music.storefrontId || "us";
+    const r = await music.api.music(`/v1/catalog/${storefront}/search`,
+                                    { term, types: "songs", limit: 1 });
+    return r?.data?.results?.songs?.data?.[0]?.id ?? null;
+  }
+
+  async load(payload: MusicKitPayload, cb: EngineCallbacks): Promise<void> {
+    cb.onState("loading");
+    try {
+      const music = await this.instance(cb);
+      await music.authorize(); // prompts Apple Music login; requires a subscription
+      const id = await this.resolveId(music, payload);
+      if (!id) {
+        cb.onFail("Track not found on Apple Music");
+        return;
+      }
+      await music.setQueue({ song: id });
+      await music.play();
+    } catch (e) {
+      cb.onFail((e as Error).message || "Apple Music playback failed");
+    }
+  }
+
+  toggle() {
+    if (!this.music) return;
+    if (this.music.isPlaying) void this.music.pause();
+    else void this.music.play();
+  }
+
+  seek(seconds: number) {
+    this.music?.seekToTime?.(seconds);
+  }
+
+  setVolume(v: number) {
+    if (this.music) this.music.volume = v; // 0..1
+  }
+
+  destroy() {
+    this.music?.stop?.();
   }
 }

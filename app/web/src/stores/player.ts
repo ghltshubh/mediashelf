@@ -4,7 +4,7 @@
 
 import { create } from "zustand";
 import type { PlayOption } from "../lib/api";
-import { Html5AudioEngine, SpotifySdkEngine, YouTubeEngine } from "../lib/engines";
+import { Html5AudioEngine, MusicKitEngine, SpotifySdkEngine, YouTubeEngine } from "../lib/engines";
 
 export interface PlayRequest {
   title: string;
@@ -40,6 +40,7 @@ interface PlayerState {
 const youtube = new YouTubeEngine();
 const spotifySdk = new SpotifySdkEngine();
 const audio = new Html5AudioEngine();
+const musicKit = new MusicKitEngine();
 let toastTimer: number | undefined;
 
 export const YOUTUBE_CONTAINER_ID = "yt-theater-slot";
@@ -48,6 +49,7 @@ function stopEngines() {
   youtube.destroy();
   spotifySdk.destroy();
   audio.destroy();
+  musicKit.destroy();
 }
 
 export const usePlayer = create<PlayerState>((set, get) => {
@@ -115,7 +117,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     } else if (option.engine === "audio" && option.payload.url) {
       void audio.load(option.payload.url, callbacks);
     } else if (option.engine === "musickit") {
-      callbacks.onFail("MusicKit playback not wired yet");
+      void musicKit.load(option.payload, callbacks);
     }
   }
 
@@ -175,6 +177,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (option?.engine === "youtube") youtube.toggle();
       else if (option?.engine === "spotify_sdk") spotifySdk.toggle();
       else if (option?.engine === "audio") audio.toggle();
+      else if (option?.engine === "musickit") musicKit.toggle();
     },
 
     seek: (seconds) => {
@@ -182,6 +185,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (option?.engine === "youtube") youtube.seek(seconds);
       else if (option?.engine === "spotify_sdk") spotifySdk.seek(seconds);
       else if (option?.engine === "audio") audio.seek(seconds);
+      else if (option?.engine === "musickit") musicKit.seek(seconds);
       set({ position: seconds });
     },
 
@@ -190,6 +194,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (option?.engine === "youtube") youtube.setVolume(v);
       else if (option?.engine === "spotify_sdk") spotifySdk.setVolume(v);
       else if (option?.engine === "audio") audio.setVolume(v);
+      else if (option?.engine === "musickit") musicKit.setVolume(v);
       set({ volume: v });
     },
 

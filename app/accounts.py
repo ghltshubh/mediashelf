@@ -165,6 +165,17 @@ def spotify_playback_token(db: Session = Depends(get_session)) -> dict:
     return {"access_token": token}
 
 
+@router.get("/api/playback/apple/token")
+def apple_playback_token(db: Session = Depends(get_session)) -> dict:
+    """The MusicKit developer token for configuring MusicKit JS in the browser.
+    User consent/login (and the Apple Music subscription check) happens
+    client-side via MusicKit's authorize()."""
+    token = settings_store.get_setting(db, "apple_developer_token")
+    if not token:
+        raise HTTPException(400, "Add a MusicKit developer token in Settings → Keys")
+    return {"developer_token": token}
+
+
 class AppleTokenBody(BaseModel):
     token: str
 
