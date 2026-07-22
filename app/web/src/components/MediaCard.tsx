@@ -87,8 +87,15 @@ export function MediaCard({ item, fluid = false }: { item: ShelfItem; fluid?: bo
       </div>
 
       {item.badges.length === 0 && (
-        <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate whitespace-nowrap rounded-full bg-bg0/85 px-2 py-0.5 font-mono text-[0.7rem] text-muted">
-          not streaming yet
+        // Not streaming yet: a quiet semi-transparent mark instead of a repeated
+        // text banner (a row of upcoming titles would otherwise shout in unison).
+        // The "expected on X" hint below still names the likely home.
+        <span
+          title="not streaming yet"
+          aria-label="not streaming yet"
+          className="absolute left-1.5 top-1.5 text-[1.05rem] leading-none opacity-50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)]"
+        >
+          🚫
         </span>
       )}
 
