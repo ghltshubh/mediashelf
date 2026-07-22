@@ -1,5 +1,6 @@
 import type { SearchResult } from "../lib/api";
 import { isVideo } from "../lib/searchData";
+import { MusicServiceBadge, musicSource } from "./MusicServiceBadge";
 import { ServiceMark, distinctServices } from "./ServiceMark";
 
 function ThumbFallback({ label }: { label: string }) {
@@ -74,18 +75,21 @@ export function SearchResultRow({
                 <ServiceMark key={b.service_key} name={b.service_name} logo={b.logo} owned={b.owned} />
               ))
             : item.services.map((s) => (
-                <span
-                  key={s.service_key}
-                  className={`shrink-0 rounded-full border px-1.5 font-mono text-[0.65rem] ${
-                    s.owned ? "border-owned/50 text-owned" : "border-line text-muted"
-                  }`}
-                >
-                  {s.service_name}
-                </span>
+                <MusicServiceBadge key={s.service_key} serviceKey={s.service_key} className="h-4 w-4" />
               ))}
         </div>
       </div>
-      <span className="shrink-0 font-mono text-[0.75rem] text-muted">{item.hint}</span>
+      {video ? (
+        <span className="shrink-0 font-mono text-[0.75rem] text-muted">{item.hint}</span>
+      ) : (
+        <span
+          title={item.hint}
+          className="flex shrink-0 items-center gap-1 font-mono text-[0.75rem] text-[color:var(--play)]"
+        >
+          <span aria-hidden>▶</span>
+          <MusicServiceBadge serviceKey={musicSource(item)} className="h-4 w-4" />
+        </span>
+      )}
     </div>
   );
 }
