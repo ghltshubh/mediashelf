@@ -215,10 +215,76 @@ def test_same_account_blocked(client, fake_pair, monkeypatch):
             migrate.create_or_resume(db, "spotify", "youtube", {"likes": True, "follows": False})
 
 
-def test_unsupported_direction_blocked(client, fake_pair):
+def test_same_service_same_slot_blocked(client, fake_pair):
+    # Same service AND same account (both default to the primary slot) → nothing
+    # to migrate. (Different slots = two accounts is allowed; see next test.)
     with session_factory()() as db:
-        with pytest.raises(ValueError, match="second Google account"):
+        with pytest.raises(ValueError, match="same account"):
             migrate.create_or_resume(db, "youtube", "youtube", {"likes": True, "follows": False})
+
+
+class _FakeYTAccount:
+    """A single YouTube account for same-service tests."""
+    key = "youtube"
+    name = "YouTube"
+
+    def __init__(self, likes=None):
+        self._likes = likes or []
+        self.writes: list[str] = []
+        self.searched: list[str] = []
+
+    def capabilities(self):
+        return {"user_library": True, "write_likes": True, "write_follows": True}
+
+    def connected(self, db):
+        return True
+
+    def account_id(self, db):
+        return str(id(self))  # unique per instance → two accounts differ
+
+    def read_likes(self, db):
+        return self._likes
+
+    def read_follows(self, db):
+        return []
+
+    def search_track(self, db, title, artists):
+        self.searched.append(title)
+        return []
+
+    def add_like(self, db, video_id):
+        self.writes.append(video_id)
+        return "added"
+
+    def remove_like(self, db, video_id):
+        if video_id in self.writes:
+            self.writes.remove(video_id)
+
+
+def test_same_service_direct_copy(client, monkeypatch):
+    """YouTube A → YouTube B copies the source's ids straight through, no search."""
+    import app.services.library as lib
+    src = _FakeYTAccount(likes=[
+        {"external_id": "vidA", "payload": {"title": "Song A"}},
+        {"external_id": "vidB", "payload": {"title": "Song B"}},
+    ])
+    dst = _FakeYTAccount()
+    monkeypatch.setitem(lib.CONNECTORS, "youtube", src)
+    monkeypatch.setitem(lib._SECONDARY, "youtube", dst)
+    monkeypatch.setattr(migrate, "WRITE_SLEEP_S", 0)
+
+    with session_factory()() as db:
+        job, _ = migrate.create_or_resume(db, "youtube", "youtube", {
+            "likes": True, "follows": False,
+            "source_slot": "primary", "target_slot": "secondary"})
+        db.commit()
+        migrate.run_job(job.id)
+        db.expire_all()
+        j = db.get(MigrationJob, job.id)
+
+    assert j.status == "done"
+    assert dst.writes == ["vidA", "vidB"]   # copied the source's exact ids
+    assert dst.searched == []               # no fuzzy matching — direct copy
 
 
 def test_migrations_api(client, fake_pair):

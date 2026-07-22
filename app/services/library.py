@@ -22,6 +22,17 @@ CONNECTORS: dict[str, SpotifyConnector | YouTubeConnector] = {
     "spotify": SpotifyConnector(), "youtube": YouTubeConnector(),
 }
 
+# Second-account instances (slot="secondary"): migration-only, read/write the …_2
+# settings keys. Everything else uses the primary CONNECTORS above.
+_SECONDARY: dict[str, SpotifyConnector | YouTubeConnector] = {
+    "spotify": SpotifyConnector(slot="secondary"), "youtube": YouTubeConnector(slot="secondary"),
+}
+
+
+def connector_for(key: str, slot: str = "primary") -> SpotifyConnector | YouTubeConnector:
+    """The connector for a service, bound to the primary or secondary account."""
+    return (_SECONDARY if slot == "secondary" else CONNECTORS)[key]
+
 sync_state: dict[str, dict] = {
     "spotify": {"status": "idle", "detail": None},
     "youtube": {"status": "idle", "detail": None},

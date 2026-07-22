@@ -62,6 +62,16 @@ class YouTubeConnector:
     key = "youtube"
     name = "YouTube"
 
+    def __init__(self, slot: str = "primary") -> None:
+        # The "secondary" slot is a second account used ONLY for account-to-account
+        # migration: it reads/writes a parallel set of settings keys (…_2) and never
+        # touches shelf/library/playback (those use the primary singleton).
+        self.slot = slot
+        self._suffix = "" if slot == "primary" else "_2"
+
+    def _k(self, base: str) -> str:
+        return base + self._suffix
+
     def capabilities(self) -> dict:
         return {"catalog": True, "user_library": True, "write_likes": True,
                 "write_follows": True, "playback": "embed"}
@@ -83,7 +93,7 @@ class YouTubeConnector:
                     and settings_store.get_setting(db, "google_client_secret"))
 
     def connected(self, db: Session) -> bool:
-        return settings_store.get_setting(db, "youtube_oauth") is not None
+        return settings_store.get_setting(db, self._k("youtube_oauth")) is not None
 
     def auth_url(self, db: Session, state: str, redirect_uri: str) -> str:
         flow = Flow.from_client_config(self._client_config(db), scopes=SCOPES,
@@ -102,32 +112,32 @@ class YouTubeConnector:
                                        redirect_uri=redirect_uri)
         flow.fetch_token(code=code)
         creds = flow.credentials
-        settings_store.set_setting(db, "youtube_oauth", creds.to_json())
-        settings_store.set_setting(db, "youtube_auth_error", None)
+        settings_store.set_setting(db, self._k("youtube_oauth"), creds.to_json())
+        settings_store.set_setting(db, self._k("youtube_auth_error"), None)
         yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
         chans = yt.channels().list(part="snippet", mine=True).execute()
         items = chans.get("items", [])
         if items:
-            settings_store.set_setting(db, "youtube_profile", json.dumps({
+            settings_store.set_setting(db, self._k("youtube_profile"), json.dumps({
                 "title": items[0]["snippet"]["title"],
                 "id": items[0]["id"],
             }))
 
     def disconnect(self, db: Session) -> None:
         for k in ("youtube_oauth", "youtube_profile", "youtube_auth_error"):
-            settings_store.set_setting(db, k, None)
+            settings_store.set_setting(db, self._k(k), None)
 
     def _creds(self, db: Session) -> Credentials:
-        raw = settings_store.get_setting(db, "youtube_oauth")
+        raw = settings_store.get_setting(db, self._k("youtube_oauth"))
         if not raw:
             raise NotConnected("youtube")
         creds = Credentials.from_authorized_user_info(json.loads(raw), scopes=SCOPES)
         if creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
-                settings_store.set_setting(db, "youtube_oauth", creds.to_json())
+                settings_store.set_setting(db, self._k("youtube_oauth"), creds.to_json())
             except RefreshError as exc:
-                settings_store.set_setting(db, "youtube_auth_error", "true")
+                settings_store.set_setting(db, self._k("youtube_auth_error"), "true")
                 raise AuthExpired("youtube") from exc
         return creds
 
@@ -135,9 +145,9 @@ class YouTubeConnector:
         return build("youtube", "v3", credentials=self._creds(db), cache_discovery=False)
 
     def status(self, db: Session) -> dict:
-        profile = settings_store.get_setting(db, "youtube_profile")
+        profile = settings_store.get_setting(db, self._k("youtube_profile"))
         p = json.loads(profile) if profile else {}
-        expired = settings_store.get_setting(db, "youtube_auth_error") == "true"
+        expired = settings_store.get_setting(db, self._k("youtube_auth_error")) == "true"
         return {
             "provider": "youtube",
             "name": "YouTube",
@@ -153,7 +163,7 @@ class YouTubeConnector:
     # ---------- M5: matching + writes ----------
 
     def account_id(self, db: Session) -> str | None:
-        profile = settings_store.get_setting(db, "youtube_profile")
+        profile = settings_store.get_setting(db, self._k("youtube_profile"))
         return json.loads(profile).get("id") if profile else None
 
     def search_track(self, db: Session, title: str, artists: list[str]) -> list[dict]:

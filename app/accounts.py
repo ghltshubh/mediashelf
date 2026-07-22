@@ -22,6 +22,7 @@ from app.connectors.spotify import SpotifyConnector
 from app.connectors.youtube import YouTubeConnector
 from app.db import get_session, session_factory
 from app.services import library as library_service
+from app.services.library import connector_for
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -35,7 +36,8 @@ OAUTH_CONNECTORS: dict[str, SpotifyConnector | YouTubeConnector] = {
 
 DEFAULT_REDIRECT = "http://127.0.0.1:8000/oauth2callback"
 _STATE_TTL = 600
-_states: dict[str, tuple[str, str, float]] = {}  # state -> (provider, origin, created)
+# state -> (provider, origin, slot, created)
+_states: dict[str, tuple[str, str, str, float]] = {}
 
 
 def redirect_uri(db: Session) -> str:
@@ -43,19 +45,21 @@ def redirect_uri(db: Session) -> str:
 
 
 @router.get("/api/connect/{provider}/start")
-def connect_start(provider: str, origin: str = "settings",
+def connect_start(provider: str, origin: str = "settings", slot: str = "primary",
                   db: Session = Depends(get_session)) -> dict:
-    connector = OAUTH_CONNECTORS.get(provider)
-    if connector is None:
+    if provider not in OAUTH_CONNECTORS:
         raise HTTPException(404, "Unknown provider")
+    slot = "secondary" if slot == "secondary" else "primary"
+    connector = connector_for(provider, slot)  # secondary = a 2nd account (migration)
     if not connector.configured(db):
         raise HTTPException(400, f"Add your {connector.name} API keys first")
     state = secrets.token_urlsafe(24)
     now = time.monotonic()
-    for k, (_, _, created) in list(_states.items()):
+    for k, (_, _, _, created) in list(_states.items()):
         if now - created > _STATE_TTL:
             del _states[k]
-    _states[state] = (provider, origin if origin in ("settings", "onboarding") else "settings", now)
+    _states[state] = (provider, origin if origin in ("settings", "onboarding") else "settings",
+                      slot, now)
     try:
         url = connector.auth_url(db, state, redirect_uri(db))
     except NotConnected as exc:
@@ -69,18 +73,20 @@ def oauth2callback(state: str = "", code: str = "", error: str = "",
     entry = _states.pop(state, None)
     if entry is None:
         return RedirectResponse("/settings?connect_error=Sign-in+session+expired+—+try+again")
-    provider, origin, _ = entry
+    provider, origin, slot, _ = entry
     back = "/onboarding" if origin == "onboarding" else "/settings"
     if error:
         return RedirectResponse(f"{back}?connect_error={error}")
-    connector = OAUTH_CONNECTORS[provider]
+    connector = connector_for(provider, slot)
     try:
         connector.handle_callback(db, code, redirect_uri(db))
     except Exception as exc:
         logger.warning("%s oauth callback failed: %s", provider, exc)
         return RedirectResponse(f"{back}?connect_error=Connecting+{provider}+failed")
-    # First sync in the background so the library fills in right away.
-    schedule_library_sync(provider)
+    # First sync in the background so the library fills in right away (primary only —
+    # the secondary account is migration-only and isn't synced into the shelf).
+    if slot == "primary":
+        schedule_library_sync(provider)
     return RedirectResponse(f"{back}?connected={provider}")
 
 
@@ -95,15 +101,27 @@ def connections(db: Session = Depends(get_session)) -> list[dict]:
     return out
 
 
+@router.get("/api/connections/second")
+def second_accounts(db: Session = Depends(get_session)) -> list[dict]:
+    """Second-account (migration-only) status for Spotify/YouTube, so the
+    Migrations page can offer connecting a 2nd account of the same service."""
+    out = []
+    for key in ("spotify", "youtube"):
+        st = connector_for(key, "secondary").status(db)
+        out.append({"provider": key, "name": st["name"], "connected": st["connected"],
+                    "profile": st.get("profile"), "configured": st["configured"]})
+    return out
+
+
 @router.delete("/api/connections/{provider}", status_code=204)
-def disconnect(provider: str, db: Session = Depends(get_session)) -> None:
+def disconnect(provider: str, slot: str = "primary",
+               db: Session = Depends(get_session)) -> None:
     if provider == "apple_music":
         apple.set_token(db, None)
         return
-    connector = OAUTH_CONNECTORS.get(provider)
-    if connector is None:
+    if provider not in OAUTH_CONNECTORS:
         raise HTTPException(404, "Unknown provider")
-    connector.disconnect(db)
+    connector_for(provider, "secondary" if slot == "secondary" else "primary").disconnect(db)
 
 
 @router.post("/api/connections/{provider}/sync")

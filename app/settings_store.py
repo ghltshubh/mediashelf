@@ -15,6 +15,8 @@ SECRET_KEYS = {
     "apple_developer_token",
     "spotify_oauth",   # OAuth token bundles are secrets too — encrypted, never printed
     "youtube_oauth",
+    "spotify_oauth_2",  # second-account tokens (account-to-account migration)
+    "youtube_oauth_2",
 }
 
 DEFAULTS = {

@@ -20,7 +20,10 @@ function SetupCard() {
   const start = useMutation({
     mutationFn: () => {
       const pair = migrations.data!.pairs[pairIdx];
-      return api.startMigration({ source: pair.source, target: pair.target, likes, follows });
+      return api.startMigration({
+        source: pair.source, target: pair.target, likes, follows,
+        source_slot: pair.source_slot, target_slot: pair.target_slot,
+      });
     },
     onSuccess: () => {
       setError(null);
@@ -79,6 +82,63 @@ function SetupCard() {
         cap and resume after the reset — never an error
       </p>
       {error && <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
+    </div>
+  );
+}
+
+/** Connect a SECOND account of a service (migration-only) — enables the
+    same-service account-to-account directions in the picker above. */
+function SecondAccounts() {
+  const queryClient = useQueryClient();
+  const seconds = useQuery({ queryKey: ["second-accounts"], queryFn: api.secondAccounts });
+  const connect = useMutation({
+    mutationFn: (provider: string) => api.connectStart(provider, "settings", "secondary"),
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
+  });
+  const disconnect = useMutation({
+    mutationFn: (provider: string) => api.disconnect(provider, "secondary"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["second-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["migrations"] });
+    },
+  });
+  const rows = (seconds.data ?? []).filter((a) => a.configured);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
+      <h3 className="font-display text-[1rem] font-semibold">Second accounts</h3>
+      <p className="mt-1 max-w-xl text-[0.85rem] text-muted">
+        Connect a second account of the same service to migrate your library from one account to
+        another (e.g. YouTube A → YouTube B). Same-service copies are direct and lossless — no
+        matching. This account is used only for migration; it never touches your shelf.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {rows.map((a) => (
+          <div key={a.provider}
+               className="flex items-center gap-2 rounded-[8px] border border-line px-3 py-1.5">
+            <span className="font-mono text-[0.8rem]">{a.name}</span>
+            {a.connected ? (
+              <>
+                <span className="font-mono text-[0.72rem] text-[color:var(--play)]">
+                  ✓ {a.profile ?? "connected"}
+                </span>
+                <button onClick={() => disconnect.mutate(a.provider)}
+                        className="font-mono text-[0.72rem] text-muted hover:text-[color:var(--danger)]">
+                  disconnect
+                </button>
+              </>
+            ) : (
+              <button onClick={() => connect.mutate(a.provider)}
+                      className="rounded-[6px] border border-owned/60 px-2 py-0.5 font-mono text-[0.72rem] text-owned hover:bg-owned/10">
+                ↗ connect 2nd account
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -164,6 +224,7 @@ export function Migrations() {
 
       <div className="mt-6">
         <SetupCard />
+        <SecondAccounts />
       </div>
 
       {(migrations.data?.jobs.length ?? 0) > 0 && (

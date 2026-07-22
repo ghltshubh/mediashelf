@@ -115,9 +115,26 @@ export interface MigrationJob {
   updated_at: string | null;
 }
 
+export interface MigrationPair {
+  source: string;
+  target: string;
+  source_slot: string;
+  target_slot: string;
+  label: string;
+  ready: boolean;
+}
+
+export interface SecondAccount {
+  provider: string;
+  name: string;
+  connected: boolean;
+  profile: string | null;
+  configured: boolean;
+}
+
 export interface MigrationsData {
   jobs: MigrationJob[];
-  pairs: { source: string; target: string; label: string; ready: boolean }[];
+  pairs: MigrationPair[];
   budget: { cap: number; used_today: number };
 }
 
@@ -342,19 +359,27 @@ export const api = {
   search: (scope: "video" | "music" | "library", q: string) =>
     request<SearchResponse>(`/api/search?scope=${scope}&q=${encodeURIComponent(q)}`),
   connections: () => request<Connection[]>("/api/connections"),
-  connectStart: (provider: string, origin: string) =>
-    request<{ url: string }>(`/api/connect/${provider}/start?origin=${origin}`),
-  disconnect: async (provider: string) => {
-    const res = await fetch(`/api/connections/${provider}`, { method: "DELETE" });
+  connectStart: (provider: string, origin: string, slot = "primary") =>
+    request<{ url: string }>(`/api/connect/${provider}/start?origin=${origin}&slot=${slot}`),
+  disconnect: async (provider: string, slot = "primary") => {
+    const res = await fetch(`/api/connections/${provider}?slot=${slot}`, { method: "DELETE" });
     if (!res.ok) throw new Error(`${res.status}`);
   },
+  secondAccounts: () => request<SecondAccount[]>("/api/connections/second"),
   syncLibrary: (provider: string) =>
     request<{ status: string }>(`/api/connections/${provider}/sync`, { method: "POST" }),
   library: () => request<LibraryData>("/api/library"),
   spotifyPlaybackToken: () =>
     request<{ access_token: string }>("/api/playback/spotify/token"),
   migrations: () => request<MigrationsData>("/api/migrations"),
-  startMigration: (body: { source: string; target: string; likes: boolean; follows: boolean }) =>
+  startMigration: (body: {
+    source: string;
+    target: string;
+    likes: boolean;
+    follows: boolean;
+    source_slot?: string;
+    target_slot?: string;
+  }) =>
     request<MigrationJob & { resumed_existing: boolean }>("/api/migrations", {
       method: "POST",
       body: JSON.stringify(body),

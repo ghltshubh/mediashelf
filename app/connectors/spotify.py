@@ -33,20 +33,31 @@ def _resolve_redirect(db: Session, redirect_uri: str) -> str:
 
 
 class _SettingCache(CacheHandler):
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, key: str = "spotify_oauth"):
         self.db = db
+        self.key = key
 
     def get_cached_token(self) -> dict | None:
-        raw = settings_store.get_setting(self.db, "spotify_oauth")
+        raw = settings_store.get_setting(self.db, self.key)
         return json.loads(raw) if raw else None
 
     def save_token_to_cache(self, token_info: dict) -> None:
-        settings_store.set_setting(self.db, "spotify_oauth", json.dumps(token_info))
+        settings_store.set_setting(self.db, self.key, json.dumps(token_info))
 
 
 class SpotifyConnector:
     key = "spotify"
     name = "Spotify"
+
+    def __init__(self, slot: str = "primary") -> None:
+        # The "secondary" slot is a second account used ONLY for account-to-account
+        # migration: it reads/writes a parallel set of settings keys (…_2) and never
+        # touches shelf/library/playback (those use the primary singleton).
+        self.slot = slot
+        self._suffix = "" if slot == "primary" else "_2"
+
+    def _k(self, base: str) -> str:
+        return base + self._suffix
 
     def capabilities(self) -> dict:
         return {"catalog": True, "user_library": True, "write_likes": True,
@@ -59,14 +70,16 @@ class SpotifyConnector:
             raise NotConnected("spotify")
         return SpotifyOAuth(client_id=cid, client_secret=secret,
                             redirect_uri=_resolve_redirect(db, redirect_uri),
-                            scope=SCOPES, cache_handler=_SettingCache(db), open_browser=False)
+                            scope=SCOPES, cache_handler=_SettingCache(db, self._k("spotify_oauth")),
+                            open_browser=False)
 
     def configured(self, db: Session) -> bool:
+        # App credentials are shared across both accounts (same Spotify app).
         return bool(settings_store.get_setting(db, "spotify_client_id")
                     and settings_store.get_setting(db, "spotify_client_secret"))
 
     def connected(self, db: Session) -> bool:
-        return settings_store.get_setting(db, "spotify_oauth") is not None
+        return settings_store.get_setting(db, self._k("spotify_oauth")) is not None
 
     def auth_url(self, db: Session, state: str, redirect_uri: str) -> str:
         return self._oauth(db, redirect_uri).get_authorize_url(state=state)
@@ -74,9 +87,9 @@ class SpotifyConnector:
     def handle_callback(self, db: Session, code: str, redirect_uri: str) -> None:
         oauth = self._oauth(db, redirect_uri)
         oauth.get_access_token(code, as_dict=False, check_cache=False)  # cache handler persists
-        settings_store.set_setting(db, "spotify_auth_error", None)
+        settings_store.set_setting(db, self._k("spotify_auth_error"), None)
         me = spotipy.Spotify(auth=self._access_token(db, redirect_uri)).me()
-        settings_store.set_setting(db, "spotify_profile", json.dumps({
+        settings_store.set_setting(db, self._k("spotify_profile"), json.dumps({
             "display_name": me.get("display_name"),
             "id": me.get("id"),
             "product": me.get("product"),  # "premium" | "free" | ...
@@ -84,21 +97,21 @@ class SpotifyConnector:
 
     def disconnect(self, db: Session) -> None:
         for k in ("spotify_oauth", "spotify_profile", "spotify_auth_error"):
-            settings_store.set_setting(db, k, None)
+            settings_store.set_setting(db, self._k(k), None)
 
     def _access_token(self, db: Session, redirect_uri: str) -> str:
         oauth = self._oauth(db, redirect_uri)
-        cache = _SettingCache(db)
+        cache = _SettingCache(db, self._k("spotify_oauth"))
         token_info = cache.get_cached_token()
         if not token_info:
             raise NotConnected("spotify")
         try:
             token_info = oauth.validate_token(token_info)  # refreshes if expired
         except Exception as exc:
-            settings_store.set_setting(db, "spotify_auth_error", "true")
+            settings_store.set_setting(db, self._k("spotify_auth_error"), "true")
             raise AuthExpired("spotify") from exc
         if not token_info:
-            settings_store.set_setting(db, "spotify_auth_error", "true")
+            settings_store.set_setting(db, self._k("spotify_auth_error"), "true")
             raise AuthExpired("spotify")
         return token_info["access_token"]
 
@@ -110,9 +123,9 @@ class SpotifyConnector:
         return spotipy.Spotify(auth=self._access_token(db, redirect_uri))
 
     def status(self, db: Session) -> dict:
-        profile = settings_store.get_setting(db, "spotify_profile")
+        profile = settings_store.get_setting(db, self._k("spotify_profile"))
         p = json.loads(profile) if profile else {}
-        expired = settings_store.get_setting(db, "spotify_auth_error") == "true"
+        expired = settings_store.get_setting(db, self._k("spotify_auth_error")) == "true"
         return {
             "provider": "spotify",
             "name": "Spotify",
@@ -154,7 +167,7 @@ class SpotifyConnector:
     # ---------- M5: matching + writes ----------
 
     def account_id(self, db: Session) -> str | None:
-        profile = settings_store.get_setting(db, "spotify_profile")
+        profile = settings_store.get_setting(db, self._k("spotify_profile"))
         return json.loads(profile).get("id") if profile else None
 
     def search_track(self, db: Session, title: str, artists: list[str]) -> list[dict]:

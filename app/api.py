@@ -611,6 +611,8 @@ class MigrationBody(BaseModel):
     target: str
     likes: bool = True
     follows: bool = False
+    source_slot: str = "primary"
+    target_slot: str = "primary"
 
 
 def _start_job_task(job_id: int) -> None:
@@ -623,13 +625,9 @@ def list_migrations(db: Session = Depends(get_session)) -> dict:
     from app.models import MigrationJob
 
     jobs = db.scalars(select(MigrationJob).order_by(MigrationJob.id.desc()).limit(20)).all()
-    from app.services.library import CONNECTORS
-    pairs = [{"source": s, "target": t, "label": label,
-              "ready": CONNECTORS[s].connected(db) and CONNECTORS[t].connected(db)}
-             for (s, t), label in migrate_service.available_pairs().items()]
     return {
         "jobs": [migrate_service.job_json(db, j) for j in jobs],
-        "pairs": pairs,
+        "pairs": migrate_service.migration_pairs(db),
         "budget": {"cap": migrate_service.write_cap(db),
                    "used_today": migrate_service.writes_used_today(db)},
     }
@@ -641,7 +639,9 @@ async def start_migration(body: MigrationBody, db: Session = Depends(get_session
         raise HTTPException(422, "Pick at least one thing to copy")
     try:
         job, created = migrate_service.create_or_resume(
-            db, body.source, body.target, {"likes": body.likes, "follows": body.follows})
+            db, body.source, body.target,
+            {"likes": body.likes, "follows": body.follows,
+             "source_slot": body.source_slot, "target_slot": body.target_slot})
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     _start_job_task(job.id)

@@ -30,7 +30,7 @@ from app.connectors.base import AuthExpired, QuotaExhausted
 from app.db import session_factory
 from app.models import MatchCandidate, MigrationJob, Service
 from app.services import matching
-from app.services.library import CONNECTORS
+from app.services.library import CONNECTORS, connector_for
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,7 @@ def _migration_label(key: str) -> str:
 
 
 def available_pairs() -> dict[tuple[str, str], str]:
+    """Cross-service migration matrix (both accounts = primary slot)."""
     pairs: dict[tuple[str, str], str] = {}
     for a_key, a in CONNECTORS.items():
         for b_key, b in CONNECTORS.items():
@@ -61,6 +62,38 @@ def available_pairs() -> dict[tuple[str, str], str]:
             if ca.get("user_library") and (cb.get("write_likes") or cb.get("write_follows")):
                 pairs[(a_key, b_key)] = f"{_migration_label(a_key)} → {_migration_label(b_key)}"
     return pairs
+
+
+def _account_label(db: Session, key: str, slot: str) -> str:
+    """Human label for one account, e.g. 'Spotify (Alice)' — falls back to
+    main/second when no profile name is stored."""
+    base = _migration_label(key)
+    prof = connector_for(key, slot).status(db).get("profile")
+    return f"{base} ({prof})" if prof else f"{base} ({'second' if slot == 'secondary' else 'main'})"
+
+
+def migration_pairs(db: Session) -> list[dict]:
+    """Every migration the UI can offer: cross-service (primary→primary) plus
+    same-service account-to-account (primary↔secondary) once a second account of
+    that service is connected. Each carries source/target slots + a ready flag."""
+    out: list[dict] = []
+    for (s, t), label in available_pairs().items():
+        out.append({"source": s, "target": t, "source_slot": "primary",
+                    "target_slot": "primary", "label": label,
+                    "ready": connector_for(s).connected(db) and connector_for(t).connected(db)})
+    # Same-service: only surface once the secondary account exists, both directions.
+    for key in CONNECTORS:
+        if not connector_for(key, "secondary").connected(db):
+            continue
+        for src_slot, tgt_slot in (("primary", "secondary"), ("secondary", "primary")):
+            ready = (connector_for(key, src_slot).connected(db)
+                     and connector_for(key, tgt_slot).connected(db))
+            out.append({"source": key, "target": key, "source_slot": src_slot,
+                        "target_slot": tgt_slot,
+                        "label": f"{_account_label(db, key, src_slot)} → "
+                                 f"{_account_label(db, key, tgt_slot)}",
+                        "ready": ready})
+    return out
 
 _stop_flags: dict[int, threading.Event] = {}
 
@@ -148,18 +181,24 @@ def job_json(db: Session, job: MigrationJob) -> dict:
 
 
 def create_or_resume(db: Session, source: str, target: str, scope: dict) -> tuple[MigrationJob, bool]:
-    """Duplicate-job protection: an identical active job resumes, never forks."""
-    if source == target:
-        raise ValueError("Same-service transfers need a second Google account slot "
-                         "— multi-account support hasn't landed yet")
-    if (source, target) not in available_pairs():
+    """Duplicate-job protection: an identical active job resumes, never forks.
+    `scope` carries source_slot/target_slot (default 'primary'); same-service
+    migrations use different slots (primary↔secondary)."""
+    source_slot = scope.get("source_slot", "primary")
+    target_slot = scope.get("target_slot", "primary")
+    scope = {**scope, "source_slot": source_slot, "target_slot": target_slot}
+    if source == target and source_slot == target_slot:
+        raise ValueError("Source and target are the same account — nothing to migrate")
+    if source != target and (source, target) not in available_pairs():
         raise ValueError("That direction isn't supported yet — the matrix grows "
                          "automatically as connectors land (M8)")
-    src, tgt = CONNECTORS[source], CONNECTORS[target]
+    src, tgt = connector_for(source, source_slot), connector_for(target, target_slot)
     if not src.connected(db):
-        raise ValueError(f"Connect {src.name} first")
+        raise ValueError(f"Connect {src.name} first"
+                         + (" (second account)" if source_slot == "secondary" else ""))
     if not tgt.connected(db):
-        raise ValueError(f"Connect {tgt.name} first")
+        raise ValueError(f"Connect {tgt.name} first"
+                         + (" (second account)" if target_slot == "secondary" else ""))
     sid, tid = src.account_id(db), tgt.account_id(db)
     if sid and tid and sid == tid:
         raise ValueError("Source and target are the same account — nothing to migrate")
@@ -218,7 +257,11 @@ def _pause_quota(db: Session, job: MigrationJob) -> None:
 def _run_phases(db: Session, job: MigrationJob, stop: threading.Event) -> None:
     source_key, target_key = _service_key(db, job.source_service_id), _service_key(db, job.target_service_id)
     assert source_key is not None and target_key is not None
-    source, target = CONNECTORS[source_key], CONNECTORS[target_key]
+    source = connector_for(source_key, job.scope.get("source_slot", "primary"))
+    target = connector_for(target_key, job.scope.get("target_slot", "primary"))
+    # Same service on both ends → identical catalog: the source's external_id IS a
+    # valid target id, so we copy straight through and skip search/matching.
+    same_service = source_key == target_key
 
     # ---- matching phase ----
     job.status = "matching"
@@ -245,6 +288,12 @@ def _run_phases(db: Session, job: MigrationJob, stop: threading.Event) -> None:
             continue
         title = payload.get("title", "")
         artists = payload.get("artists") or ([payload["channel"]] if payload.get("channel") else [])
+        if same_service:
+            # Direct copy — no search, no fuzzy match; the id is already valid.
+            resolved[sid] = {"state": "matched", "kind": kind,
+                             "target_id": payload["external_id"], "confidence": 1.0}
+            _set_progress(db, job, resolved=resolved, counts=counts)
+            continue
         if kind == "like":
             candidates = target.search_track(db, title, artists)
         else:
@@ -348,7 +397,7 @@ def revert_job(job_id: int) -> None:
             return
         target_key = _service_key(db, job.target_service_id)
         assert target_key is not None
-        target = CONNECTORS[target_key]
+        target = connector_for(target_key, job.scope.get("target_slot", "primary"))
         journal = list(job.progress.get("journal", []))
         undone = 0
         try:
