@@ -11,6 +11,7 @@ import { RegionSwitcher } from "../components/RegionSwitcher";
 import { SortSelect } from "../components/SortSelect";
 import { StatusBanner } from "../components/StatusBanner";
 import { api } from "../lib/api";
+import { useT } from "../lib/i18n";
 import { fmtNumber, useLocale } from "../lib/locale";
 import { ageOf, daysSince } from "../lib/time";
 import { MusicTab } from "./MusicTab";
@@ -44,6 +45,7 @@ function SkeletonRail() {
 export function Shelf() {
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const locale = useLocale();
+  const t = useT();
   const [params, setParams] = useSearchParams();
   const tab = TABS.some(([k]) => k === params.get("tab")) ? params.get("tab")! : "all";
   const [view, setView] = useState<"categories" | "services">("categories");
@@ -101,7 +103,7 @@ export function Shelf() {
       className="sticky top-0 z-30 -mx-5 mb-5 flex gap-1 border-b border-line bg-bg0 px-5 pt-1
                  min-[700px]:-mx-8 min-[700px]:px-8"
     >
-      {TABS.map(([key, label]) => (
+      {TABS.map(([key]) => (
         <button
           key={key}
           role="tab"
@@ -113,7 +115,7 @@ export function Shelf() {
               : "border-transparent text-muted hover:text-ink"
           }`}
         >
-          {label}
+          {t(`tab.${key}`)}
         </button>
       ))}
     </div>
@@ -195,7 +197,7 @@ export function Shelf() {
                   view === v ? "bg-owned/15 text-owned" : "text-muted hover:bg-bg2"
                 }`}
               >
-                {v === "categories" ? "by category" : "by service"}
+                {v === "categories" ? t("view.categories") : t("view.services")}
               </button>
             ))}
           </div>
@@ -207,9 +209,9 @@ export function Shelf() {
           // Ownership only — per-service browsing lives in the by-service view,
           // music in the Music tab (chip row stays fixed-size as subs grow).
           chips={[
-            { key: "all", label: "All" },
-            { key: "mine", label: "On my services" },
-            { key: "elsewhere", label: "Not on my services" },
+            { key: "all", label: t("chip.all") },
+            { key: "mine", label: t("chip.mine") },
+            { key: "elsewhere", label: t("chip.elsewhere") },
           ]}
           active={active}
           onSelect={setFilter}

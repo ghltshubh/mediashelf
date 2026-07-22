@@ -1,16 +1,18 @@
 import { NavLink } from "react-router-dom";
+import { useT } from "../lib/i18n";
 import { Logo } from "./Logo";
 
 const ITEMS = [
-  { to: "/", glyph: "◆", label: "Shelf" },
-  { to: "/search", glyph: "⌕", label: "Search" },
-  { to: "/library", glyph: "▤", label: "Library" },
-  { to: "/migrations", glyph: "⇄", label: "Migrations" },
-  { to: "/settings", glyph: "⚙", label: "Settings" },
+  { to: "/", glyph: "◆", key: "nav.shelf" },
+  { to: "/search", glyph: "⌕", key: "nav.search" },
+  { to: "/library", glyph: "▤", key: "nav.library" },
+  { to: "/migrations", glyph: "⇄", key: "nav.migrations" },
+  { to: "/settings", glyph: "⚙", key: "nav.settings" },
 ];
 
 /** Left sidebar; icons-only under 1100px, bottom tab bar under 700px (Part 2 §3, §7). */
 export function Sidebar() {
+  const t = useT();
   return (
     <nav
       aria-label="Main"
@@ -26,24 +28,27 @@ export function Sidebar() {
           MediaShelf
         </span>
       </div>
-      {ITEMS.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === "/"}
-          className={({ isActive }) =>
-            `hoverable flex flex-1 items-center justify-center gap-3 px-3 py-3 font-display
-             text-[0.95rem] font-medium tracking-tight
-             min-[700px]:flex-none min-[700px]:justify-center min-[1100px]:justify-start ${
-               isActive ? "text-owned" : "text-muted hover:bg-bg2 hover:text-ink"
-             }`
-          }
-        >
-          <span aria-hidden className="text-[1.05rem]">{item.glyph}</span>
-          <span className="hidden min-[1100px]:inline">{item.label}</span>
-          <span className="sr-only min-[1100px]:hidden">{item.label}</span>
-        </NavLink>
-      ))}
+      {ITEMS.map((item) => {
+        const label = t(item.key);
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === "/"}
+            className={({ isActive }) =>
+              `hoverable flex flex-1 items-center justify-center gap-3 px-3 py-3 font-display
+               text-[0.95rem] font-medium tracking-tight
+               min-[700px]:flex-none min-[700px]:justify-center min-[1100px]:justify-start ${
+                 isActive ? "text-owned" : "text-muted hover:bg-bg2 hover:text-ink"
+               }`
+            }
+          >
+            <span aria-hidden className="text-[1.05rem]">{item.glyph}</span>
+            <span className="hidden min-[1100px]:inline">{label}</span>
+            <span className="sr-only min-[1100px]:hidden">{label}</span>
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }

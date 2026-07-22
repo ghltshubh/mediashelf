@@ -594,8 +594,10 @@ export function Settings() {
               </select>
             </label>
             <p className="mt-2 font-mono text-[0.7rem] text-muted">
-              independent of your region — controls date &amp; number formatting only (interface
-              text stays English for now). defaults to your browser's language.
+              independent of your region — translates the main interface (navigation, tabs, filters)
+              and formats dates &amp; numbers to match. deeper page text is being localized
+              progressively; anything untranslated falls back to English. defaults to your browser's
+              language.
             </p>
           </div>
           <div className="mt-4 flex max-w-lg flex-wrap items-end gap-3">
