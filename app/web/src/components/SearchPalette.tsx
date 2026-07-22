@@ -81,7 +81,7 @@ export function SearchPalette() {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (flat[activeIdx] && !importing) {
-        void activate(flat[activeIdx].item, close);
+        void activate(flat[activeIdx].item, close, flat.map((r) => r.item));
       } else if (q.trim().length >= 2) {
         navigate(`/search?q=${encodeURIComponent(q.trim())}`);
         close();
@@ -142,7 +142,7 @@ export function SearchPalette() {
                     id={`palette-row-${idx}`}
                     item={item}
                     active={idx === activeIdx}
-                    onActivate={() => void activate(item, close)}
+                    onActivate={() => void activate(item, close, g.items)}
                     onHover={() => setActiveIdx(idx)}
                   />
                 );

@@ -67,7 +67,8 @@ export function MusicTab() {
           </div>
           <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
             {likes.items.slice(0, 24).map((item, i) => (
-              <MusicCard key={i} item={item} onPlay={() => void activate(item)} />
+              <MusicCard key={i} item={item}
+                         onPlay={() => void activate(item, undefined, likes.items.slice(0, 24))} />
             ))}
           </div>
         </section>

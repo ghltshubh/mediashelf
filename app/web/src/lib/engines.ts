@@ -107,6 +107,7 @@ export class SpotifySdkEngine {
   private player: any = null;
   private deviceId: string | null = null;
   private timer: number | undefined;
+  private _wasPlaying = false;  // for track-end detection
 
   private async token(): Promise<string> {
     const res = await fetch("/api/playback/spotify/token");
@@ -138,6 +139,17 @@ export class SpotifySdkEngine {
       });
       this.player.addListener("player_state_changed", (state: any) => {
         if (!state) return;
+        // Track end: the SDK reports paused at position 0 with the finished track
+        // now in previous_tracks. Guard on having been playing so the initial
+        // paused state (before playback) isn't mistaken for an end.
+        const ended = state.paused && state.position === 0 && this._wasPlaying
+          && (state.track_window?.previous_tracks?.length ?? 0) > 0;
+        if (ended) {
+          this._wasPlaying = false;
+          cb.onState("ended");
+          return;
+        }
+        this._wasPlaying = !state.paused;
         cb.onState(state.paused ? "paused" : "playing");
         cb.onProgress(state.position / 1000, state.duration / 1000);
       });

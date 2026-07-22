@@ -71,12 +71,28 @@ export function PlayerBar() {
           </div>
 
           <button
+            onClick={p.prev}
+            disabled={p.queueIndex <= 0}
+            aria-label="Previous track"
+            className="hidden h-9 w-9 items-center justify-center rounded-full text-[0.9rem] text-muted hover:bg-bg2 hover:text-ink disabled:opacity-25 min-[700px]:flex"
+          >
+            ⏮
+          </button>
+          <button
             onClick={p.toggle}
             disabled={!canTransport}
             aria-label={p.status === "playing" ? "Pause" : "Play"}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-[1rem] hover:bg-bg2 disabled:opacity-30"
           >
             {p.status === "loading" ? "…" : p.status === "playing" ? "⏸" : "▶"}
+          </button>
+          <button
+            onClick={p.next}
+            disabled={p.queueIndex < 0 || p.queueIndex >= p.queue.length - 1}
+            aria-label="Next track"
+            className="hidden h-9 w-9 items-center justify-center rounded-full text-[0.9rem] text-muted hover:bg-bg2 hover:text-ink disabled:opacity-25 min-[700px]:flex"
+          >
+            ⏭
           </button>
 
           <div className="hidden flex-1 items-center gap-2 min-[700px]:flex">

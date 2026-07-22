@@ -109,7 +109,7 @@ export function Library() {
                   id={`lib-${g.key}-${i}`}
                   item={item}
                   active={false}
-                  onActivate={() => void activate(item)}
+                  onActivate={() => void activate(item, undefined, g.items)}
                 />
               ))}
             </div>

@@ -21,7 +21,12 @@ interface PlayerState {
   duration: number;
   volume: number;
   toast: string | null;
+  queue: PlayRequest[];
+  queueIndex: number;
   play: (req: PlayRequest, choice?: PlayOption) => void;
+  playQueue: (queue: PlayRequest[], index: number, choice?: PlayOption) => void;
+  next: () => void;
+  prev: () => void;
   stop: () => void;
   toggle: () => void;
   seek: (seconds: number) => void;
@@ -42,9 +47,14 @@ function stopEngines() {
 
 export const usePlayer = create<PlayerState>((set, get) => {
   const callbacks = {
-    onState: (s: "loading" | "playing" | "paused" | "ended") =>
-      set(s === "ended" ? { status: "idle", request: null, option: null }
-        : { status: s === "loading" ? "loading" : s }),
+    onState: (s: "loading" | "playing" | "paused" | "ended") => {
+      if (s === "ended") {
+        // Continuous playback: advance to the next queued track, else go idle.
+        get().next();
+        return;
+      }
+      set({ status: s === "loading" ? "loading" : s });
+    },
     onProgress: (position: number, duration: number) => set({ position, duration }),
     onFail: (reason: string) => {
       const { request, option } = get();
@@ -60,13 +70,37 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
       if (next) {
         get().showToast(`${option.label} unavailable — trying ${next.label}`);
-        get().play(request, next);
+        load(request, next);  // re-route within the same track — keep the queue
       } else {
         get().showToast(`${option.label} unavailable`);
         get().stop();
       }
     },
   };
+
+  // Shared engine loader. `play` (single track) clears the queue first; the
+  // queue methods and the re-route call this directly so the queue survives.
+  function load(req: PlayRequest, choice?: PlayOption): void {
+    const option = choice ?? req.options.find((o) => o.engine !== "deeplink") ?? req.options[0];
+    if (!option) return;
+    if (option.engine === "deeplink") {
+      if (option.payload.url) window.open(option.payload.url, "_blank", "noopener");
+      return;
+    }
+    stopEngines();
+    set({ request: req, option, status: "loading", position: 0, duration: 0 });
+    if (option.engine === "youtube" && option.payload.video_id) {
+      // The theater slot must exist before the iframe mounts.
+      window.setTimeout(
+        () => youtube.load(YOUTUBE_CONTAINER_ID, option.payload.video_id!, callbacks), 0);
+    } else if (option.engine === "spotify_sdk" && option.payload.spotify_uri) {
+      void spotifySdk.load(option.payload.spotify_uri, callbacks);
+    } else if (option.engine === "spotify_embed") {
+      set({ status: "playing" });  // embed manages itself; we just host it
+    } else if (option.engine === "musickit") {
+      callbacks.onFail("MusicKit playback not wired yet");
+    }
+  }
 
   return {
     request: null,
@@ -76,32 +110,47 @@ export const usePlayer = create<PlayerState>((set, get) => {
     duration: 0,
     volume: 0.8,
     toast: null,
+    queue: [],
+    queueIndex: -1,
 
+    playQueue: (queue, index, choice) => {
+      // Clicking a track in a list plays it and continues through the rest.
+      set({ queue, queueIndex: index });
+      const req = queue[index];
+      if (req) load(req, choice);
+    },
+
+    next: () => {
+      const { queue, queueIndex } = get();
+      const ni = queueIndex + 1;
+      if (ni >= 0 && ni < queue.length) {
+        set({ queueIndex: ni });
+        load(queue[ni]);
+      } else {
+        get().stop();
+      }
+    },
+
+    prev: () => {
+      const { queue, queueIndex } = get();
+      const pi = queueIndex - 1;
+      if (pi >= 0 && pi < queue.length) {
+        set({ queueIndex: pi });
+        load(queue[pi]);
+      }
+    },
+
+    // Standalone single-track play (Title page, etc.): drop any queue so a track
+    // that ends doesn't auto-advance into a stale list.
     play: (req, choice) => {
-      const option = choice ?? req.options.find((o) => o.engine !== "deeplink") ?? req.options[0];
-      if (!option) return;
-      if (option.engine === "deeplink") {
-        if (option.payload.url) window.open(option.payload.url, "_blank", "noopener");
-        return;
-      }
-      stopEngines();
-      set({ request: req, option, status: "loading", position: 0, duration: 0 });
-      if (option.engine === "youtube" && option.payload.video_id) {
-        // The theater slot must exist before the iframe mounts.
-        window.setTimeout(
-          () => youtube.load(YOUTUBE_CONTAINER_ID, option.payload.video_id!, callbacks), 0);
-      } else if (option.engine === "spotify_sdk" && option.payload.spotify_uri) {
-        void spotifySdk.load(option.payload.spotify_uri, callbacks);
-      } else if (option.engine === "spotify_embed") {
-        set({ status: "playing" });  // embed manages itself; we just host it
-      } else if (option.engine === "musickit") {
-        callbacks.onFail("MusicKit playback not wired yet");
-      }
+      set({ queue: [], queueIndex: -1 });
+      load(req, choice);
     },
 
     stop: () => {
       stopEngines();
-      set({ request: null, option: null, status: "idle", position: 0, duration: 0 });
+      set({ request: null, option: null, status: "idle", position: 0, duration: 0,
+            queue: [], queueIndex: -1 });
     },
 
     toggle: () => {

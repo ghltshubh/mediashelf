@@ -5,7 +5,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePlayer } from "../stores/player";
+import { usePlayer, type PlayRequest } from "../stores/player";
 import { api, type MusicResult, type SearchResult, type VideoResult } from "./api";
 
 export function useDebounced<T>(value: T, ms: number): T {
@@ -87,25 +87,50 @@ export function useUniversalSearch(q: string) {
   };
 }
 
-/** Executes a result's smart-default action. Returns once navigation/opening happened. */
+/** A music row is auto-advanceable if it can play through an in-app engine
+    (not a deep link that just opens another tab). */
+function playableInApp(m: MusicResult): boolean {
+  return m.action?.type === "play"
+    && !!m.playback?.options?.some((o) => o.engine !== "deeplink");
+}
+
+function toRequest(m: MusicResult): PlayRequest {
+  return {
+    title: m.title,
+    subtitle: m.artists.join(", "),
+    artwork: m.thumb,
+    options: m.playback!.options,
+  };
+}
+
+/** Executes a result's smart-default action. Returns once navigation/opening
+    happened. Pass `queue` (the list the row was played from) to continue playing
+    the rest of the list after this track ends. */
 export function useActivate() {
   const navigate = useNavigate();
   const player = usePlayer();
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function activate(item: SearchResult, onDone?: () => void) {
+  async function activate(item: SearchResult, onDone?: () => void, queue?: SearchResult[]) {
     const action = item.action;
     if (!action) return;
     setError(null);
     if (action.type === "play" && isMusic(item) && item.playback) {
-      // M3: Enter's smart default is the playback routing chain.
-      player.play({
-        title: item.title,
-        subtitle: item.artists.join(", "),
-        artwork: item.thumb,
-        options: item.playback.options,
-      });
+      // Continuous playback: if the row came from a list, queue the whole list
+      // (playable music rows only) starting here; otherwise play just this track.
+      const list = (queue ?? []).filter(isMusic).filter(playableInApp);
+      if (list.length > 1 && playableInApp(item)) {
+        const start = Math.max(0, list.indexOf(item));
+        player.playQueue(list.map(toRequest), start);
+      } else {
+        player.play({
+          title: item.title,
+          subtitle: item.artists.join(", "),
+          artwork: item.thumb,
+          options: item.playback.options,
+        });
+      }
       onDone?.();
     } else if (action.type === "deeplink" && action.url) {
       window.open(action.url, "_blank", "noopener");
