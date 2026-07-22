@@ -263,7 +263,7 @@ export function Shelf() {
       {showMusicRail && view === "categories" && <MusicRail />}
       {/* By-service view: music services can't appear in TMDB's video rails,
           so your Spotify library gets its own service rail here. */}
-      {showMusicRail && view === "services" && <MusicRail label="Spotify · your music" />}
+      {showMusicRail && view === "services" && <MusicRail label="Your music" />}
 
       {data.rails.map((rail) => (
         <RailSection

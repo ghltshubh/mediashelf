@@ -35,8 +35,14 @@ export function MusicCard({ item, onPlay }: { item: MusicResult; onPlay: () => v
 export function MusicRail({ label = "Music" }: { label?: string }) {
   const library = useQuery({ queryKey: ["library"], queryFn: api.library, staleTime: 60_000 });
   const { activate } = useActivate();
-  const likes = library.data?.groups.find((g) => g.key === "spotify_like");
-  if (!likes || likes.items.length === 0) return null;
+  // Liked songs across every connected music source (Spotify + YouTube Music).
+  const groups = (library.data?.groups ?? []).filter(
+    (g) => g.key === "spotify_like" || g.key === "youtube_music",
+  );
+  const items = groups.flatMap((g) => g.items);
+  const total = groups.reduce((n, g) => n + g.count, 0);
+  if (items.length === 0) return null;
+  const shown = items.slice(0, 20);
 
   return (
     <section className="mb-10">
@@ -51,13 +57,12 @@ export function MusicRail({ label = "Music" }: { label?: string }) {
           <span aria-hidden className="text-[1rem] text-muted group-hover:text-owned">›</span>
         </Link>
         <Link to="/library" className="font-mono text-[0.75rem] text-muted hover:text-owned">
-          your library · {likes.count} liked →
+          your library · {total} liked →
         </Link>
       </div>
       <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
-        {likes.items.slice(0, 20).map((item, i) => (
-          <MusicCard key={i} item={item}
-                     onPlay={() => void activate(item, undefined, likes.items.slice(0, 20))} />
+        {shown.map((item, i) => (
+          <MusicCard key={i} item={item} onPlay={() => void activate(item, undefined, shown)} />
         ))}
       </div>
     </section>
