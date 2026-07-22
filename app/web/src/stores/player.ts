@@ -65,9 +65,19 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const idx = request.options.findIndex((o) => o === option || o.engine === option.engine);
       const next = request.options[idx + 1];
       if (reason === "embed-blocked" && option.engine === "youtube") {
-        get().showToast("This video can't be embedded — opening on YouTube");
-        window.open(`https://www.youtube.com/watch?v=${option.payload.video_id}`, "_blank", "noopener");
-        get().stop();
+        // Some YouTube videos (often official music) disable embedding, so the
+        // in-app player can't play them. In a queue, skip and keep going rather
+        // than stopping everything or spamming tabs; for a single track, hand
+        // off to YouTube.
+        const { queue, queueIndex } = get();
+        if (queueIndex >= 0 && queueIndex < queue.length - 1) {
+          get().showToast(`Can't play "${request.title}" here — skipping`);
+          get().next();
+        } else {
+          get().showToast("This video can't be embedded — opening on YouTube");
+          window.open(`https://www.youtube.com/watch?v=${option.payload.video_id}`, "_blank", "noopener");
+          get().stop();
+        }
         return;
       }
       if (next) {
