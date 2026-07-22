@@ -105,12 +105,22 @@ class YouTubeConnector:
             prompt="consent select_account",
             state=state,
         )
+        # google-auth-oauthlib enables PKCE by default: authorization_url()
+        # generates a code_verifier that the token exchange must echo back. The
+        # callback builds a fresh Flow, so persist the verifier for it — else
+        # Google rejects the exchange with "invalid_grant: Missing code verifier".
+        if flow.code_verifier:
+            settings_store.set_setting(db, self._k("youtube_oauth_verifier"), flow.code_verifier)
         return url
 
     def handle_callback(self, db: Session, code: str, redirect_uri: str) -> None:
         flow = Flow.from_client_config(self._client_config(db), scopes=SCOPES,
                                        redirect_uri=redirect_uri)
+        verifier = settings_store.get_setting(db, self._k("youtube_oauth_verifier"))
+        if verifier:
+            flow.code_verifier = verifier
         flow.fetch_token(code=code)
+        settings_store.set_setting(db, self._k("youtube_oauth_verifier"), None)  # one-time use
         creds = flow.credentials
         settings_store.set_setting(db, self._k("youtube_oauth"), creds.to_json())
         settings_store.set_setting(db, self._k("youtube_auth_error"), None)
@@ -124,7 +134,8 @@ class YouTubeConnector:
             }))
 
     def disconnect(self, db: Session) -> None:
-        for k in ("youtube_oauth", "youtube_profile", "youtube_auth_error"):
+        for k in ("youtube_oauth", "youtube_profile", "youtube_auth_error",
+                  "youtube_oauth_verifier"):
             settings_store.set_setting(db, self._k(k), None)
 
     def _creds(self, db: Session) -> Credentials:
