@@ -229,6 +229,12 @@ def list_services(db: Session = Depends(get_session)) -> list[dict]:
     for s, sub in rows:
         featured, integration, integ_kind = catalog.service_integration(
             s.key, s.tier, s.capabilities)
+        # Music surfaces only through a real connector (catalog/library). A music
+        # service with no connector (Gaana, Tidal, Deezer, …) can't show tracks and
+        # ticking it does nothing — so keep it out of the checklist until it gains
+        # one (still in the DB as a future connector target / migration endpoint).
+        if s.kind == "music" and integ_kind != "connector":
+            continue
         out.append({
             "connected": s.key in connected_keys,
             "expired": s.key in expired_keys,

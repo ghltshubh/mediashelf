@@ -3,8 +3,11 @@ def test_service_roster_seeded(client):
     keys = {s["key"] for s in services}
     # Tier 1 + a sample across tiers from Appendix A.
     for expected in ("spotify", "youtube", "apple_music", "trakt", "netflix",
-                     "disney_plus", "jiohotstar", "gaana"):
+                     "disney_plus", "jiohotstar"):
         assert expected in keys
+    # Music services with no connector (gaana, tidal, …) are seeded in the DB but
+    # kept out of the checklist — ticking them can't surface any music.
+    assert "gaana" not in keys and "tidal" not in keys
     spotify = next(s for s in services if s["key"] == "spotify")
     assert spotify["tier"] == 1
     assert spotify["capabilities"]["playback"] == "sdk"
