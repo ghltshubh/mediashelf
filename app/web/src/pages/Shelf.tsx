@@ -64,17 +64,26 @@ export function Shelf() {
     staleTime: 60_000,
   });
   const hasSubs = (shelfKnown.data?.stats.subscribed ?? 0) > 0;
-  const active = filter ?? (hasSubs ? "mine" : "all");
+
+  // Home is the curated landing: the full shelf (lit vs dimmed), no filter
+  // controls — so nothing shifts around. Movies/Shows are the browsing tabs
+  // and carry the whole toolbar, pinned at the top (no music rail above it).
+  const isHome = tab === "all";
+  const active = isHome ? "all" : (filter ?? (hasSubs ? "mine" : "all"));
+  const effView = isHome ? "categories" : view;
+  const effRegion = isHome ? "" : region;
+  const effSort = isHome ? "popularity" : sort;
+  const effGenre = isHome ? "" : genre;
 
   const shelf = useQuery({
-    queryKey: ["shelf", view, region, active, mediaType, sort, genre],
-    queryFn: () => api.shelf(view, region, active, mediaType, sort, genre),
+    queryKey: ["shelf", effView, effRegion, active, mediaType, effSort, effGenre],
+    queryFn: () => api.shelf(effView, effRegion, active, mediaType, effSort, effGenre),
     enabled: !!settings.data?.tmdb_api_key_set && shelfKnown.isSuccess
       && tab !== "music" && tab !== "podcasts",
     refetchInterval: (q) => (q.state.data?.sync.status === "running" ? 4000 : false),
   });
 
-  const showMusicRail = tab === "all" && (active === "all" || active === "mine");
+  const showMusicRail = isHome;
 
   const data = shelf.data;
 
@@ -178,12 +187,8 @@ export function Shelf() {
         <StatusBanner kind="info">Catalog last updated {ageOf(data.synced_at)}.</StatusBanner>
       )}
 
-      {/* Music sits ABOVE the controls row: the genre/sort/region filters below
-          only affect the video catalog, so their scope starts under this rail. */}
-      {showMusicRail && view === "categories" && <MusicRail />}
-      {/* By-service view: music services can't appear in TMDB's video rails,
-          so your synced library gets its own service rail here. */}
-      {showMusicRail && view === "services" && <MusicRail label="Your music" />}
+      {/* Home: the curated shelf, controls-free — the music rail leads. */}
+      {showMusicRail && <MusicRail />}
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[0.8rem] text-muted">
@@ -193,40 +198,44 @@ export function Shelf() {
             subscribed: data.stats.subscribed,
           })}
         </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <GenreSelect value={genre} genres={data.all_genres} onChange={setGenre} />
-          <SortSelect value={sort} onChange={setSort} />
-          <RegionSwitcher regions={data.regions} active={data.country} onSelect={setRegion} />
-          <div role="group" aria-label="Shelf view" className="flex rounded-[6px] border border-line">
-            {(["categories", "services"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                aria-pressed={view === v}
-                className={`px-3 py-1 font-mono text-[0.75rem] first:rounded-l-[5px] last:rounded-r-[5px] ${
-                  view === v ? "bg-owned/15 text-owned" : "text-muted hover:bg-bg2"
-                }`}
-              >
-                {v === "categories" ? t("view.categories") : t("view.services")}
-              </button>
-            ))}
+        {!isHome && (
+          <div className="flex flex-wrap items-center gap-2">
+            <GenreSelect value={genre} genres={data.all_genres} onChange={setGenre} />
+            <SortSelect value={sort} onChange={setSort} />
+            <RegionSwitcher regions={data.regions} active={data.country} onSelect={setRegion} />
+            <div role="group" aria-label="Shelf view" className="flex rounded-[6px] border border-line">
+              {(["categories", "services"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  aria-pressed={view === v}
+                  className={`px-3 py-1 font-mono text-[0.75rem] first:rounded-l-[5px] last:rounded-r-[5px] ${
+                    view === v ? "bg-owned/15 text-owned" : "text-muted hover:bg-bg2"
+                  }`}
+                >
+                  {v === "categories" ? t("view.categories") : t("view.services")}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="mb-8">
-        <FilterChips
-          // Ownership only — per-service browsing lives in the by-service view,
-          // music in the Music tab (chip row stays fixed-size as subs grow).
-          chips={[
-            { key: "all", label: t("chip.all") },
-            { key: "mine", label: t("chip.mine") },
-            { key: "elsewhere", label: t("chip.elsewhere") },
-          ]}
-          active={active}
-          onSelect={setFilter}
-        />
-      </div>
+      {!isHome && (
+        <div className="mb-8">
+          <FilterChips
+            // Ownership only — per-service browsing lives in the by-service view,
+            // music in the Music tab (chip row stays fixed-size as subs grow).
+            chips={[
+              { key: "all", label: t("chip.all") },
+              { key: "mine", label: t("chip.mine") },
+              { key: "elsewhere", label: t("chip.elsewhere") },
+            ]}
+            active={active}
+            onSelect={setFilter}
+          />
+        </div>
+      )}
 
       {data.rails.length === 0 && data.stats.titles === 0 && data.sync.status !== "running" && (
         <EmptyState
@@ -277,7 +286,7 @@ export function Shelf() {
           region={data.country}
           filter={active}
           mediaType={mediaType}
-          genre={genre}
+          genre={effGenre}
         >
           {rail.items.map((item) => (
             <MediaCard key={`${rail.key}-${item.id}`} item={item} />
