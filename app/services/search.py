@@ -226,9 +226,50 @@ class YouTubeSearchProvider:
         }
 
 
+class AppleMusicCatalogProvider:
+    """Apple Music joins the music fan-out once a MusicKit developer token is
+    set (Settings → Keys) — catalog search needs only the developer token, no
+    user sign-in. Rows carry `apple_id`, which `attach_music_playback` turns
+    into an in-app MusicKit option."""
+
+    key = "apple_music"
+    scope = "music"
+    service_key = "apple_music"
+    service_name = "Apple Music"
+
+    def configured(self, db: Session) -> bool:
+        return settings_store.get_setting(db, "apple_developer_token") is not None
+
+    async def search(self, db: Session, query: str, country: str) -> list[dict]:
+        from app.providers import apple
+
+        token = settings_store.get_setting(db, "apple_developer_token")
+        assert token
+        songs = await apple.search_songs(token, query, (country or "us").lower())
+        out = []
+        for s in songs:
+            a = s.get("attributes") or {}
+            art = (a.get("artwork") or {}).get("url")
+            date = a.get("releaseDate") or ""
+            out.append({
+                "entity": "track",
+                "title": a.get("name") or "",
+                "artists": [a["artistName"]] if a.get("artistName") else [],
+                "year": int(date[:4]) if date[:4].isdigit() else None,
+                "thumb": art.replace("{w}", "100").replace("{h}", "100") if art else None,
+                "duration_ms": a.get("durationInMillis"),
+                "apple_id": s.get("id"),
+                "popularity": None,
+                "services": [{"service_key": self.service_key,
+                              "service_name": self.service_name, "url": a.get("url")}],
+            })
+        return out
+
+
 # Registration point: append here — nothing else changes.
 PROVIDERS: list[Any] = [LocalCatalogProvider(), TMDBSearchProvider(),
-                        SpotifyCatalogProvider(), YouTubeSearchProvider()]
+                        SpotifyCatalogProvider(), YouTubeSearchProvider(),
+                        AppleMusicCatalogProvider()]
 _breakers: dict[str, CircuitBreaker] = {}
 
 

@@ -16,7 +16,6 @@ engine and keeping the single best hit.
 import logging
 import re
 
-import httpx
 from sqlalchemy.orm import Session
 
 from app import settings_store
@@ -26,7 +25,6 @@ from app.services import playback as playback_service
 
 logger = logging.getLogger(__name__)
 
-APPLE_API = "https://api.music.apple.com"
 MIN_CONFIDENCE = 0.6  # below the auto-migrate bar (0.85) but safe for "play this"
 GOOD_ENOUGH = matching.AUTO_THRESHOLD  # stop trying variants once we're here
 
@@ -81,15 +79,9 @@ def _attempts(title: str, artists: list[str],
 
 async def _apple_candidates(token: str, query: str, storefront: str) -> list[matching.TrackRef]:
     """Apple Music catalog search — needs only the developer token (no user token)."""
-    async with httpx.AsyncClient(base_url=APPLE_API, timeout=10) as client:
-        resp = await client.get(
-            f"/v1/catalog/{storefront}/search",
-            params={"term": query, "types": "songs", "limit": 5},
-            headers={"Authorization": f"Bearer {token}"},
-        )
-    if resp.status_code != 200:
-        return []
-    songs = ((resp.json().get("results") or {}).get("songs") or {}).get("data", [])
+    from app.providers import apple
+
+    songs = await apple.search_songs(token, query, storefront, limit=5)
     out = []
     for s in songs:
         a = s.get("attributes") or {}

@@ -68,6 +68,35 @@ async def test_resolve_prefers_best_spotify_match(client, monkeypatch):
     assert opt["payload"]["spotify_uri"] == "spotify:track:abc"
 
 
+async def test_apple_catalog_in_music_search(client, monkeypatch):
+    # With a developer token set, Apple Music joins the search fan-out and its
+    # rows get an in-app MusicKit playback option (apple_id present).
+    from app.providers import apple as apple_provider
+
+    with session_factory()() as db:
+        settings_store.set_setting(db, "apple_developer_token", "dummy.jwt.token")
+
+    async def fake_songs(token, term, storefront="us", limit=8):
+        return [{"id": "1440833100", "attributes": {
+            "name": "One More Time", "artistName": "Daft Punk",
+            "durationInMillis": 320357, "releaseDate": "2001-03-12",
+            "url": "https://music.apple.com/us/song/1440833100",
+            "artwork": {"url": "https://a.mzstatic.com/img/{w}x{h}.jpg"}}}]
+    monkeypatch.setattr(apple_provider, "search_songs", fake_songs)
+
+    r = client.get("/api/search?scope=music&q=one%20more%20time").json()
+    provs = {p["key"]: p["state"] for p in r["providers"]}
+    assert provs.get("apple_music") == "ok"
+    rows = [i for g in r["groups"] for i in g["items"]
+            if any(s["service_key"] == "apple_music" for s in i.get("services", []))]
+    assert rows, "apple music row missing from results"
+    row = rows[0]
+    assert row["thumb"] == "https://a.mzstatic.com/img/100x100.jpg"
+    mk = next((o for o in (row.get("playback") or {}).get("options", [])
+               if o["engine"] == "musickit"), None)
+    assert mk is not None and mk["payload"]["apple_id"] == "1440833100"
+
+
 def test_apple_token_endpoint(client):
     # Not configured → 400.
     assert client.get("/api/playback/apple/token").status_code == 400

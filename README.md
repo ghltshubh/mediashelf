@@ -31,7 +31,9 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 
 - **One lit shelf** across your services — titles you can watch on what you subscribe to are
   lit; everything else is dimmed, each with working deep links into the owning app.
-- **Universal search** over movies/TV (TMDB) and music (Spotify catalog), fanned out per source.
+- **Universal search** over movies/TV (TMDB) and music — Spotify, YouTube Music (via the
+  optional yt-dlp plugin) and Apple Music catalogs — fanned out per source; each source is
+  optional and lights up when its key is added.
 - **Accounts & in-app playback** — connect Spotify / YouTube / Apple Music with your own keys;
   video is browse-and-link only (never DRM playback).
 - **Matching engine & migrations** — move playlists/likes/follows between music services, with a
