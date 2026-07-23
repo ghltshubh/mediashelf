@@ -41,8 +41,11 @@ prices, and cast:
   video is browse-and-link only (never DRM playback).
 - **Matching engine & migrations** — move playlists/likes/follows between music services, with a
   reviewable, revertible job log.
-- **Per-region availability** — the same title can stream on different services by country, and
-  the shelf reflects the region you pick.
+- **Per-region and worldwide availability** — the same title can stream on different services
+  by country. Track any number of countries (search and the shelf carry region-tagged results
+  across all of them, at zero extra TMDB cost), switch region anywhere, and every title page can
+  expand **"In other regions"** to show where it streams in every country worldwide — for when
+  something isn't available where you live.
 - **Media-type tabs** (All / Movies / Shows / Music) and a personal **Watchlist** rail imported
   from your streaming apps via a separate local companion tool (logged-in scraping stays out of
   the product).
