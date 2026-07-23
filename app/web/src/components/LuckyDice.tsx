@@ -60,9 +60,12 @@ export function LuckyDice({ genres }: { genres: string[] }) {
         onClick={() => setOpen(true)}
         aria-label={t("lucky.title")}
         title={t("lucky.title")}
-        className="hoverable -mb-px cursor-pointer px-3 py-2 text-[1.05rem] opacity-80 hover:opacity-100"
+        className="hoverable my-1 flex cursor-pointer items-center gap-2 self-center rounded-full
+                   border border-owned/40 bg-owned/10 px-3.5 py-1.5 font-display text-[0.95rem]
+                   font-semibold tracking-tight text-owned hover:bg-owned/20"
       >
-        🎲
+        <span aria-hidden className="text-[1.3rem] leading-none">🎲</span>
+        <span className="hidden md:inline">{t("lucky.button")}</span>
       </button>
 
       {open && (

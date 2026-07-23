@@ -387,6 +387,7 @@ const HELP: Record<string, Dict> = {
     "update.reload": "Reload",
     // Feeling-lucky dice (English fallback for all locales for now).
     "lucky.title": "Feeling lucky?",
+    "lucky.button": "Feeling lucky",
     "lucky.roll": "Roll",
     "lucky.again": "Roll again",
     "lucky.details": "Details",
