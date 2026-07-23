@@ -8,6 +8,15 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 
 ![MediaShelf home — one shelf across your services](docs/img/home.jpg)
 
+<details>
+<summary>More screenshots</summary>
+
+**Title page** — the money shot: on your services vs elsewhere, deep links, plan prices, cast:
+
+![Title page — availability split with deep links](docs/img/title.jpg)
+
+</details>
+
 ## What it does today
 
 - **One lit shelf** across your services — titles you can watch on what you subscribe to are
