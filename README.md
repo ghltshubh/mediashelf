@@ -8,6 +8,16 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 
 ![MediaShelf home — one shelf across your services](docs/img/home.jpg)
 
+- 🗄️ **Self-hosted** — one Docker container, your own API keys, your data stays yours
+- 📡 **390+ streaming services** tracked worldwide, with per-region availability — deep
+  integrations for Spotify, YouTube & Apple Music
+- 💡 **Lit vs dimmed** — instantly see what's watchable on services you already pay for
+- 🎵 **Cross-service music** — Spotify + YouTube Music + Apple Music in one continuous queue;
+  a track that can't play on one service resolves to the best match on another
+- 🔀 **Migrations** — move playlists & likes between music services, reviewable and revertible
+- 🎙️ **Podcasts** (RSS/OPML) · 📱 installable **PWA** with offline shell · 🌐 11 languages
+- 🎲 **Feeling lucky** — roll a brass die, get something random you can watch *right now*
+
 <details>
 <summary>More screenshots</summary>
 
@@ -17,7 +27,7 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 
 </details>
 
-## What it does today
+## In detail
 
 - **One lit shelf** across your services — titles you can watch on what you subscribe to are
   lit; everything else is dimmed, each with working deep links into the owning app.
