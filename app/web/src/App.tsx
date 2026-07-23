@@ -6,6 +6,7 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import { PlayerBar } from "./components/PlayerBar";
 import { SearchPalette } from "./components/SearchPalette";
 import { Sidebar } from "./components/Sidebar";
+import { UpdateToast } from "./components/UpdateToast";
 import { api } from "./lib/api";
 import { usePalette } from "./stores/palette";
 import { Browse } from "./pages/Browse";
@@ -66,6 +67,7 @@ export function App() {
     <div className="min-h-screen">
       <GlobalLoadingBar />
       <OfflineBanner />
+      <UpdateToast />
       <Sidebar />
       <SearchPalette />
       <PlayerBar />

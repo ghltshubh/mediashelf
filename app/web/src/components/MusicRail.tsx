@@ -60,7 +60,7 @@ export function MusicRail({ label = "Music" }: { label?: string }) {
     <section className="mb-10">
       <div className="mb-3 flex items-baseline gap-3">
         <Link
-          to="/library"
+          to="/?tab=music"
           className="group flex items-baseline gap-1.5 font-display text-[1.25rem] font-semibold hover:text-owned"
         >
           <span className="underline decoration-line decoration-1 underline-offset-4 group-hover:decoration-[var(--owned)]">

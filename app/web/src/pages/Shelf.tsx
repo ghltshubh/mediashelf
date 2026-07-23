@@ -190,6 +190,8 @@ export function Shelf() {
       {/* Home: the curated shelf, controls-free — the music rail leads. */}
       {showMusicRail && <MusicRail />}
 
+      {/* Stats + toolbar belong to the browsing tabs; Home stays pure rails. */}
+      {!isHome && (
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[0.8rem] text-muted">
           {t("stats.line", {
@@ -198,28 +200,27 @@ export function Shelf() {
             subscribed: data.stats.subscribed,
           })}
         </p>
-        {!isHome && (
-          <div className="flex flex-wrap items-center gap-2">
-            <GenreSelect value={genre} genres={data.all_genres} onChange={setGenre} />
-            <SortSelect value={sort} onChange={setSort} />
-            <RegionSwitcher regions={data.regions} active={data.country} onSelect={setRegion} />
-            <div role="group" aria-label="Shelf view" className="flex rounded-[6px] border border-line">
-              {(["categories", "services"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  aria-pressed={view === v}
-                  className={`px-3 py-1 font-mono text-[0.75rem] first:rounded-l-[5px] last:rounded-r-[5px] ${
-                    view === v ? "bg-owned/15 text-owned" : "text-muted hover:bg-bg2"
-                  }`}
-                >
-                  {v === "categories" ? t("view.categories") : t("view.services")}
-                </button>
-              ))}
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <GenreSelect value={genre} genres={data.all_genres} onChange={setGenre} />
+          <SortSelect value={sort} onChange={setSort} />
+          <RegionSwitcher regions={data.regions} active={data.country} onSelect={setRegion} />
+          <div role="group" aria-label="Shelf view" className="flex rounded-[6px] border border-line">
+            {(["categories", "services"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                aria-pressed={view === v}
+                className={`px-3 py-1 font-mono text-[0.75rem] first:rounded-l-[5px] last:rounded-r-[5px] ${
+                  view === v ? "bg-owned/15 text-owned" : "text-muted hover:bg-bg2"
+                }`}
+              >
+                {v === "categories" ? t("view.categories") : t("view.services")}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
+      )}
 
       {!isHome && (
         <div className="mb-8">

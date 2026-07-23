@@ -383,6 +383,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Save", "common.dismiss": "Dismiss",
     "common.syncNow": "Sync now", "common.syncing": "Syncing…",
     "offline.banner": "Offline — showing your last-synced data.",
+    "update.ready": "A new version of MediaShelf is ready.",
+    "update.reload": "Reload",
   },
   es: {
     "settings.services.intro": "Marca a lo que estás suscrito — esto determina el resaltado/atenuado en todas partes. Sin inicios de sesión.",
@@ -398,6 +400,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Guardar", "common.dismiss": "Descartar",
     "common.syncNow": "Sincronizar ahora", "common.syncing": "Sincronizando…",
     "offline.banner": "Sin conexión — mostrando tus datos de la última sincronización.",
+    "update.ready": "Hay una nueva versión de MediaShelf.",
+    "update.reload": "Recargar",
   },
   fr: {
     "settings.services.intro": "Cochez ce à quoi vous êtes abonné — cela pilote l'affichage allumé/atténué partout. Aucune connexion requise.",
@@ -413,6 +417,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Enregistrer", "common.dismiss": "Ignorer",
     "common.syncNow": "Synchroniser maintenant", "common.syncing": "Synchronisation…",
     "offline.banner": "Hors ligne — affichage de vos dernières données synchronisées.",
+    "update.ready": "Une nouvelle version de MediaShelf est prête.",
+    "update.reload": "Recharger",
   },
   de: {
     "settings.services.intro": "Markiere, was du abonniert hast — das steuert überall die hell/gedimmt-Darstellung. Keine Anmeldung nötig.",
@@ -428,6 +434,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Speichern", "common.dismiss": "Schließen",
     "common.syncNow": "Jetzt synchronisieren", "common.syncing": "Wird synchronisiert…",
     "offline.banner": "Offline — deine zuletzt synchronisierten Daten werden angezeigt.",
+    "update.ready": "Eine neue Version von MediaShelf ist bereit.",
+    "update.reload": "Neu laden",
   },
   it: {
     "settings.services.intro": "Seleziona ciò a cui sei abbonato — determina ovunque la distinzione acceso/attenuato. Nessun accesso richiesto.",
@@ -443,6 +451,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Salva", "common.dismiss": "Ignora",
     "common.syncNow": "Sincronizza ora", "common.syncing": "Sincronizzazione…",
     "offline.banner": "Offline — visualizzazione dei tuoi ultimi dati sincronizzati.",
+    "update.ready": "È pronta una nuova versione di MediaShelf.",
+    "update.reload": "Ricarica",
   },
   pt: {
     "settings.services.intro": "Marque o que você assina — isso controla o destaque/atenuação em todo lugar. Sem logins.",
@@ -458,6 +468,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Salvar", "common.dismiss": "Dispensar",
     "common.syncNow": "Sincronizar agora", "common.syncing": "Sincronizando…",
     "offline.banner": "Offline — mostrando seus dados da última sincronização.",
+    "update.ready": "Uma nova versão do MediaShelf está pronta.",
+    "update.reload": "Recarregar",
   },
   nl: {
     "settings.services.intro": "Vink aan waarop je geabonneerd bent — dit bepaalt overal de verlicht/gedimd-weergave. Geen logins nodig.",
@@ -473,6 +485,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "Opslaan", "common.dismiss": "Sluiten",
     "common.syncNow": "Nu synchroniseren", "common.syncing": "Synchroniseren…",
     "offline.banner": "Offline — je laatst gesynchroniseerde gegevens worden getoond.",
+    "update.ready": "Er is een nieuwe versie van MediaShelf klaar.",
+    "update.reload": "Herladen",
   },
   hi: {
     "settings.services.intro": "जिनकी सदस्यता है उन्हें चुनें — इससे हर जगह लिट/डिम प्रदर्शन तय होता है। किसी लॉगिन की ज़रूरत नहीं।",
@@ -488,6 +502,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "सहेजें", "common.dismiss": "खारिज करें",
     "common.syncNow": "अभी सिंक करें", "common.syncing": "सिंक हो रहा है…",
     "offline.banner": "ऑफ़लाइन — आपका अंतिम सिंक किया गया डेटा दिखाया जा रहा है।",
+    "update.ready": "MediaShelf का नया संस्करण तैयार है।",
+    "update.reload": "रीलोड करें",
   },
   ja: {
     "settings.services.intro": "契約しているものにチェックを入れてください — これがどこでも点灯/淡色表示を決めます。ログイン不要です。",
@@ -503,6 +519,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "保存", "common.dismiss": "閉じる",
     "common.syncNow": "今すぐ同期", "common.syncing": "同期中…",
     "offline.banner": "オフライン — 最後に同期したデータを表示しています。",
+    "update.ready": "MediaShelf の新しいバージョンが利用できます。",
+    "update.reload": "再読み込み",
   },
   ko: {
     "settings.services.intro": "구독 중인 항목을 선택하세요 — 이것이 어디서나 밝게/흐리게 표시를 결정합니다. 로그인 불필요.",
@@ -518,6 +536,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "저장", "common.dismiss": "닫기",
     "common.syncNow": "지금 동기화", "common.syncing": "동기화 중…",
     "offline.banner": "오프라인 — 마지막으로 동기화된 데이터를 표시합니다.",
+    "update.ready": "MediaShelf의 새 버전이 준비되었습니다.",
+    "update.reload": "새로고침",
   },
   zh: {
     "settings.services.intro": "勾选你订阅的服务 — 这将决定各处的高亮/暗显。无需登录。",
@@ -533,6 +553,8 @@ const HELP: Record<string, Dict> = {
     "common.save": "保存", "common.dismiss": "关闭",
     "common.syncNow": "立即同步", "common.syncing": "正在同步…",
     "offline.banner": "离线 — 正在显示上次同步的数据。",
+    "update.ready": "MediaShelf 有新版本可用。",
+    "update.reload": "重新加载",
   },
 };
 
