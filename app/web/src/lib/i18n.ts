@@ -385,6 +385,13 @@ const HELP: Record<string, Dict> = {
     "offline.banner": "Offline — showing your last-synced data.",
     "update.ready": "A new version of MediaShelf is ready.",
     "update.reload": "Reload",
+    // Feeling-lucky dice (English fallback for all locales for now).
+    "lucky.title": "Feeling lucky?",
+    "lucky.roll": "Roll",
+    "lucky.again": "Roll again",
+    "lucky.details": "Details",
+    "lucky.anyLength": "Any length",
+    "lucky.none": "Nothing on your services matches — loosen the filters.",
   },
   es: {
     "settings.services.intro": "Marca a lo que estás suscrito — esto determina el resaltado/atenuado en todas partes. Sin inicios de sesión.",

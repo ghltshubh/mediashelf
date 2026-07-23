@@ -402,6 +402,10 @@ export const api = {
   similar: (id: number, region = "") =>
     request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
   because: () => request<{ seed: string | null; items: VideoResult[] }>("/api/home/because"),
+  lucky: (genre = "", maxMinutes: number | null = null, type = "") =>
+    request<{ found: boolean; item?: ShelfItem & { runtime_minutes: number | null; play: Playback } }>(
+      `/api/lucky?genre=${encodeURIComponent(genre)}${maxMinutes ? `&max_minutes=${maxMinutes}` : ""}&type=${type}`,
+    ),
   person: (id: number, region = "") =>
     request<PersonPage>(`/api/person/${id}?region=${region}`),
   rail: (key: string, region = "", filter = "all", type = "", sort = "popularity", genre = "") =>

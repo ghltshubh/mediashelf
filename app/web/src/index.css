@@ -79,6 +79,15 @@ body {
   100% { left: 100%; }
 }
 
+/* Feeling-lucky die: spins while a roll is in flight (reduced-motion kills it). */
+.dice-rolling {
+  animation: dice-roll 450ms linear infinite;
+}
+@keyframes dice-roll {
+  from { transform: rotate(0deg) scale(1.05); }
+  to   { transform: rotate(360deg) scale(1.05); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

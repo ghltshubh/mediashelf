@@ -458,6 +458,55 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     return data
 
 
+@router.get("/lucky")
+async def lucky(genre: str = "", max_minutes: int | None = None, type: str = "",
+                db: Session = Depends(get_session)) -> dict:
+    """Feeling lucky: a random title streaming on the user's subscribed services
+    right now, optionally scoped by genre / runtime / media type. Runtime is
+    fetched lazily for sampled candidates (bulk sync never stores it)."""
+    import random
+
+    from app.models import MediaItem
+
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    country, _ = _region_or_home(db, "")
+    subs = catalog.subscribed_service_ids(db)
+    if not subs:
+        return {"found": False}
+    types = [type] if type in ("movie", "tv") else ["movie", "tv"]
+    rows = list(db.scalars(
+        select(MediaItem)
+        .join(Availability, Availability.media_item_id == MediaItem.id)
+        .where(Availability.country == country,
+               Availability.offer_type.in_(("flatrate", "free", "ads")),
+               Availability.service_id.in_(subs),
+               MediaItem.media_type.in_(types))
+        .distinct()
+    ).all())
+    if genre:
+        rows = [r for r in rows if genre in (r.genres or [])]
+    if not rows:
+        return {"found": False}
+    random.shuffle(rows)
+    pick = None
+    # With a time limit we may need runtime — try a handful of candidates,
+    # lazily fetching runtime for any that lack it.
+    for cand in rows[: 10 if max_minutes else 1]:
+        if max_minutes:
+            await catalog.ensure_runtime(db, cand, api_key)
+            if cand.runtime_minutes is None or cand.runtime_minutes > max_minutes:
+                continue
+        pick = cand
+        break
+    if pick is None:
+        return {"found": False}
+    card = catalog.serialize_item(pick, subs, country)
+    card["runtime_minutes"] = pick.runtime_minutes
+    # Movies/TV play = deep links only; DRM never gets an in-app engine.
+    card["play"] = playback_service.video_options(card["badges"])
+    return {"found": True, "item": card}
+
+
 @router.get("/home/because")
 async def home_because(db: Session = Depends(get_session)) -> dict:
     """"Because you saved X" — recommendations seeded by one of the watchlist

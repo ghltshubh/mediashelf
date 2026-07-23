@@ -107,6 +107,16 @@ def fake_tmdb(monkeypatch):
             },
         }
 
+    async def detail(self, media_type, tmdb_id):
+        base = {"id": tmdb_id, "overview": "", "genres": [], "popularity": 1.0,
+                "vote_average": 7.0, "poster_path": None, "backdrop_path": None}
+        if media_type == "movie":
+            return {**base, "title": f"Movie {tmdb_id}", "release_date": "2023-01-01",
+                    "runtime": 115}
+        return {**base, "name": f"Show {tmdb_id}", "first_air_date": "2022-01-01",
+                "episode_run_time": [45]}
+
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "detail", detail)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "validate_key", validate_key)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "genres", genres)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "titles_list", titles_list)

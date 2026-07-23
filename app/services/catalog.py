@@ -908,6 +908,21 @@ async def ensure_details(db: Session, item_id: int, api_key: str | None) -> None
     db.commit()
 
 
+async def ensure_runtime(db: Session, item: MediaItem, api_key: str | None) -> None:
+    """Lazily fetch a title's runtime (bulk sync never does — TMDB list endpoints
+    don't carry it). Cached on the row forever after; used by the lucky dice's
+    time-limit filter."""
+    if item.runtime_minutes is not None or not api_key or item.tmdb_id is None:
+        return
+    try:
+        detail = await TMDBClient(api_key).detail(item.media_type, item.tmdb_id)
+    except Exception as exc:
+        logger.debug("runtime fetch failed for %s: %s", item.id, exc)
+        return
+    item.runtime_minutes = detail.get("runtime") or (detail.get("episode_run_time") or [None])[0]
+    db.commit()
+
+
 # ---------- Discovery: "More like this" + people (browse-by-actor/director) ----------
 
 def resolve_discovery_cards(db: Session, raw: list[dict], country: str) -> list[dict]:

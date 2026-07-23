@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { BecauseRail } from "../components/BecauseRail";
 import { EmptyState } from "../components/EmptyState";
 import { FilterChips } from "../components/FilterChips";
+import { LuckyDice } from "../components/LuckyDice";
 import { GenreSelect } from "../components/GenreSelect";
 import { MediaCard } from "../components/MediaCard";
 import { MusicRail } from "../components/MusicRail";
@@ -128,6 +129,10 @@ export function Shelf() {
           {t(`tab.${key}`)}
         </button>
       ))}
+      {/* Feeling lucky — a random pick from your services, from anywhere on the shelf. */}
+      <span className="ml-auto flex items-center">
+        <LuckyDice genres={shelfKnown.data?.all_genres ?? []} />
+      </span>
     </div>
   );
 
