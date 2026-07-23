@@ -178,6 +178,13 @@ export function Shelf() {
         <StatusBanner kind="info">Catalog last updated {ageOf(data.synced_at)}.</StatusBanner>
       )}
 
+      {/* Music sits ABOVE the controls row: the genre/sort/region filters below
+          only affect the video catalog, so their scope starts under this rail. */}
+      {showMusicRail && view === "categories" && <MusicRail />}
+      {/* By-service view: music services can't appear in TMDB's video rails,
+          so your synced library gets its own service rail here. */}
+      {showMusicRail && view === "services" && <MusicRail label="Your music" />}
+
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[0.8rem] text-muted">
           {t("stats.line", {
@@ -259,11 +266,6 @@ export function Shelf() {
           }
         />
       )}
-
-      {showMusicRail && view === "categories" && <MusicRail />}
-      {/* By-service view: music services can't appear in TMDB's video rails,
-          so your Spotify library gets its own service rail here. */}
-      {showMusicRail && view === "services" && <MusicRail label="Your music" />}
 
       {data.rails.map((rail) => (
         <RailSection
