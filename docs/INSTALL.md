@@ -214,16 +214,21 @@ you're redirected back and shown as connected.
 `yt-dlp` gives YouTube/YouTube-Music **search** without spending YouTube API quota. It's a separate
 community tool that MediaShelf detects on your PATH — it's never bundled.
 
-**Install it so it's always on PATH:**
+**Install it so it's always on PATH** (detection = "is `yt-dlp` on the *server process's* PATH"):
 
-- macOS (Homebrew): `brew install yt-dlp`
-- Any OS (pipx): `pipx install yt-dlp`
-- Any OS (pip): `pip install yt-dlp` *(only detected if its bin dir is on PATH)*
+- macOS: `brew install yt-dlp` ✅ recommended
+- Any OS: `pipx install yt-dlp` ✅ recommended (lands in `~/.local/bin`, normally on PATH)
 - **Docker:** yt-dlp is not in the published image by default. When building from source, opt in
   with `docker compose -f docker/compose.yaml build --build-arg INCLUDE_YTDLP=1`.
 
+⚠️ Avoid a plain `pip install yt-dlp`: it installs into whatever Python environment is active
+(often a venv), whose bin dir usually **isn't** on the server's PATH — everything looks fine, but
+YouTube Music search silently stays "unconfigured". If you must use pip, verify with
+`which yt-dlp` from a fresh shell.
+
 Then enable it in **Settings → Plugins** (toggle on). The page shows a green "✓ detected" when the
-binary is found. If it says "not detected," the binary isn't on the PATH the server process sees.
+binary is found. If it says "not detected," the binary isn't on the PATH the server process sees —
+restart the server after installing.
 
 ---
 

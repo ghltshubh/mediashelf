@@ -115,7 +115,7 @@ OAuth accounts in **Settings → Accounts**. The OAuth redirect URI is always
 | **Spotify** (optional) | music search, in-app playback (Premium), migration | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → create app → add the redirect URI above → copy Client ID + Secret |
 | **YouTube / Google** (optional) | subscriptions + liked-video sync, migration, cheaper reads | [console.cloud.google.com](https://console.cloud.google.com) → new project → enable **YouTube Data API v3** → OAuth consent screen (External; add yourself as a test user) → Credentials → **OAuth client ID (Web application)** with the redirect URI above → copy Client ID + Secret |
 | **Apple Music** (optional) | Apple Music in the playback chain | paid Apple Developer account → generate a **MusicKit developer token** (JWT) and paste it |
-| **yt-dlp** (optional plugin) | zero-quota YouTube search | `pipx install yt-dlp` (or `pip install yt-dlp`), then enable it in **Settings → Plugins** |
+| **yt-dlp** (optional plugin) | zero-quota YouTube search | `brew install yt-dlp` (macOS) or `pipx install yt-dlp` — these land it on PATH, which detection requires (a plain `pip install` often doesn't, and search then silently stays off). Enable in **Settings → Plugins** |
 
 **Add-on channels** (Prime Video Channels, Apple TV Channels, Roku Premium Channels) appear as
 their own services in the checklist (e.g. "HBO Max Amazon Channel") — tick whichever way you
