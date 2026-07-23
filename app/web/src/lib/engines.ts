@@ -95,6 +95,10 @@ export class YouTubeEngine {
     this.player?.setVolume?.(Math.round(v * 100));
   }
 
+  setRate(r: number) {
+    this.player?.setPlaybackRate?.(r);
+  }
+
   destroy() {
     window.clearInterval(this.timer);
     this.player?.destroy?.();
@@ -104,24 +108,71 @@ export class YouTubeEngine {
 
 // ---------- HTML5 audio (podcasts, M8) ----------
 
+// Remembered playback positions (podcast resume). Keyed by media URL, capped so
+// the map can't grow unbounded; an entry clears when the episode finishes.
+const POS_STORE = "mediashelf-audio-pos";
+
+function loadPositions(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(POS_STORE) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function savePosition(url: string, pos: number | null) {
+  const all = loadPositions();
+  if (pos == null) delete all[url];
+  else all[url] = Math.floor(pos);
+  const keys = Object.keys(all);
+  if (keys.length > 50) delete all[keys[0]];
+  try {
+    localStorage.setItem(POS_STORE, JSON.stringify(all));
+  } catch {
+    /* storage full/blocked — resume is best-effort */
+  }
+}
+
 // Streams an episode enclosure URL through a single <audio> element. No SDK,
 // no visible DOM slot, no DRM — plain progressive audio. `ended` drives the
 // player store's queue → next(), so an episode list auto-advances for free.
+// Long episodes resume where you left off; speed is adjustable and sticky.
 export class Html5AudioEngine {
   private audio: HTMLAudioElement | null = null;
+  private rate = 1;
+  private lastSaved = 0;
 
   async load(url: string, cb: EngineCallbacks): Promise<void> {
     cb.onState("loading");
     this.destroy();
     const audio = new Audio(url);
     this.audio = audio;
+    this.lastSaved = 0;
+    audio.playbackRate = this.rate;
+    // Resume where the user left off (only meaningfully into the episode).
+    const resume = loadPositions()[url];
+    if (resume && resume > 10) {
+      audio.addEventListener("loadedmetadata", () => {
+        if (Number.isFinite(audio.duration) && resume < audio.duration - 10) {
+          audio.currentTime = resume;
+        }
+      }, { once: true });
+    }
     audio.addEventListener("playing", () => cb.onState("playing"));
     audio.addEventListener("pause", () => {
       if (!audio.ended) cb.onState("paused");
     });
-    audio.addEventListener("ended", () => cb.onState("ended"));
-    audio.addEventListener("timeupdate", () =>
-      cb.onProgress(audio.currentTime, Number.isFinite(audio.duration) ? audio.duration : 0));
+    audio.addEventListener("ended", () => {
+      savePosition(url, null); // finished — start fresh next time
+      cb.onState("ended");
+    });
+    audio.addEventListener("timeupdate", () => {
+      cb.onProgress(audio.currentTime, Number.isFinite(audio.duration) ? audio.duration : 0);
+      if (Math.abs(audio.currentTime - this.lastSaved) > 5) {
+        this.lastSaved = audio.currentTime;
+        savePosition(url, audio.currentTime);
+      }
+    });
     audio.addEventListener("error", () => cb.onFail("audio failed to load"));
     try {
       await audio.play();
@@ -142,6 +193,11 @@ export class Html5AudioEngine {
 
   setVolume(v: number) {
     if (this.audio) this.audio.volume = v;  // already 0..1, no scaling
+  }
+
+  setRate(r: number) {
+    this.rate = r;
+    if (this.audio) this.audio.playbackRate = r;
   }
 
   destroy() {

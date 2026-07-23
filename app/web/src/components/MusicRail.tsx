@@ -2,14 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type MusicResult } from "../lib/api";
 import { useActivate } from "../lib/searchData";
+import { usePlayer } from "../stores/player";
 import { MusicServiceBadge, musicSource } from "./MusicServiceBadge";
 
 export function MusicCard({ item, onPlay }: { item: MusicResult; onPlay: () => void }) {
+  const p = usePlayer();
+  // The tile that's currently loaded in the player toggles pause/resume instead
+  // of restarting, and its overlay shows the real state (⏸ while playing).
+  const isCurrent = p.request?.title === item.title && p.status !== "idle";
+  const isPlaying = isCurrent && p.status === "playing";
   return (
     <button
-      onClick={onPlay}
-      className="hoverable group w-[132px] shrink-0 cursor-pointer rounded-[10px] bg-bg1 p-2 text-left hover:bg-bg2"
-      title={`Play ${item.title}`}
+      onClick={() => (isCurrent ? p.toggle() : onPlay())}
+      aria-label={isCurrent ? (isPlaying ? `Pause ${item.title}` : `Resume ${item.title}`) : `Play ${item.title}`}
+      title={isCurrent ? (isPlaying ? `Pause ${item.title}` : `Resume ${item.title}`) : `Play ${item.title}`}
+      className={`hoverable group w-[132px] shrink-0 cursor-pointer rounded-[10px] bg-bg1 p-2 text-left hover:bg-bg2 ${
+        isCurrent ? "ring-1 ring-owned/60" : ""
+      }`}
     >
       <div className="relative aspect-square w-full overflow-hidden rounded-[6px] bg-bg2">
         {item.thumb ? (
@@ -24,9 +33,13 @@ export function MusicCard({ item, onPlay }: { item: MusicResult; onPlay: () => v
         />
         <span
           aria-hidden
-          className="absolute inset-0 flex items-center justify-center bg-bg0/0 text-[1.6rem] text-[color:var(--play)] opacity-0 transition-opacity group-hover:bg-bg0/40 group-hover:opacity-100"
+          className={`absolute inset-0 flex items-center justify-center text-[1.6rem] text-[color:var(--play)] transition-opacity ${
+            isCurrent
+              ? "bg-bg0/40 opacity-100"
+              : "bg-bg0/0 opacity-0 group-hover:bg-bg0/40 group-hover:opacity-100"
+          }`}
         >
-          ▶
+          {isPlaying ? "⏸" : "▶"}
         </span>
       </div>
       <p className="mt-1.5 truncate text-[0.8rem] leading-tight">{item.title}</p>
@@ -58,6 +71,8 @@ export function MusicRail({ label = "Music" }: { label?: string }) {
 
   return (
     <section className="mb-10">
+      {/* One destination only (the Music tab) — a second link to Library here
+          made the flow confusing; Library stays reachable from the Music tab. */}
       <div className="mb-3 flex items-baseline gap-3">
         <Link
           to="/?tab=music"
@@ -68,9 +83,7 @@ export function MusicRail({ label = "Music" }: { label?: string }) {
           </span>
           <span aria-hidden className="text-[1rem] text-muted group-hover:text-owned">›</span>
         </Link>
-        <Link to="/library" className="font-mono text-[0.75rem] text-muted hover:text-owned">
-          your library · {total} liked →
-        </Link>
+        <span className="font-mono text-[0.75rem] text-muted">{total} liked</span>
       </div>
       <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">
         {shown.map((item, i) => (

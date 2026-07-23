@@ -77,6 +77,21 @@ def test_person_requires_key(client):
     assert client.get("/api/person/500").status_code == 400
 
 
+def test_home_because_rail(client):
+    _set_key()
+    run_sync_now()
+    # No watchlist yet → empty payload, rail stays hidden.
+    assert client.get("/api/home/because").json() == {"seed": None, "items": []}
+    from app.models import LibraryEntry
+    vid = _movie_id(client, "The Long Voyage")
+    with session_factory()() as db:
+        db.add(LibraryEntry(entry_type="watchlist", media_item_id=vid))
+        db.commit()
+    r = client.get("/api/home/because").json()
+    assert r["seed"] == "The Long Voyage"
+    assert any(i["title"] == "Neon Alley" for i in r["items"])
+
+
 def test_cast_carries_person_id(client):
     _set_key()
     run_sync_now()

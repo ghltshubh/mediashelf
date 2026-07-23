@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { usePlayer, YOUTUBE_CONTAINER_ID } from "../stores/player";
 
 const ENGINE_GLYPH: Record<string, string> = {
@@ -7,6 +8,9 @@ const ENGINE_GLYPH: Record<string, string> = {
   musickit: "Apple Music",
   audio: "Podcast",
 };
+
+// Podcast/YouTube speed steps, cycled by the rate button.
+const RATES = [1, 1.25, 1.5, 1.75, 2, 0.75];
 
 function fmt(s: number): string {
   if (!Number.isFinite(s) || s <= 0) return "0:00";
@@ -18,6 +22,7 @@ function fmt(s: number): string {
     Audio persists across navigation; video renders in the theater. */
 export function PlayerBar() {
   const p = usePlayer();
+  const [queueOpen, setQueueOpen] = useState(false);
   const active = p.request !== null && p.option !== null;
   const isYouTube = p.option?.engine === "youtube";
   const audioOnly = p.request?.audioOnly ?? false;
@@ -69,6 +74,55 @@ export function PlayerBar() {
             height="80"
             allow="encrypted-media"
           />
+        </div>
+      )}
+
+      {/* Up-next panel: jump to any queued track, nudge order with ↑/↓. Sits
+          higher when the mini YouTube player occupies the corner. */}
+      {active && queueOpen && p.queue.length > 0 && (
+        <div
+          className={`fixed right-4 z-40 max-h-[50vh] w-[min(360px,calc(100vw-2rem))] overflow-y-auto rounded-[10px] border border-line bg-bg1 shadow-lg ${
+            isYouTube && audioOnly ? "bottom-[190px]" : "bottom-[88px]"
+          }`}
+        >
+          <p className="sticky top-0 border-b border-line bg-bg1 px-3 py-2 font-mono text-[0.7rem] tracking-widest text-muted">
+            UP NEXT · {p.queueIndex + 1}/{p.queue.length}
+          </p>
+          {p.queue.map((q, i) => (
+            <div
+              key={`${q.title}-${i}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 ${
+                i === p.queueIndex ? "bg-owned/10" : "hover:bg-bg2"
+              }`}
+            >
+              <button
+                onClick={() => p.jumpTo(i)}
+                className="min-w-0 flex-1 cursor-pointer text-left"
+                aria-label={`Play ${q.title}`}
+              >
+                <p className={`truncate text-[0.85rem] ${i === p.queueIndex ? "text-owned" : ""}`}>
+                  {q.title}
+                </p>
+                <p className="truncate font-mono text-[0.68rem] text-muted">{q.subtitle}</p>
+              </button>
+              <button
+                onClick={() => p.moveInQueue(i, i - 1)}
+                disabled={i === 0}
+                aria-label={`Move ${q.title} up`}
+                className="rounded px-1 font-mono text-[0.8rem] text-muted hover:bg-bg2 hover:text-ink disabled:opacity-25"
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => p.moveInQueue(i, i + 1)}
+                disabled={i === p.queue.length - 1}
+                aria-label={`Move ${q.title} down`}
+                className="rounded px-1 font-mono text-[0.8rem] text-muted hover:bg-bg2 hover:text-ink disabled:opacity-25"
+              >
+                ↓
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -138,6 +192,32 @@ export function PlayerBar() {
             aria-label="Volume"
             className="hidden w-20 accent-[var(--owned)] min-[900px]:block disabled:opacity-30"
           />
+
+          {/* Playback speed — podcasts & YouTube only (Spotify's SDK can't). */}
+          {(p.option?.engine === "audio" || p.option?.engine === "youtube") && (
+            <button
+              onClick={() => p.setRate(RATES[(RATES.indexOf(p.rate) + 1) % RATES.length])}
+              aria-label={`Playback speed ${p.rate}×`}
+              title="Playback speed"
+              className="hidden rounded-[6px] border border-line px-1.5 py-0.5 font-mono text-[0.7rem] text-muted hover:bg-bg2 hover:text-ink min-[700px]:block"
+            >
+              {p.rate}×
+            </button>
+          )}
+
+          {p.queue.length > 1 && (
+            <button
+              onClick={() => setQueueOpen((o) => !o)}
+              aria-pressed={queueOpen}
+              aria-label="Up next"
+              title="Up next"
+              className={`hidden rounded-[6px] border border-line px-2 py-0.5 font-mono text-[0.7rem] hover:bg-bg2 min-[700px]:block ${
+                queueOpen ? "bg-owned/15 text-owned" : "text-muted hover:text-ink"
+              }`}
+            >
+              ≡ {p.queueIndex + 1}/{p.queue.length}
+            </button>
+          )}
 
           <span
             className="hidden font-mono text-[0.7rem] text-[color:var(--play)] min-[700px]:block"

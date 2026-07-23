@@ -29,14 +29,19 @@ interface PlayerState {
   resolvedVia: string | null;
   queue: PlayRequest[];
   queueIndex: number;
+  // Playback speed (podcasts/YouTube; Spotify's SDK doesn't support it).
+  rate: number;
   play: (req: PlayRequest, choice?: PlayOption) => void;
   playQueue: (queue: PlayRequest[], index: number, choice?: PlayOption) => void;
   next: () => void;
   prev: () => void;
+  jumpTo: (index: number) => void;
+  moveInQueue: (from: number, to: number) => void;
   stop: () => void;
   toggle: () => void;
   seek: (seconds: number) => void;
   setVolume: (v: number) => void;
+  setRate: (r: number) => void;
   showToast: (msg: string) => void;
 }
 
@@ -120,6 +125,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       set({ status: "playing" });  // embed manages itself; we just host it
     } else if (option.engine === "audio" && option.payload.url) {
       void audio.load(option.payload.url, callbacks);
+      audio.setRate(get().rate); // keep the chosen speed across episodes
     } else if (option.engine === "musickit") {
       void musicKit.load(option.payload, callbacks);
     } else if (option.engine === "resolve") {
@@ -157,6 +163,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     volume: 0.8,
     toast: null,
     resolvedVia: null,
+    rate: 1,
     queue: [],
     queueIndex: -1,
 
@@ -185,6 +192,28 @@ export const usePlayer = create<PlayerState>((set, get) => {
         set({ queueIndex: pi });
         load(queue[pi]);
       }
+    },
+
+    jumpTo: (index) => {
+      const { queue } = get();
+      if (index >= 0 && index < queue.length) {
+        set({ queueIndex: index });
+        load(queue[index]);
+      }
+    },
+
+    moveInQueue: (from, to) => {
+      const { queue, queueIndex } = get();
+      if (from === to || from < 0 || to < 0 || from >= queue.length || to >= queue.length) return;
+      const q = [...queue];
+      const [moved] = q.splice(from, 1);
+      q.splice(to, 0, moved);
+      // Keep queueIndex pointing at the same *track* after the reorder.
+      let qi = queueIndex;
+      if (from === qi) qi = to;
+      else if (from < qi && to >= qi) qi -= 1;
+      else if (from > qi && to <= qi) qi += 1;
+      set({ queue: q, queueIndex: qi });
     },
 
     // Standalone single-track play (Title page, etc.): drop any queue so a track
@@ -224,6 +253,13 @@ export const usePlayer = create<PlayerState>((set, get) => {
       else if (option?.engine === "audio") audio.setVolume(v);
       else if (option?.engine === "musickit") musicKit.setVolume(v);
       set({ volume: v });
+    },
+
+    setRate: (r) => {
+      const { option } = get();
+      if (option?.engine === "audio") audio.setRate(r);
+      else if (option?.engine === "youtube") youtube.setRate(r);
+      set({ rate: r });
     },
 
     showToast: (msg) => {

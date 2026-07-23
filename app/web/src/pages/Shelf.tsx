@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { BecauseRail } from "../components/BecauseRail";
 import { EmptyState } from "../components/EmptyState";
 import { FilterChips } from "../components/FilterChips";
 import { GenreSelect } from "../components/GenreSelect";
@@ -187,8 +188,10 @@ export function Shelf() {
         <StatusBanner kind="info">Catalog last updated {ageOf(data.synced_at)}.</StatusBanner>
       )}
 
-      {/* Home: the curated shelf, controls-free — the music rail leads. */}
+      {/* Home: the curated shelf, controls-free — the music rail leads, then
+          personalized recommendations seeded by the watchlist. */}
       {showMusicRail && <MusicRail />}
+      {isHome && <BecauseRail />}
 
       {/* Stats + toolbar belong to the browsing tabs; Home stays pure rails. */}
       {!isHome && (

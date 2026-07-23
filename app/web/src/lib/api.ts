@@ -401,6 +401,7 @@ export const api = {
   title: (id: number, region = "") => request<Title>(`/api/titles/${id}?region=${region}`),
   similar: (id: number, region = "") =>
     request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
+  because: () => request<{ seed: string | null; items: VideoResult[] }>("/api/home/because"),
   person: (id: number, region = "") =>
     request<PersonPage>(`/api/person/${id}?region=${region}`),
   rail: (key: string, region = "", filter = "all", type = "", sort = "popularity", genre = "") =>

@@ -458,6 +458,28 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     return data
 
 
+@router.get("/home/because")
+async def home_because(db: Session = Depends(get_session)) -> dict:
+    """"Because you saved X" — recommendations seeded by the newest watchlist
+    title, for the Home landing. Empty when there's no watchlist or no key."""
+    from app.models import LibraryEntry, MediaItem
+
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    if not api_key:
+        return {"seed": None, "items": []}
+    seed = db.execute(
+        select(MediaItem)
+        .join(LibraryEntry, LibraryEntry.media_item_id == MediaItem.id)
+        .where(LibraryEntry.entry_type == "watchlist")
+        .order_by(LibraryEntry.created_at.desc())
+    ).scalars().first()
+    if seed is None:
+        return {"seed": None, "items": []}
+    country, _ = _region_or_home(db, "")
+    items = await catalog.similar_titles(db, seed.id, api_key, country, limit=14)
+    return {"seed": seed.title, "items": items}
+
+
 @router.get("/titles/{item_id}/similar")
 async def title_similar(item_id: int, region: str = "",
                         db: Session = Depends(get_session)) -> dict:
