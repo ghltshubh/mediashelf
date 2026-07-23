@@ -460,24 +460,36 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
 
 @router.get("/home/because")
 async def home_because(db: Session = Depends(get_session)) -> dict:
-    """"Because you saved X" — recommendations seeded by the newest watchlist
-    title, for the Home landing. Empty when there's no watchlist or no key."""
+    """"Because you saved X" — recommendations seeded by one of the watchlist
+    titles, rotating daily (a date-hashed pick: stable all day, fresh tomorrow).
+    Empty when there's no watchlist or no key."""
+    import zlib
+    from datetime import date
+
     from app.models import LibraryEntry, MediaItem
 
     api_key = settings_store.get_setting(db, "tmdb_api_key")
     if not api_key:
         return {"seed": None, "items": []}
-    seed = db.execute(
+    seeds = db.execute(
         select(MediaItem)
         .join(LibraryEntry, LibraryEntry.media_item_id == MediaItem.id)
         .where(LibraryEntry.entry_type == "watchlist")
-        .order_by(LibraryEntry.created_at.desc())
-    ).scalars().first()
-    if seed is None:
+        .distinct()
+        .order_by(MediaItem.id)
+    ).scalars().all()
+    if not seeds:
         return {"seed": None, "items": []}
     country, _ = _region_or_home(db, "")
-    items = await catalog.similar_titles(db, seed.id, api_key, country, limit=14)
-    return {"seed": seed.title, "items": items}
+    # If today's pick has no recommendations, try the next couple of seeds so
+    # the rail doesn't vanish for a day on one dud title.
+    start = zlib.crc32(date.today().isoformat().encode()) % len(seeds)
+    for offset in range(min(3, len(seeds))):
+        seed = seeds[(start + offset) % len(seeds)]
+        items = await catalog.similar_titles(db, seed.id, api_key, country, limit=14)
+        if items:
+            return {"seed": seed.title, "items": items}
+    return {"seed": None, "items": []}
 
 
 @router.get("/titles/{item_id}/similar")
