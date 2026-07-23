@@ -16,7 +16,8 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
   a track that can't play on one service resolves to the best match on another
 - 🔀 **Migrations** — move playlists & likes between music services, reviewable and revertible
 - 🎙️ **Podcasts** (RSS/OPML) · 📱 installable **PWA** with offline shell · 🌐 11 languages
-- 🎲 **Feeling lucky** — roll a brass die, get something random you can watch *right now*
+- 🎲 **Feeling lucky** — pick a genre and a time limit, roll, and get something random you
+  can watch *right now* on your services
 
 <details>
 <summary>More screenshots</summary>
