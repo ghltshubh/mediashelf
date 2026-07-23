@@ -803,11 +803,24 @@ export function Settings() {
         <Section id="about" title={t("settings.section.about")}>
           <KeyValueMono
             pairs={[
-              ["MediaShelf", "0.1.0 (M1–M6)"],
+              ["MediaShelf", "0.1.0"],
+              ["License", "AGPL-3.0-or-later"],
               ["Data", "TMDB — this product uses the TMDB API but is not endorsed or certified by TMDB"],
               ["Storage", "SQLite in your data dir · keys encrypted at rest · nightly backups (keep 7)"],
             ]}
           />
+          {/* One quiet support link — never a banner, never a nag. */}
+          <p className="mt-3 font-mono text-[0.8rem] text-muted">
+            ☕ Enjoying MediaShelf?{" "}
+            <a
+              href="https://buymeacoffee.com/shubhankar"
+              target="_blank"
+              rel="noreferrer"
+              className="text-owned underline underline-offset-2 hover:opacity-80"
+            >
+              Buy me a coffee
+            </a>
+          </p>
           <div className="mt-4 flex items-center gap-3">
             <a href="/api/backup/export" download className={quietBtn}>
               Export database

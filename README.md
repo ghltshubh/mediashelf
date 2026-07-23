@@ -110,8 +110,11 @@ not part of this product — logged-in scraping stays outside the core per the p
   keeps serving with a banner naming its age and the fix.
 - This product uses the TMDB API but is not endorsed or certified by TMDB.
 
-## License
+## License & support
 
 MediaShelf is licensed under the **GNU AGPL-3.0-or-later** — see [LICENSE](LICENSE).
 Self-host it freely; if you offer a modified version as a network service, you must share your
 changes under the same license. Commercial licensing is available from the copyright holder.
+
+If MediaShelf is useful to you:
+[![Buy me a coffee](https://img.shields.io/badge/☕-Buy%20me%20a%20coffee-e3a84c)](https://buymeacoffee.com/shubhankar)
