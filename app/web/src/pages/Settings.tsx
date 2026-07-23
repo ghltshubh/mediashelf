@@ -20,6 +20,24 @@ const SECTIONS = [
   ["about", "About"],
 ] as const;
 
+/** Brass coffee cup for the support link — inline SVG (like the logomark and
+    the lucky die), so it matches the theme and tints with --owned. */
+function CoffeeCup({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
+      {/* steam */}
+      <path d="M8.5 2.5c-.8 1 .8 1.9 0 3M12 2.5c-.8 1 .8 1.9 0 3"
+            stroke="var(--owned)" strokeWidth="1.3" strokeLinecap="round" opacity="0.7" />
+      {/* cup + handle */}
+      <path d="M4.5 8.5h11v5.5a4.5 4.5 0 0 1-4.5 4.5H9a4.5 4.5 0 0 1-4.5-4.5z" fill="var(--owned)" />
+      <path d="M15.5 9.6h1.5a2.7 2.7 0 0 1 0 5.4h-1.5"
+            stroke="var(--owned)" strokeWidth="1.6" />
+      {/* saucer */}
+      <path d="M4 21h12" stroke="var(--owned)" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
+    </svg>
+  );
+}
+
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-6 border-b border-line py-8 last:border-b-0">
@@ -810,16 +828,19 @@ export function Settings() {
             ]}
           />
           {/* One quiet support link — never a banner, never a nag. */}
-          <p className="mt-3 font-mono text-[0.8rem] text-muted">
-            ☕ Enjoying MediaShelf?{" "}
-            <a
-              href="https://buymeacoffee.com/shubhankar"
-              target="_blank"
-              rel="noreferrer"
-              className="text-owned underline underline-offset-2 hover:opacity-80"
-            >
-              Buy me a coffee
-            </a>
+          <p className="mt-3 flex items-center gap-1.5 font-mono text-[0.8rem] text-muted">
+            <CoffeeCup className="h-[1.1rem] w-[1.1rem] shrink-0" />
+            <span>
+              Enjoying MediaShelf?{" "}
+              <a
+                href="https://buymeacoffee.com/shubhankar"
+                target="_blank"
+                rel="noreferrer"
+                className="text-owned underline underline-offset-2 hover:opacity-80"
+              >
+                Buy me a coffee
+              </a>
+            </span>
           </p>
           <div className="mt-4 flex items-center gap-3">
             <a href="/api/backup/export" download className={quietBtn}>
