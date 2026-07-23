@@ -1,0 +1,19 @@
+# Run the published prebuilt image — no local build, no source checkout needed.
+#   docker compose -f docker/compose.prod.yaml up -d
+# Update to a new release with:  docker compose -f docker/compose.prod.yaml pull && ... up -d
+#
+# Pin a version by replacing ":latest" with a tag (e.g. ":1.2.3").
+services:
+  mediashelf:
+    image: ghcr.io/ghltshubh/mediashelf:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - mediashelf-data:/data
+    restart: unless-stopped
+    # Optional: bootstrap the TMDB key from the environment instead of onboarding.
+    # environment:
+    #   TMDB_API_KEY: "your-key-here"
+
+volumes:
+  mediashelf-data:

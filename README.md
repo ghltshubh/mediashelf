@@ -38,6 +38,15 @@ layer) is deferred.
 
 ## Quick start (Docker)
 
+Prebuilt image (no build):
+
+```sh
+docker run -d -p 8000:8000 -v mediashelf-data:/data --restart unless-stopped \
+  ghcr.io/ghltshubh/mediashelf:latest
+```
+
+Or build from source:
+
 ```sh
 docker compose -f docker/compose.yaml up --build -d
 ```

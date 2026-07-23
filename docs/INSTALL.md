@@ -36,10 +36,29 @@ Only TMDB is needed to browse the shelf. Add the rest whenever you want that fea
 
 ## 2. Install & run
 
-### Option A — Docker (recommended)
+### Option A — Prebuilt image (fastest, recommended)
+
+No source checkout, no build — pull the published image:
 
 ```sh
-git clone https://github.com/<you>/mediashelf.git
+curl -O https://raw.githubusercontent.com/ghltshubh/mediashelf/main/docker/compose.prod.yaml
+docker compose -f compose.prod.yaml up -d
+```
+
+Or in one line without a compose file:
+
+```sh
+docker run -d -p 8000:8000 -v mediashelf-data:/data --restart unless-stopped \
+  ghcr.io/ghltshubh/mediashelf:latest
+```
+
+Open **http://localhost:8000**. Multi-arch images (amd64 + arm64) are published to GHCR on each
+release. Pin a version by using a tag (`:1.2.3`) instead of `:latest`.
+
+### Option B — Build from source (Docker)
+
+```sh
+git clone https://github.com/ghltshubh/mediashelf.git
 cd mediashelf
 docker compose -f docker/compose.yaml up --build -d
 ```
