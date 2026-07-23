@@ -219,8 +219,8 @@ community tool that MediaShelf detects on your PATH — it's never bundled.
 - macOS (Homebrew): `brew install yt-dlp`
 - Any OS (pipx): `pipx install yt-dlp`
 - Any OS (pip): `pip install yt-dlp` *(only detected if its bin dir is on PATH)*
-- **Docker:** yt-dlp is not in the image by default; add `RUN pip install --no-cache-dir yt-dlp` to
-  the runtime stage of `docker/Dockerfile`, or bake it into your own image.
+- **Docker:** yt-dlp is not in the published image by default. When building from source, opt in
+  with `docker compose -f docker/compose.yaml build --build-arg INCLUDE_YTDLP=1`.
 
 Then enable it in **Settings → Plugins** (toggle on). The page shows a green "✓ detected" when the
 binary is found. If it says "not detected," the binary isn't on the PATH the server process sees.

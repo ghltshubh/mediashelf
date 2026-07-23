@@ -5,6 +5,8 @@ what you subscribe to vs what's elsewhere, with working deep links into the owni
 
 MediaShelf never stores, serves, or plays media files. DRM services are browse-and-link only.
 
+![MediaShelf home — one shelf across your services](docs/img/home.jpg)
+
 ## What it does today
 
 - **One lit shelf** across your services — titles you can watch on what you subscribe to are

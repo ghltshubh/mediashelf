@@ -15,6 +15,13 @@ COPY app ./app
 RUN pip install --no-cache-dir .
 COPY --from=web /build/dist ./app/web/dist
 
+# Optional: bake in the yt-dlp metadata plugin (zero-quota YouTube search).
+# Deliberately OFF by default — yt-dlp is a detected, user-opted plugin (plan
+# Appendix B) and never ships in official images. Opt in with:
+#   docker compose build --build-arg INCLUDE_YTDLP=1
+ARG INCLUDE_YTDLP=0
+RUN if [ "$INCLUDE_YTDLP" = "1" ]; then pip install --no-cache-dir yt-dlp; fi
+
 ENV MEDIASHELF_DATA_DIR=/data
 VOLUME /data
 EXPOSE 8000
