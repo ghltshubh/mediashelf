@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Playback, ShelfItem } from "../lib/api";
 import { api } from "../lib/api";
@@ -9,6 +9,31 @@ import { serviceMarksNode } from "./serviceMarks";
 type LuckyItem = ShelfItem & { runtime_minutes: number | null; play: Playback };
 
 const LENGTHS = [0, 30, 60, 90, 120]; // 0 = any
+
+// Pip layouts for the brass die faces (viewBox 0..24).
+const PIPS: Record<number, [number, number][]> = {
+  1: [[12, 12]],
+  2: [[7.5, 7.5], [16.5, 16.5]],
+  3: [[7, 7], [12, 12], [17, 17]],
+  4: [[7.5, 7.5], [16.5, 7.5], [7.5, 16.5], [16.5, 16.5]],
+  5: [[7.5, 7.5], [16.5, 7.5], [12, 12], [7.5, 16.5], [16.5, 16.5]],
+  6: [[7.5, 7], [16.5, 7], [7.5, 12], [16.5, 12], [7.5, 17], [16.5, 17]],
+};
+
+/** The house die: brass like the logomark, dark pips — pure inline SVG (no
+    emoji, no assets), so it matches the theme and tints with --owned. */
+function BrassDie({ face, className = "" }: { face: number; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <rect x="1.5" y="1.5" width="21" height="21" rx="5.5" fill="var(--owned)" />
+      <rect x="1.5" y="1.5" width="21" height="21" rx="5.5"
+            fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="1" />
+      {(PIPS[face] ?? PIPS[5]).map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.1" fill="#141210" />
+      ))}
+    </svg>
+  );
+}
 
 /** Feeling lucky (🎲): pick a genre + max length, roll, and get a random title
     that's streaming on your services right now — revealed with Play (deep link
@@ -24,31 +49,48 @@ export function LuckyDice({ genres }: { genres: string[] }) {
   const [rolling, setRolling] = useState(false);
   const [rolled, setRolled] = useState(false);
   const [item, setItem] = useState<LuckyItem | null>(null);
+  const [face, setFace] = useState(5);
+  const [settling, setSettling] = useState(false);
+  const flickerRef = useRef<number | undefined>(undefined);
+
+  function stopFlicker() {
+    window.clearInterval(flickerRef.current);
+    flickerRef.current = undefined;
+  }
 
   function roll() {
     setRolling(true);
     setRolled(false);
     setItem(null);
+    setSettling(false);
+    // The throw: CSS tumbles the die while its face flickers.
+    stopFlicker();
+    flickerRef.current = window.setInterval(
+      () => setFace(1 + Math.floor(Math.random() * 6)), 110);
     const started = Date.now();
+    const land = (found: LuckyItem | null) => {
+      stopFlicker();
+      setFace(1 + Math.floor(Math.random() * 6));
+      setSettling(true);
+      window.setTimeout(() => setSettling(false), 300);
+      setItem(found);
+      setRolled(true);
+      setRolling(false);
+    };
     api
       .lucky(genre, maxMin || null, type, scope)
       .then((r) => {
-        // Let the die spin at least ~0.9s so the roll reads as a roll.
+        // Let the die tumble at least ~0.9s so the roll reads as a roll.
         const wait = Math.max(0, 900 - (Date.now() - started));
-        window.setTimeout(() => {
-          setItem(r.found && r.item ? r.item : null);
-          setRolled(true);
-          setRolling(false);
-        }, wait);
+        window.setTimeout(() => land(r.found && r.item ? r.item : null), wait);
       })
-      .catch(() => {
-        setRolled(true);
-        setRolling(false);
-      });
+      .catch(() => land(null));
   }
 
   function close() {
+    stopFlicker();
     setOpen(false);
+    setRolling(false);
     setRolled(false);
     setItem(null);
   }
@@ -65,7 +107,7 @@ export function LuckyDice({ genres }: { genres: string[] }) {
                    border border-owned/40 bg-owned/10 px-3.5 py-1.5 font-display text-[0.95rem]
                    font-semibold tracking-tight text-owned hover:bg-owned/20"
       >
-        <span aria-hidden className="text-[1.3rem] leading-none">🎲</span>
+        <BrassDie face={5} className="h-[1.15rem] w-[1.15rem]" />
         <span className="hidden md:inline">{t("lucky.button")}</span>
       </button>
 
@@ -135,15 +177,20 @@ export function LuckyDice({ genres }: { genres: string[] }) {
               </label>
             </div>
 
-            {/* The die. Spins while a roll is in flight. */}
-            <div className="mb-5 flex justify-center">
+            {/* The die. Tumbles while a roll is in flight, pops on landing. */}
+            <div className="mb-5 flex justify-center pt-3">
               <button
                 onClick={roll}
                 disabled={rolling}
                 aria-label={t("lucky.roll")}
-                className="cursor-pointer rounded-full border border-line bg-bg2 px-6 py-3 text-[2rem] leading-none hover:border-owned/60 disabled:cursor-default"
+                className="cursor-pointer rounded-full border border-line bg-bg2 p-4 hover:border-owned/60 disabled:cursor-default"
               >
-                <span className={`inline-block ${rolling ? "dice-rolling" : ""}`}>🎲</span>
+                <span className={`block ${rolling ? "dice-throwing" : settling ? "dice-settle" : ""}`}>
+                  <BrassDie
+                    face={face}
+                    className="h-11 w-11 drop-shadow-[0_3px_8px_rgba(227,168,76,0.35)]"
+                  />
+                </span>
               </button>
             </div>
 
