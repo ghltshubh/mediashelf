@@ -43,14 +43,17 @@ export function PlayerBar() {
         </div>
       )}
 
-      {/* YouTube slot — must stay mounted for the iframe API. Visible theater for
-          videos/trailers; for audio-only songs it's parked off-screen but alive,
-          so audio keeps playing without showing the video. */}
+      {/* YouTube slot — must stay mounted AND visible for the iframe API to play
+          (an off-screen/hidden player won't start). Full theater for videos and
+          trailers; a small unobtrusive player for songs (YouTube can't do
+          audio-only, so we shrink the video rather than hide it). */}
       <div
         className={
           showTheater
             ? "fixed bottom-[88px] right-4 z-40 block w-[min(480px,calc(100vw-2rem))] overflow-hidden rounded-[10px] border border-line bg-black"
-            : "pointer-events-none fixed -left-[9999px] top-0 h-[135px] w-[240px] overflow-hidden opacity-0"
+            : active && isYouTube
+              ? "fixed bottom-[80px] right-3 z-40 block w-[168px] overflow-hidden rounded-[8px] border border-line bg-black shadow-lg"
+              : "hidden"
         }
       >
         <div className="aspect-video w-full">
