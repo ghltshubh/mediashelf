@@ -2,15 +2,16 @@
 
 A self-hosted streaming index and router: one shelf across your streaming services, split by
 what you subscribe to vs what's elsewhere, with working deep links into the owning apps.
-Tracks availability across **390+ streaming services worldwide**, per region.
+Tracks availability across **Netflix, Prime Video, Disney+, Max, Hulu, Apple TV+, Paramount+,
+Peacock, Crunchyroll — and 200+ more services worldwide**, per region.
 
 MediaShelf never stores, serves, or plays media files. DRM services are browse-and-link only.
 
 ![MediaShelf home — one shelf across your services](docs/img/home.jpg)
 
 - 🗄️ **Self-hosted** — one Docker container, your own API keys, your data stays yours
-- 📡 **390+ streaming services** tracked worldwide, with per-region availability — deep
-  integrations for Spotify, YouTube & Apple Music
+- 📡 **Netflix, Prime Video, Disney+, Max, Hulu, Apple TV+ and 200+ more** tracked worldwide
+  with per-region availability — deep integrations for Spotify, YouTube & Apple Music
 - 💡 **Lit vs dimmed** — instantly see what's watchable on services you already pay for
 - 🎵 **Cross-service music** — Spotify + YouTube Music + Apple Music in one continuous queue;
   a track that can't play on one service resolves to the best match on another
