@@ -402,9 +402,9 @@ export const api = {
   similar: (id: number, region = "") =>
     request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
   because: () => request<{ seed: string | null; items: VideoResult[] }>("/api/home/because"),
-  lucky: (genre = "", maxMinutes: number | null = null, type = "") =>
+  lucky: (genre = "", maxMinutes: number | null = null, type = "", scope = "mine") =>
     request<{ found: boolean; item?: ShelfItem & { runtime_minutes: number | null; play: Playback } }>(
-      `/api/lucky?genre=${encodeURIComponent(genre)}${maxMinutes ? `&max_minutes=${maxMinutes}` : ""}&type=${type}`,
+      `/api/lucky?genre=${encodeURIComponent(genre)}${maxMinutes ? `&max_minutes=${maxMinutes}` : ""}&type=${type}&scope=${scope}`,
     ),
   person: (id: number, region = "") =>
     request<PersonPage>(`/api/person/${id}?region=${region}`),

@@ -460,9 +460,10 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
 
 @router.get("/lucky")
 async def lucky(genre: str = "", max_minutes: int | None = None, type: str = "",
-                db: Session = Depends(get_session)) -> dict:
-    """Feeling lucky: a random title streaming on the user's subscribed services
-    right now, optionally scoped by genre / runtime / media type. Runtime is
+                scope: str = "mine", db: Session = Depends(get_session)) -> dict:
+    """Feeling lucky: a random title streaming right now — on the user's
+    subscribed services by default, or anywhere (scope=all) as a discovery
+    mode. Optionally scoped by genre / runtime / media type. Runtime is
     fetched lazily for sampled candidates (bulk sync never stores it)."""
     import random
 
@@ -471,16 +472,19 @@ async def lucky(genre: str = "", max_minutes: int | None = None, type: str = "",
     api_key = settings_store.get_setting(db, "tmdb_api_key")
     country, _ = _region_or_home(db, "")
     subs = catalog.subscribed_service_ids(db)
-    if not subs:
+    mine_only = scope != "all"
+    if mine_only and not subs:
         return {"found": False}
     types = [type] if type in ("movie", "tv") else ["movie", "tv"]
+    conditions = [Availability.country == country,
+                  Availability.offer_type.in_(("flatrate", "free", "ads")),
+                  MediaItem.media_type.in_(types)]
+    if mine_only:
+        conditions.append(Availability.service_id.in_(subs))
     rows = list(db.scalars(
         select(MediaItem)
         .join(Availability, Availability.media_item_id == MediaItem.id)
-        .where(Availability.country == country,
-               Availability.offer_type.in_(("flatrate", "free", "ads")),
-               Availability.service_id.in_(subs),
-               MediaItem.media_type.in_(types))
+        .where(*conditions)
         .distinct()
     ).all())
     if genre:

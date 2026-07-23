@@ -392,6 +392,7 @@ const HELP: Record<string, Dict> = {
     "lucky.again": "Roll again",
     "lucky.details": "Details",
     "lucky.anyLength": "Any length",
+    "lucky.everything": "Everything",
     "lucky.none": "Nothing on your services matches — loosen the filters.",
   },
   es: {

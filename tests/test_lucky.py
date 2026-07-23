@@ -18,6 +18,15 @@ def test_lucky_needs_a_subscription(client):
     assert client.get("/api/lucky").json() == {"found": False}
 
 
+def test_lucky_scope_all_rolls_beyond_subscriptions(client):
+    run_sync_now()
+    # No subscriptions at all: default scope finds nothing, "everything" does —
+    # and the pick is honestly not-owned.
+    r = client.get("/api/lucky?scope=all").json()
+    assert r["found"] is True
+    assert r["item"]["owned"] is False
+
+
 def test_lucky_picks_owned_with_filters(client):
     client.put("/api/settings", json={"tmdb_api_key": "goodkey"})
     run_sync_now()

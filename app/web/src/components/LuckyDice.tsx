@@ -20,6 +20,7 @@ export function LuckyDice({ genres }: { genres: string[] }) {
   const [genre, setGenre] = useState("");
   const [maxMin, setMaxMin] = useState(0);
   const [type, setType] = useState("");
+  const [scope, setScope] = useState("mine");
   const [rolling, setRolling] = useState(false);
   const [rolled, setRolled] = useState(false);
   const [item, setItem] = useState<LuckyItem | null>(null);
@@ -30,7 +31,7 @@ export function LuckyDice({ genres }: { genres: string[] }) {
     setItem(null);
     const started = Date.now();
     api
-      .lucky(genre, maxMin || null, type)
+      .lucky(genre, maxMin || null, type, scope)
       .then((r) => {
         // Let the die spin at least ~0.9s so the roll reads as a roll.
         const wait = Math.max(0, 900 - (Date.now() - started));
@@ -116,6 +117,20 @@ export function LuckyDice({ genres }: { genres: string[] }) {
                   <option value="">{t("chip.all")}</option>
                   <option value="movie">{t("tab.movies")}</option>
                   <option value="tv">{t("tab.shows")}</option>
+                </select>
+              </label>
+              {/* Scope: default is the feature's promise (watch right now); "all"
+                  is opt-in discovery — the reveal card stays honest (dimmed). */}
+              <label className="flex items-center gap-1.5">
+                <span className="font-mono text-[0.7rem] text-muted">from</span>
+                <select
+                  value={scope}
+                  onChange={(e) => setScope(e.target.value)}
+                  aria-label="Pick from"
+                  className="rounded-[6px] border border-line bg-bg1 px-2 py-1 font-mono text-[0.75rem] text-ink outline-none focus:border-owned/60"
+                >
+                  <option value="mine">{t("chip.mine")}</option>
+                  <option value="all">{t("lucky.everything")}</option>
                 </select>
               </label>
             </div>
