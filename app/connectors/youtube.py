@@ -314,13 +314,16 @@ class YouTubeConnector:
                 raw.append((sn["resourceId"]["videoId"], sn))
             req = yt.playlistItems().list_next(req, resp)
         # The liked-videos list mixes songs and regular videos. Fetch each video's
-        # category (10 = Music) so the library can route music into the Music tab
-        # and the rest into "YouTube videos".
-        music_ids = self._music_video_ids(yt, [vid for vid, _ in raw])
+        # category (10 = Music) — for routing music into the Music tab — and its
+        # embeddable flag, so the library can skip un-embeddable videos for in-app
+        # play (many official music videos disable embedding) instead of loading
+        # then failing on them.
+        meta = self._video_meta(yt, [vid for vid, _ in raw])
         out: list[dict] = []
         for vid, sn in raw:
             channel = sn.get("videoOwnerChannelTitle")
-            is_music = vid in music_ids
+            m = meta.get(vid, {})
+            is_music = m.get("is_music", False)
             out.append({
                 "external_id": vid,
                 "payload": {
@@ -331,17 +334,20 @@ class YouTubeConnector:
                     "url": f"https://www.youtube.com/watch?v={vid}",
                     "video_id": vid,
                     "is_music": is_music,
+                    "embeddable": m.get("embeddable", True),
                 },
             })
         return out
 
-    def _music_video_ids(self, yt: Any, ids: list[str]) -> set[str]:
-        """Which of these video ids are in YouTube's Music category (id 10).
-        videos.list is 1 quota unit per call; 50 ids per page."""
-        music: set[str] = set()
+    def _video_meta(self, yt: Any, ids: list[str]) -> dict[str, dict]:
+        """{video_id: {is_music, embeddable}} for the given ids. videos.list is
+        1 quota unit per call; 50 ids per page."""
+        meta: dict[str, dict] = {}
         for i in range(0, len(ids), 50):
-            resp = yt.videos().list(part="snippet", id=",".join(ids[i:i + 50])).execute()
+            resp = yt.videos().list(part="snippet,status", id=",".join(ids[i:i + 50])).execute()
             for v in resp.get("items", []):
-                if (v.get("snippet") or {}).get("categoryId") == "10":
-                    music.add(v["id"])
-        return music
+                meta[v["id"]] = {
+                    "is_music": (v.get("snippet") or {}).get("categoryId") == "10",
+                    "embeddable": (v.get("status") or {}).get("embeddable", True),
+                }
+        return meta

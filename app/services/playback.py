@@ -51,7 +51,10 @@ def music_options(entity: dict, state: dict) -> dict:
                         "payload": {"apple_id": entity.get("apple_id"),
                                     "title": entity.get("title"),
                                     "artists": entity.get("artists") or []}})
-    if entity.get("youtube_video_id"):
+    # Only offer the in-app YouTube player when the video allows embedding —
+    # un-embeddable videos (many official music videos) would just load and fail.
+    # They still get a deep-link (open on YouTube) via the links tail below.
+    if entity.get("youtube_video_id") and entity.get("embeddable", True):
         options.append({"engine": "youtube", "service_key": "youtube",
                         "label": "YouTube", "kind": "full · ads",
                         "payload": {"video_id": entity["youtube_video_id"]}})

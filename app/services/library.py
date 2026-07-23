@@ -117,6 +117,7 @@ def to_search_row(provider: str, group_key: str, e: dict,
         "spotify_id": uri.split(":")[-1] if uri.startswith("spotify:track") else None,
         "spotify_uri": uri if uri.startswith("spotify:") else None,
         "youtube_video_id": e.get("video_id"),
+        "embeddable": e.get("embeddable", True),  # gate in-app YouTube play
         "services": [{"service_key": provider, "service_name": service_name,
                       "url": e.get("url"), "owned": provider in subscribed}],
     }
