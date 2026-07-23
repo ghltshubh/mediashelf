@@ -24,6 +24,9 @@ interface PlayerState {
   duration: number;
   volume: number;
   toast: string | null;
+  // Set when the playing option came from cross-service resolution (a YouTube
+  // like matched + played on Spotify/Apple) — the bar labels it "best match".
+  resolvedVia: string | null;
   queue: PlayRequest[];
   queueIndex: number;
   play: (req: PlayRequest, choice?: PlayOption) => void;
@@ -105,7 +108,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return;
     }
     stopEngines();
-    set({ request: req, option, status: "loading", position: 0, duration: 0 });
+    set({ request: req, option, status: "loading", position: 0, duration: 0,
+          resolvedVia: null });
     if (option.engine === "youtube" && option.payload.video_id) {
       // The theater slot must exist before the iframe mounts.
       window.setTimeout(
@@ -130,7 +134,16 @@ export const usePlayer = create<PlayerState>((set, get) => {
       api
         .resolvePlayback(option.payload.title ?? req.title, option.payload.artists ?? [],
                          option.payload.duration_ms)
-        .then((r) => (r.option ? load(req, r.option) : fallthrough()))
+        .then((r) => {
+          if (r.option) {
+            load(req, r.option);
+            // After load() (which clears it) — flag that this playback is a
+            // cross-service match, so the bar can say "Spotify · best match".
+            set({ resolvedVia: r.option.label });
+          } else {
+            fallthrough();
+          }
+        })
         .catch(fallthrough);
     }
   }
@@ -143,6 +156,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     duration: 0,
     volume: 0.8,
     toast: null,
+    resolvedVia: null,
     queue: [],
     queueIndex: -1,
 
@@ -183,7 +197,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     stop: () => {
       stopEngines();
       set({ request: null, option: null, status: "idle", position: 0, duration: 0,
-            queue: [], queueIndex: -1 });
+            resolvedVia: null, queue: [], queueIndex: -1 });
     },
 
     toggle: () => {

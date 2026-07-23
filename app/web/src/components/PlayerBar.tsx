@@ -139,8 +139,14 @@ export function PlayerBar() {
             className="hidden w-20 accent-[var(--owned)] min-[900px]:block disabled:opacity-30"
           />
 
-          <span className="hidden font-mono text-[0.7rem] text-[color:var(--play)] min-[700px]:block">
+          <span
+            className="hidden font-mono text-[0.7rem] text-[color:var(--play)] min-[700px]:block"
+            title={p.resolvedVia
+              ? `This track had no in-app source, so the best match on ${p.resolvedVia} is playing instead`
+              : undefined}
+          >
             {ENGINE_GLYPH[p.option?.engine ?? ""] ?? ""}
+            {p.resolvedVia && <span className="text-muted"> · best match</span>}
           </span>
 
           <button
