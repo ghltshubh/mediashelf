@@ -3,7 +3,7 @@
 // off to the next option in the chain with a toast naming the switch.
 
 import { create } from "zustand";
-import type { PlayOption } from "../lib/api";
+import { api, type PlayOption } from "../lib/api";
 import { Html5AudioEngine, MusicKitEngine, SpotifySdkEngine, YouTubeEngine } from "../lib/engines";
 
 export interface PlayRequest {
@@ -118,6 +118,20 @@ export const usePlayer = create<PlayerState>((set, get) => {
       void audio.load(option.payload.url, callbacks);
     } else if (option.engine === "musickit") {
       void musicKit.load(option.payload, callbacks);
+    } else if (option.engine === "resolve") {
+      // Find the best match on a playable service (Spotify/Apple) and play it;
+      // if nothing matches, fall through to the next option (e.g. YouTube).
+      const fallthrough = () => {
+        const idx = req.options.indexOf(option);
+        const nextOpt = req.options[idx + 1];
+        if (nextOpt) load(req, nextOpt);
+        else callbacks.onFail("No in-app match found for this track");
+      };
+      api
+        .resolvePlayback(option.payload.title ?? req.title, option.payload.artists ?? [],
+                         option.payload.duration_ms)
+        .then((r) => (r.option ? load(req, r.option) : fallthrough()))
+        .catch(fallthrough);
     }
   }
 

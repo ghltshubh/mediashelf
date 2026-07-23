@@ -38,19 +38,28 @@ def music_options(entity: dict, state: dict) -> dict:
     options: list[dict] = []
 
     spotify_id = entity.get("spotify_id")
-    if spotify_id and state["spotify_connected"] and state["spotify_premium"]:
+    spotify_native = bool(spotify_id and state["spotify_connected"] and state["spotify_premium"])
+    if spotify_native:
         options.append({"engine": "spotify_sdk", "service_key": "spotify",
                         "label": "Spotify", "kind": "full",
                         "payload": {"spotify_uri": entity.get("spotify_uri")
                                     or f"spotify:track:{spotify_id}"}})
-    # Apple Music: play by apple_id when known, else the MusicKit engine resolves
-    # the track by title/artist against Apple's catalog at play time.
-    if state["apple_configured"] and (entity.get("apple_id") or entity.get("title")):
+    apple_native = bool(entity.get("apple_id") and state["apple_configured"])
+    if apple_native:
         options.append({"engine": "musickit", "service_key": "apple_music",
                         "label": "Apple Music", "kind": "full",
-                        "payload": {"apple_id": entity.get("apple_id"),
-                                    "title": entity.get("title"),
-                                    "artists": entity.get("artists") or []}})
+                        "payload": {"apple_id": entity["apple_id"]}})
+    # Proactive cross-service resolution: a track with no native in-app option
+    # (e.g. a YouTube-only like) is resolved at play time to the best match on a
+    # playable service (Spotify Premium / Apple Music) and played there — so an
+    # embed-blocked YouTube song plays via a sanctioned player instead.
+    can_resolve = (state["spotify_connected"] and state["spotify_premium"]) or state["apple_configured"]
+    if entity.get("title") and can_resolve and not (spotify_native or apple_native):
+        options.append({"engine": "resolve", "service_key": "auto", "label": "Best match",
+                        "kind": "full",
+                        "payload": {"title": entity["title"],
+                                    "artists": entity.get("artists") or [],
+                                    "duration_ms": entity.get("duration_ms")}})
     # Only offer the in-app YouTube player when the video allows embedding —
     # un-embeddable videos (many official music videos) would just load and fail.
     # They still get a deep-link (open on YouTube) via the links tail below.

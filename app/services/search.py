@@ -405,10 +405,11 @@ def attach_music_playback(row: dict, playback_state: dict | None) -> None:
         # Whether the YouTube video allows embedding (in-app play). Unknown for
         # search hits → default True (try, fall back on error).
         "embeddable": row.get("embeddable", True),
-        # Title/artists let the MusicKit engine resolve a track in Apple's catalog
-        # when we don't already hold its apple_id (which is the usual case).
+        # Title/artists/duration drive cross-service resolution (play the best
+        # match on Spotify/Apple when the track has no native in-app option).
         "title": row.get("title"),
         "artists": row.get("artists") or [],
+        "duration_ms": row.get("duration_ms"),
         "links": row.get("services", []),
     }
     routed = playback_service.music_options(entity, playback_state or {

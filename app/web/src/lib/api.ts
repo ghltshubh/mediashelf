@@ -54,7 +54,7 @@ export interface Connection {
 }
 
 export interface PlayOption {
-  engine: "spotify_sdk" | "musickit" | "youtube" | "spotify_embed" | "audio" | "deeplink";
+  engine: "spotify_sdk" | "musickit" | "youtube" | "spotify_embed" | "audio" | "resolve" | "deeplink";
   service_key: string;
   label: string;
   kind: string;
@@ -64,9 +64,10 @@ export interface PlayOption {
     video_id?: string;
     apple_id?: string;
     url?: string;
-    // MusicKit resolves by title/artist when no apple_id is known.
+    // MusicKit / cross-service resolve by title/artist when no id is known.
     title?: string;
     artists?: string[];
+    duration_ms?: number | null;
   };
 }
 
@@ -423,6 +424,12 @@ export const api = {
   library: () => request<LibraryData>("/api/library"),
   spotifyPlaybackToken: () =>
     request<{ access_token: string }>("/api/playback/spotify/token"),
+  resolvePlayback: (title: string, artists: string[], duration_ms?: number | null) =>
+    request<{ option: PlayOption | null }>(
+      `/api/playback/resolve?title=${encodeURIComponent(title)}&artists=${encodeURIComponent(
+        artists.join(", "),
+      )}${duration_ms ? `&duration_ms=${duration_ms}` : ""}`,
+    ),
   migrations: () => request<MigrationsData>("/api/migrations"),
   startMigration: (body: {
     source: string;

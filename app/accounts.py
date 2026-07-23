@@ -165,6 +165,18 @@ def spotify_playback_token(db: Session = Depends(get_session)) -> dict:
     return {"access_token": token}
 
 
+@router.get("/api/playback/resolve")
+async def resolve_playback(title: str = "", artists: str = "", duration_ms: int | None = None,
+                           db: Session = Depends(get_session)) -> dict:
+    """Best in-app-playable match for a track across connected services (Spotify
+    Premium / Apple Music), so an embed-blocked YouTube song can play elsewhere."""
+    from app.services import resolve as resolve_service
+
+    artist_list = [a.strip() for a in artists.split(",") if a.strip()] if artists else []
+    option = await resolve_service.resolve_playback(db, title, artist_list, duration_ms)
+    return {"option": option}
+
+
 @router.get("/api/playback/apple/token")
 def apple_playback_token(db: Session = Depends(get_session)) -> dict:
     """The MusicKit developer token for configuring MusicKit JS in the browser.
