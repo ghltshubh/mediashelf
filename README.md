@@ -2,6 +2,7 @@
 
 A self-hosted streaming index and router: one shelf across your streaming services, split by
 what you subscribe to vs what's elsewhere, with working deep links into the owning apps.
+Tracks availability across **390+ streaming services worldwide**, per region.
 
 MediaShelf never stores, serves, or plays media files. DRM services are browse-and-link only.
 
