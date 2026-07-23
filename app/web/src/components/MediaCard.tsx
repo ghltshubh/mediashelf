@@ -40,15 +40,15 @@ export function MediaCard({ item, fluid = false }: { item: ShelfItem; fluid?: bo
       </div>
 
       {item.badges.length === 0 && (
-        // Not streaming yet: a quiet semi-transparent mark instead of a repeated
-        // text banner (a row of upcoming titles would otherwise shout in unison).
+        // Not streaming yet: a quiet clock chip in the same visual language as
+        // the rating chip — theme-neutral, no emoji reds shouting on the poster.
         // The "expected on X" hint below still names the likely home.
         <span
           title="not streaming yet"
           aria-label="not streaming yet"
-          className="absolute left-1.5 top-1.5 text-[1.05rem] leading-none opacity-50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)]"
+          className="absolute left-1.5 top-1.5 rounded-full bg-bg0/35 px-1.5 py-0.5 font-mono text-[0.75rem] leading-none text-muted backdrop-blur-[1px]"
         >
-          🚫
+          ◷
         </span>
       )}
 
