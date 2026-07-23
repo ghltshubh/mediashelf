@@ -46,7 +46,7 @@ export function MediaCard({ item, fluid = false }: { item: ShelfItem; fluid?: bo
         <span
           title="not streaming yet"
           aria-label="not streaming yet"
-          className="absolute left-1.5 top-1.5 rounded-full bg-bg0/35 px-1.5 py-0.5 font-mono text-[0.75rem] leading-none text-muted backdrop-blur-[1px]"
+          className="absolute left-1.5 top-1.5 font-mono text-[1.05rem] leading-none text-ink/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
         >
           ◷
         </span>
