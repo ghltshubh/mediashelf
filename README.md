@@ -109,3 +109,9 @@ not part of this product — logged-in scraping stays outside the core per the p
 - **Failure behavior**: if TMDB is unreachable or your key is revoked, the last-synced catalog
   keeps serving with a banner naming its age and the fix.
 - This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+## License
+
+MediaShelf is licensed under the **GNU AGPL-3.0-or-later** — see [LICENSE](LICENSE).
+Self-host it freely; if you offer a modified version as a network service, you must share your
+changes under the same license. Commercial licensing is available from the copyright holder.

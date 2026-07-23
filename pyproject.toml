@@ -2,6 +2,7 @@
 name = "mediashelf"
 version = "0.1.0"
 description = "MediaShelf — universal media hub (self-hosted streaming index and router)"
+license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.111",
