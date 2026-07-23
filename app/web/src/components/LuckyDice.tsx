@@ -166,17 +166,12 @@ export function LuckyDice({ genres }: { genres: string[] }) {
                         ▶ {playDefault.label}
                       </a>
                     )}
+                    {/* Re-rolling stays on the big die above — one control, not two. */}
                     <button
                       onClick={() => { close(); navigate(`/title/${item.id}`); }}
                       className="cursor-pointer rounded-[6px] border border-line px-3 py-1.5 text-[0.85rem] hover:bg-bg2"
                     >
                       {t("lucky.details")}
-                    </button>
-                    <button
-                      onClick={roll}
-                      className="cursor-pointer rounded-[6px] border border-line px-3 py-1.5 text-[0.85rem] text-muted hover:bg-bg2"
-                    >
-                      🎲 {t("lucky.again")}
                     </button>
                   </div>
                 </div>
