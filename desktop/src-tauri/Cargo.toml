@@ -1,0 +1,18 @@
+[package]
+name = "mediashelf"
+version = "0.1.0"
+description = "MediaShelf desktop"
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-opener = "2"
+
+[features]
+# Used by `tauri build --debug` to keep the devtools available.
+custom-protocol = ["tauri/custom-protocol"]

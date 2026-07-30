@@ -4,6 +4,7 @@
 
 import { create } from "zustand";
 import { api, type PlayOption } from "../lib/api";
+import { hasWidevine } from "../lib/drm";
 import { Html5AudioEngine, MusicKitEngine, SpotifySdkEngine, YouTubeEngine } from "../lib/engines";
 
 export interface PlayRequest {
@@ -77,6 +78,15 @@ export const usePlayer = create<PlayerState>((set, get) => {
       // Re-route live: next option in the chain after the failed one.
       const idx = request.options.findIndex((o) => o === option || o.engine === option.engine);
       const next = request.options[idx + 1];
+      if (reason === "needs-browser") {
+        // Desktop shell: this webview can't do Widevine. Hand this one surface
+        // to the system browser, pointed at the same local app, and stop —
+        // silently downgrading a Premium track to YouTube would be worse.
+        get().showToast("Spotify needs your browser — opening MediaShelf there");
+        window.open(window.location.href, "_blank", "noopener");
+        get().stop();
+        return;
+      }
       if (reason === "embed-blocked" && option.engine === "youtube") {
         // Some YouTube videos (often official music) disable embedding, so the
         // in-app player can't play them. In a queue, skip and keep going rather
@@ -120,7 +130,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
       window.setTimeout(
         () => youtube.load(YOUTUBE_CONTAINER_ID, option.payload.video_id!, callbacks), 0);
     } else if (option.engine === "spotify_sdk" && option.payload.spotify_uri) {
-      void spotifySdk.load(option.payload.spotify_uri, callbacks);
+      // Spotify's SDK needs Widevine, which the desktop shell's webview lacks.
+      // Detect it here so the failure is one clear message plus a working way
+      // out, instead of an opaque SDK error deep in playback.
+      void hasWidevine().then((ok) =>
+        ok
+          ? spotifySdk.load(option.payload.spotify_uri!, callbacks)
+          : callbacks.onFail("needs-browser"),
+      );
     } else if (option.engine === "spotify_embed") {
       set({ status: "playing" });  // embed manages itself; we just host it
     } else if (option.engine === "audio" && option.payload.url) {

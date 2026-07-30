@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Spawn the bundled server sidecar and open external links in the system browser.","local":true,"windows":["main"],"permissions":["core:default","shell:allow-execute",{"identifier":"shell:allow-spawn","allow":[{"name":"binaries/mediashelf-server","sidecar":true}]},"opener:default"]}}

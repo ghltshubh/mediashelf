@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MediaShelf",
+  "version": "0.1.0",
+  "identifier": "in.tinkerer.mediashelf",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": ["icons/icon.png"],
+    "externalBin": ["binaries/mediashelf-server"],
+    "category": "Entertainment",
+    "shortDescription": "One shelf for the streaming services you already pay for",
+    "longDescription": "MediaShelf shows what is watchable on the streaming services you subscribe to, searches movies, TV and music together, plays music through official SDKs, and follows podcasts. Runs entirely on your own machine with your own API keys."
+  }
+}

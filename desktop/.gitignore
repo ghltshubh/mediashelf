@@ -1,0 +1,5 @@
+# Build artifacts
+.build/
+src-tauri/target/
+# The PyInstaller sidecar is built locally / in CI, never committed (45MB).
+src-tauri/binaries/

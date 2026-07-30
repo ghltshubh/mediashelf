@@ -1,6 +1,7 @@
 """FastAPI app: API + static SPA + nightly availability refresh."""
 
 import logging
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -17,7 +18,17 @@ from app.services import backups
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
-WEB_DIST = Path(__file__).parent / "web" / "dist"
+
+def _web_dist() -> Path:
+    """Built SPA location. Under PyInstaller (the desktop sidecar) bundled data
+    lives in the extraction dir, not next to this source file."""
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        return Path(bundle) / "web" / "dist"
+    return Path(__file__).parent / "web" / "dist"
+
+
+WEB_DIST = _web_dist()
 
 
 def create_app() -> FastAPI:
