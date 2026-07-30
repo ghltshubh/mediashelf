@@ -1,5 +1,7 @@
 # MediaShelf
 
+**[mediashelf website →](https://www.tinkerer.in/mediashelf/)**
+
 A self-hosted streaming index and router: one shelf across your streaming services, split by
 what you subscribe to vs what's elsewhere, with working deep links into the owning apps.
 Tracks availability across **Netflix, Prime Video, Disney+, Max, Hulu, Apple TV+, Paramount+,
