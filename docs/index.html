@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediaShelf — one shelf for the streaming services you already pay for</title>
+<meta name="description" content="Self-hosted streaming index and router. See what's watchable on the services you pay for, search movies, TV and music together, play music in-app, migrate playlists, and follow podcasts. One Docker container, your own API keys, AGPL-3.0.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="MediaShelf — one shelf for the streaming services you already pay for">
+<meta property="og:description" content="Self-hosted streaming index and router. One Docker container, your own API keys, AGPL-3.0.">
+<meta property="og:image" content="img/home.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --bg-0:#141210; --bg-1:#1c1916; --bg-2:#262220; --line:#38322d;
+    --ink:#ede7de; --muted:#9c948a; --owned:#e3a84c; --play:#7bc47f;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg-0); color:var(--ink); font-family:var(--sans);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  a { color:var(--owned); }
+  .wrap { max-width:1000px; margin:0 auto; padding:0 20px; }
+  header { padding:64px 0 40px; text-align:center; }
+  .brand { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:28px; }
+  .brand span { font-size:1.15rem; font-weight:700; letter-spacing:-.01em; color:var(--owned); }
+  h1 { font-size:clamp(1.9rem,5vw,3rem); line-height:1.15; margin:0 0 16px; letter-spacing:-.02em; }
+  h1 .hl { color:var(--owned); }
+  .sub { font-size:clamp(1rem,2.2vw,1.2rem); color:var(--muted); max-width:640px; margin:0 auto 32px; }
+  .cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
+  .btn {
+    display:inline-block; padding:11px 22px; border-radius:8px; text-decoration:none;
+    font-weight:600; font-size:.95rem; border:1px solid var(--line);
+  }
+  .btn-primary { background:var(--owned); color:var(--bg-0); border-color:var(--owned); }
+  .btn-ghost { color:var(--ink); }
+  .btn:hover { opacity:.88; }
+  .run {
+    font-family:var(--mono); font-size:.78rem; color:var(--muted); background:var(--bg-1);
+    border:1px solid var(--line); border-radius:8px; padding:12px 16px; margin:22px auto 0;
+    max-width:760px; overflow-x:auto; white-space:nowrap; text-align:left;
+  }
+  .shot {
+    width:100%; border-radius:12px; border:1px solid var(--line); display:block;
+    margin:44px 0; box-shadow:0 20px 60px -20px rgba(0,0,0,.7);
+  }
+  section { padding:20px 0 44px; }
+  h2 { font-size:1.5rem; margin:0 0 22px; letter-spacing:-.01em; }
+  .grid { display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .card { background:var(--bg-1); border:1px solid var(--line); border-radius:10px; padding:20px; }
+  .card h3 { margin:0 0 8px; font-size:1rem; }
+  .card p { margin:0; color:var(--muted); font-size:.92rem; }
+  .rules { list-style:none; padding:0; margin:0; }
+  .rules li { padding:10px 0; border-bottom:1px solid var(--line); color:var(--muted); font-size:.95rem; }
+  .rules li:last-child { border-bottom:0; }
+  .rules b { color:var(--ink); font-weight:600; }
+  footer {
+    border-top:1px solid var(--line); margin-top:40px; padding:28px 0 56px;
+    color:var(--muted); font-size:.85rem; text-align:center;
+  }
+  footer a { margin:0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 28 28" width="30" height="30" fill="none" aria-hidden="true">
+        <rect x="3" y="20.2" width="22" height="2.6" rx="1.3" fill="#e3a84c"/>
+        <rect x="5.2" y="9" width="3.3" height="11.2" rx="1.3" fill="#e3a84c"/>
+        <rect x="9.9" y="5.8" width="3.3" height="14.4" rx="1.3" fill="#e3a84c" opacity=".72"/>
+        <rect x="14.6" y="10.6" width="3.3" height="9.6" rx="1.3" fill="#e3a84c" opacity=".5"/>
+        <rect x="19.3" y="8.4" width="3.3" height="11.8" rx="1.3" fill="#e3a84c" opacity=".86"
+              transform="rotate(11 20.95 14.3)"/>
+      </svg>
+      <span>MediaShelf</span>
+    </div>
+
+    <h1>One shelf for the streaming services <span class="hl">you already pay for</span></h1>
+    <p class="sub">
+      Self-hosted. What you can watch right now is lit, everything else is dimmed with a link to
+      where it lives. Movies, shows, music and podcasts in one place.
+    </p>
+
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/ghltshubh/mediashelf">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://github.com/ghltshubh/mediashelf/blob/main/docs/INSTALL.md">Setup guide</a>
+    </div>
+    <div class="run">docker run -d -p 8000:8000 -v mediashelf-data:/data ghcr.io/ghltshubh/mediashelf:latest</div>
+  </header>
+
+  <img class="shot" src="img/home.jpg" alt="The MediaShelf home shelf: a music rail, recommendations, watchlist and popular titles, with owned titles lit and others dimmed.">
+
+  <section>
+    <h2>What it does</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Lit vs dimmed</h3>
+        <p>Titles on services you subscribe to are lit; everything else is dimmed with a deep link
+           into the app that has it. A couple hundred services, per region.</p>
+      </div>
+      <div class="card">
+        <h3>One search</h3>
+        <p>Movies, shows and music together. If something isn't available in your country, the
+           title page tells you where in the world it is.</p>
+      </div>
+      <div class="card">
+        <h3>Music that plays here</h3>
+        <p>Spotify, YouTube and Apple Music through official SDKs, in one queue across services.
+           A track blocked on one service resolves to the best match on another.</p>
+      </div>
+      <div class="card">
+        <h3>Playlist migrations</h3>
+        <p>Move likes and playlists between music services. Fuzzy matches go to a review queue,
+           quota limits pause and resume, and any job can be undone.</p>
+      </div>
+      <div class="card">
+        <h3>Podcasts and PWA</h3>
+        <p>Subscribe by RSS or OPML and play episodes in-app. Installs to your phone or desktop
+           and keeps working offline with your last-synced data.</p>
+      </div>
+      <div class="card">
+        <h3>Feeling lucky</h3>
+        <p>Pick a genre and how much time you have, roll the dice, and get something random you
+           can watch right now on your own services.</p>
+      </div>
+    </div>
+  </section>
+
+  <img class="shot" src="img/title.jpg" alt="A MediaShelf title page showing where a film streams on your services versus elsewhere, with deep links, plan prices and cast.">
+
+  <section>
+    <h2>How it's built</h2>
+    <ul class="rules">
+      <li><b>Your keys, your data.</b> One free TMDB key is required; everything else is optional.
+        No accounts, no telemetry, and the database is a SQLite file you own.</li>
+      <li><b>It never touches DRM streams.</b> Video is browse-and-link only. Playback happens
+        through officially sanctioned SDKs and embeds, never by proxying a stream.</li>
+      <li><b>One container.</b> Multi-arch Docker image, nightly self-backups, and a setup guide
+        that walks through every API key.</li>
+      <li><b>AGPL-3.0.</b> Self-host it freely. Modified hosted versions have to share their
+        changes back.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>
+      <a href="https://github.com/ghltshubh/mediashelf">GitHub</a>·
+      <a href="https://github.com/ghltshubh/mediashelf/blob/main/docs/INSTALL.md">Docs</a>·
+      <a href="https://buymeacoffee.com/shubhankar">Buy me a coffee</a>
+    </p>
+    <p>AGPL-3.0. Uses the TMDB API but is not endorsed or certified by TMDB.</p>
+  </footer>
+
+</div>
+</body>
+</html>
