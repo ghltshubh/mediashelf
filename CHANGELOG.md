@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.1 — 2026-08-09
 
 - **Episode tracking for shows.** Season and episode lists on a title page; tick episodes or a
   whole season. A **Continue watching** rail leads the shelf with a one-tap mark for the next
