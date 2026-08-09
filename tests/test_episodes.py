@@ -296,3 +296,80 @@ def test_progress_rows_do_not_leak_into_the_watchlist(client):
     client.post(f"/api/titles/{item_id}/watched",
                 json={"season": 1, "episodes": [1, 2, 3], "watched": True})
     assert client.get("/api/settings").json().get("watchlist_count") == before
+
+
+def test_started_show_leaves_the_watchlist_rail(client):
+    """Same title in Continue watching and Watchlist at once is the confusing
+    case — "want to watch" and "part way through" are one list, not two."""
+    run_sync_now()
+    _set_key()
+    item_id = _tv_id(client)
+    from app.db import session_factory as sf
+    from app.models import LibraryEntry, Service
+
+    with sf()() as db:
+        svc = db.query(Service).filter(Service.key == "netflix").first()
+        db.add(LibraryEntry(service_id=svc.id, media_item_id=item_id,
+                            entry_type="watchlist", external_id="netflix:watchlist:x",
+                            payload={"title": "x"}))
+        db.commit()
+
+    def rail_ids(key):
+        rails = client.get("/api/shelf?filter=all").json()["rails"]
+        rail = next((r for r in rails if r["key"] == key), None)
+        return [i["id"] for i in rail["items"]] if rail else []
+
+    assert item_id in rail_ids("watchlist")          # saved, not started
+    client.get(f"/api/titles/{item_id}/seasons")
+    client.post(f"/api/titles/{item_id}/watched",
+                json={"season": 1, "episodes": [1], "watched": True})
+    assert item_id in rail_ids("continue_watching")  # moved…
+    assert item_id not in rail_ids("watchlist")      # …and only there
+
+
+# ---------- manual watchlist (yours, not the importer's) ----------
+
+def test_manual_watchlist_add_remove(client):
+    run_sync_now()
+    _set_key()
+    item_id = _tv_id(client)
+    assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is False
+    assert client.post(f"/api/titles/{item_id}/watchlist").json()["in_watchlist"] is True
+    assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is True
+
+    # Idempotent: pressing it twice must not create a second row.
+    client.post(f"/api/titles/{item_id}/watchlist")
+    from app.models import LibraryEntry
+    from app.services.catalog import WATCHLIST_MANUAL
+
+    with session_factory()() as db:
+        rows = db.query(LibraryEntry).filter(
+            LibraryEntry.entry_type == WATCHLIST_MANUAL).all()
+        assert len(rows) == 1
+
+    assert client.delete(f"/api/titles/{item_id}/watchlist").json()["in_watchlist"] is False
+
+
+def test_manual_watchlist_shows_in_the_rail(client):
+    run_sync_now()
+    _set_key()
+    item_id = _tv_id(client)
+    client.post(f"/api/titles/{item_id}/watchlist")
+    rails = client.get("/api/shelf?filter=all").json()["rails"]
+    rail = next(r for r in rails if r["key"] == "watchlist")
+    assert rail["label"] == "Want to watch"
+    assert item_id in [i["id"] for i in rail["items"]]
+
+
+def test_importer_full_sync_cannot_delete_your_own_entries(client):
+    """The importer's `replace` pass deletes rows the source list dropped. It
+    must not be able to reach something you saved by hand."""
+    run_sync_now()
+    _set_key()
+    item_id = _tv_id(client)
+    client.post(f"/api/titles/{item_id}/watchlist")
+    r = client.post("/api/watchlist/import",
+                    json={"source": "netflix", "items": [], "replace": True,
+                          "list_type": "watchlist"})
+    assert r.status_code == 200
+    assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is True

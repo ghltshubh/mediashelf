@@ -326,6 +326,7 @@ export interface Title extends ShelfItem {
   ratings: { imdb?: number; imdb_votes?: string; rt?: string; metacritic?: string };
   keywords: string[];
   cast: { id: number | null; name: string; character: string | null; profile: string | null }[];
+  in_watchlist: boolean;
 }
 
 // Episode progress. Marking is manual — MediaShelf deep-links out for TV and
@@ -445,6 +446,12 @@ export const api = {
   title: (id: number, region = "") => request<Title>(`/api/titles/${id}?region=${region}`),
   similar: (id: number, region = "") =>
     request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
+  addToWatchlist: (id: number) =>
+    request<{ in_watchlist: boolean }>(`/api/titles/${id}/watchlist`, { method: "POST" }),
+  removeFromWatchlist: (id: number) =>
+    request<{ in_watchlist: boolean; imported: boolean }>(`/api/titles/${id}/watchlist`, {
+      method: "DELETE",
+    }),
   seasons: (id: number) => request<SeasonProgress>(`/api/titles/${id}/seasons`),
   seasonEpisodes: (id: number, season: number) =>
     request<{ season_number: number; episodes: Episode[] }>(`/api/titles/${id}/seasons/${season}`),

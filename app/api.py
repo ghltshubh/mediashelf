@@ -458,6 +458,46 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     return data
 
 
+@router.post("/titles/{item_id}/watchlist")
+def add_to_watchlist(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Save a title yourself, without the companion tool.
+
+    Its own entry type, with no service attached: the importer's `replace` pass
+    is a full-state sync that deletes rows the source list no longer carries,
+    and it must never be able to remove something you added by hand.
+    """
+    from app.models import LibraryEntry, MediaItem
+
+    if db.get(MediaItem, item_id) is None:
+        raise HTTPException(404, "Title not found")
+    existing = db.scalar(select(LibraryEntry).where(
+        LibraryEntry.media_item_id == item_id,
+        LibraryEntry.entry_type == catalog.WATCHLIST_MANUAL))
+    if existing is None:
+        db.add(LibraryEntry(media_item_id=item_id,
+                            entry_type=catalog.WATCHLIST_MANUAL,
+                            external_id=f"manual:{item_id}", payload={}))
+        db.commit()
+    return {"in_watchlist": True}
+
+
+@router.delete("/titles/{item_id}/watchlist")
+def remove_from_watchlist(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Remove only your own row — an imported one belongs to the source list,
+    so it would come straight back on the next import anyway."""
+    from app.models import LibraryEntry
+
+    for row in db.scalars(select(LibraryEntry).where(
+            LibraryEntry.media_item_id == item_id,
+            LibraryEntry.entry_type == catalog.WATCHLIST_MANUAL)):
+        db.delete(row)
+    db.commit()
+    still = db.scalar(select(LibraryEntry.id).where(
+        LibraryEntry.media_item_id == item_id,
+        LibraryEntry.entry_type == "watchlist").limit(1))
+    return {"in_watchlist": bool(still), "imported": bool(still)}
+
+
 def _tv_or_404(db: Session, item_id: int):
     from app.models import MediaItem
 

@@ -85,6 +85,11 @@ WATCHLIST_SERVICES = {
 # in the long tail until then — "featured" means an action is available NOW.
 CONNECTOR_KEYS = {"spotify", "youtube", "youtube_music", "apple_music"}
 
+# Titles you added yourself, kept apart from imported "watchlist" rows on
+# purpose: the companion tool's import is a full-state sync that deletes
+# anything the source list no longer has, and it must never reach your own.
+WATCHLIST_MANUAL = "watchlist_manual"
+
 
 def service_integration(key: str, tier: int, capabilities: dict) -> tuple[bool, str, str]:
     """(featured, short-label, kind). kind ∈ connector | watchlist | basic —
@@ -524,13 +529,25 @@ def _service_rails(serialized: list[dict]) -> list[dict]:
 def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     """Rails built from imported lists (companion tool): unified Watchlist, then
     per-service Top 10 (rank-ordered) and Leaving-soon. `by_id` is the already
-    filtered/serialized pool so these respect region, media-type and filter."""
-    from app.models import LibraryEntry, Service
+    filtered/serialized pool so these respect region, media-type and filter.
 
+    A show you have started drops out of Watchlist: "want to watch" and "part
+    way through" are states of one list, not two lists, and showing the same
+    poster in both rails on one screen is just confusing. Top 10 and Leaving
+    soon keep it — those are facts about the service, not about your intent.
+    """
+    from app.models import LibraryEntry, Service
+    from app.services import progress
+
+    started = set(progress.tracked_shows(db))
+
+    # outerjoin, not join: entries you added yourself have no service — they
+    # came from you, not from a list on Netflix.
     rows = db.execute(
         select(LibraryEntry, Service.name, Service.key, Service.logo_url)
-        .join(Service, Service.id == LibraryEntry.service_id)
-        .where(LibraryEntry.entry_type.in_(["watchlist", "top10", "leaving_soon"]),
+        .outerjoin(Service, Service.id == LibraryEntry.service_id)
+        .where(LibraryEntry.entry_type.in_(
+                   ["watchlist", WATCHLIST_MANUAL, "top10", "leaving_soon"]),
                LibraryEntry.media_item_id.isnot(None))
     ).all()
 
@@ -546,12 +563,17 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
         item = by_id.get(entry.media_item_id)
         if item is None:
             continue
-        if entry.entry_type == "watchlist":
+        if entry.entry_type in ("watchlist", WATCHLIST_MANUAL):
+            if entry.media_item_id in started:
+                continue  # now in Continue watching — one list, one place
             wl = watchlist_map.get(item["id"])
             if wl is None:
                 watchlist_map[item["id"]] = {**item, "list_source": svc_name,
                                              "list_source_logo": svc_logo}
-            elif svc_name not in wl["list_source"]:
+            elif svc_name and not wl["list_source"]:
+                # Added by hand first, then found on a service list — name it.
+                wl["list_source"], wl["list_source_logo"] = svc_name, svc_logo
+            elif svc_name and svc_name not in wl["list_source"]:
                 wl["list_source"] += f", {svc_name}"
                 wl["list_source_logo"] = None  # multiple sources → name, not one logo
         elif entry.entry_type == "top10":
@@ -565,7 +587,9 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
 
     rails: list[dict] = []
     if watchlist_map:
-        rails.append({"key": "watchlist", "label": "Watchlist",
+        # "Want to watch" rather than "Watchlist": next to "Continue watching"
+        # the old name read as "things I'm watching", which is the opposite.
+        rails.append({"key": "watchlist", "label": "Want to watch",
                       "items": list(watchlist_map.values())})
     if popular:
         ranked = sorted(popular.values(), key=lambda a: (-len(a["services"]), a["best"]))
@@ -1185,4 +1209,12 @@ def build_title(db: Session, item_id: int, country: str,
     data["ratings"] = item.extra.get("ratings") or {}  # imdb/rt/metacritic (OMDb)
     data["keywords"] = item.extra.get("keywords") or []  # tags (M7)
     data["cast"] = item.extra.get("cast") or []
+    # Either kind of saved row lights the button — you don't care whether a
+    # title reached your list by import or by hand, only that it's on it.
+    from app.models import LibraryEntry
+
+    data["in_watchlist"] = bool(db.scalar(
+        select(LibraryEntry.id).where(
+            LibraryEntry.media_item_id == item.id,
+            LibraryEntry.entry_type.in_(["watchlist", WATCHLIST_MANUAL])).limit(1)))
     return data
