@@ -111,8 +111,13 @@ function StepTwo({ onDone }: { onDone: () => void }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
   });
 
+  // The first sync runs in the background during this step and discovers every
+  // provider TMDB tracks (auto_added, ~100+ with near-duplicate names). Keep
+  // onboarding to the curated roster so the grid doesn't mushroom mid-step the
+  // moment a tick refetches the list; the long tail lives in Settings → Services.
   const list = (services.data ?? []).filter(
-    (s) => (s.kind === "video" || s.kind === "music") && !s.is_channel,
+    (s) => (s.kind === "video" || s.kind === "music") && !s.is_channel
+      && (!s.auto_added || s.subscribed),
   );
 
   return (
@@ -120,7 +125,8 @@ function StepTwo({ onDone }: { onDone: () => void }) {
       <h1 className="font-display text-[1.6rem] font-bold">Your services</h1>
       <p className="mt-2 max-w-lg text-[0.95rem] text-muted">
         Tick what you subscribe to. No logins needed — this just tells the shelf what's yours.
-        Lit tiles are yours; dimmed ones aren't.
+        Lit tiles are yours; dimmed ones aren't. These are the big names; every service we track,
+        including niche and regional ones, is in Settings → Services after setup.
       </p>
 
       <div className="mt-6 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
