@@ -64,3 +64,39 @@ def test_validate_endpoint_surfaces_error_text(client):
     bad = client.post("/api/settings/tmdb/validate", json={"tmdb_api_key": "badkey"}).json()
     assert bad["ok"] is False
     assert "Invalid API key" in bad["error"]
+
+
+# ---------- launch sync is age-gated (desktop opens and closes all day) ----------
+
+def test_catalog_staleness_gate(client):
+    """The nightly cron only exists while the process does, so a launch sync
+    covers machines that were off — but it must not re-sync on every open."""
+    from datetime import UTC, datetime, timedelta
+
+    from app import settings_store
+    from app.db import session_factory
+    from app.main import LAUNCH_SYNC_AFTER_HOURS, _catalog_is_stale
+
+    with session_factory()() as db:
+        # Never synced → always sync.
+        settings_store.set_setting(db, "catalog_synced_at", None)
+        assert _catalog_is_stale(db) is True
+
+        # Just synced → don't.
+        settings_store.set_setting(db, "catalog_synced_at",
+                                   datetime.now(UTC).isoformat())
+        assert _catalog_is_stale(db) is False
+
+        # Past the window → sync.
+        old = datetime.now(UTC) - timedelta(hours=LAUNCH_SYNC_AFTER_HOURS + 1)
+        settings_store.set_setting(db, "catalog_synced_at", old.isoformat())
+        assert _catalog_is_stale(db) is True
+
+        # Unreadable stamp → stale, never silently never-sync.
+        settings_store.set_setting(db, "catalog_synced_at", "not-a-date")
+        assert _catalog_is_stale(db) is True
+
+        # Naive timestamps (older rows) must not raise.
+        naive = (datetime.now() - timedelta(hours=LAUNCH_SYNC_AFTER_HOURS + 1)).isoformat()
+        settings_store.set_setting(db, "catalog_synced_at", naive)
+        assert _catalog_is_stale(db) is True

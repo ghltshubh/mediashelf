@@ -3,6 +3,7 @@
 import logging
 import sys
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -17,6 +18,28 @@ from app.seed import merge_duplicate_services, seed_services
 from app.services import backups
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
+
+# The scheduler's nightly refresh only exists while the process does, so a
+# machine that was switched off never catches up — hence the launch sync. But
+# the desktop build opens and closes all day, and re-syncing thousands of
+# titles across every tracked region on each open is pure waste. Anything under
+# a day still means a once-daily user always opens to a fresh catalog.
+LAUNCH_SYNC_AFTER_HOURS = 20
+
+
+def _catalog_is_stale(db) -> bool:
+    """Whether the catalog is old enough to justify a sync at launch."""
+    stamp = settings_store.get_setting(db, "catalog_synced_at")
+    if not stamp:
+        return True  # never synced
+    try:
+        last = datetime.fromisoformat(stamp)
+    except ValueError:
+        return True  # unreadable stamp — treat as stale rather than never sync
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=UTC)
+    return datetime.now(UTC) - last >= timedelta(hours=LAUNCH_SYNC_AFTER_HOURS)
 
 
 def _web_dist() -> Path:
@@ -44,6 +67,7 @@ def create_app() -> FastAPI:
             if restore_notice:
                 settings_store.set_setting(db, "restore_notice", restore_notice)
             has_key = bool(settings_store.get_setting(db, "tmdb_api_key"))
+            stale = _catalog_is_stale(db)
         scheduler = AsyncIOScheduler()
         # Nightly DB backup at 03:45, availability refresh at 04:15 local,
         # library refresh every 12h (runs in the scheduler's thread pool).
@@ -65,7 +89,7 @@ def create_app() -> FastAPI:
         scheduler.add_job(resume_paused_migrations, CronTrigger(minute="*/30"))
         scheduler.start()
         await resume_paused_migrations()  # …and on launch
-        if has_key:
+        if has_key and stale:
             api.schedule_sync()
         yield
         scheduler.shutdown(wait=False)
