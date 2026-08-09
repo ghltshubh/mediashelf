@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ConnectionCard } from "../components/ConnectionCard";
 import { ServiceTile } from "../components/ServiceTile";
 import { api } from "../lib/api";
@@ -143,9 +143,18 @@ function StepTwo({ onDone }: { onDone: () => void }) {
   );
 }
 
+// Which ticked services each connector covers. YouTube's connector serves both
+// the video service and YouTube Music, so either tick counts.
+const CONNECTOR_SERVICES: Record<string, string[]> = {
+  spotify: ["spotify"],
+  youtube: ["youtube", "youtube_music"],
+  apple_music: ["apple_music"],
+};
+
 function StepThree({ onDone }: { onDone: () => void }) {
   const connections = useQuery({ queryKey: ["connections"], queryFn: api.connections });
   const queryClient = useQueryClient();
+  const services = useQuery({ queryKey: ["services"], queryFn: () => api.services() });
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const setYtdlp = useMutation({
     mutationFn: (enabled: boolean) => api.updateSettings({ ytdlp_enabled: enabled }),
@@ -154,32 +163,47 @@ function StepThree({ onDone }: { onDone: () => void }) {
   const s = settings.data;
   const [error, setError] = useState<string | null>(null);
 
+  // Only the ones you just ticked. Showing Apple Music to someone who doesn't
+  // have it is noise, and every card here needs API keys anyway — so the honest
+  // shape of this screen is "here's what's worth setting up, later".
+  const subscribed = new Set(
+    (services.data ?? []).filter((sv) => sv.subscribed).map((sv) => sv.key),
+  );
+  const mine = (connections.data ?? []).filter((c) =>
+    (CONNECTOR_SERVICES[c.provider] ?? []).some((k) => subscribed.has(k)),
+  );
+
   return (
     <div>
       <h1 className="font-display text-[1.6rem] font-bold">Connect accounts (optional)</h1>
-      <p className="mt-2 max-w-lg text-[0.95rem] text-muted">
-        Connecting adds in-app playback and library sync. Each service uses your own free
-        API keys — nothing is shared, nothing phones home.
-      </p>
-      {/* Otherwise a Netflix subscriber reads this list as "mine aren't supported
-          yet". They can't be: those services expose no API to connect to. */}
-      <p className="mt-2 max-w-lg text-[0.95rem] text-muted">
-        These three are the only ones there's anything to connect to — Netflix, Disney+ and the
-        rest have no API to sync a library or play from, so MediaShelf indexes them and links you
-        out. Ticking them in the last step is all they need.
-      </p>
+      {mine.length > 0 ? (
+        <p className="mt-2 max-w-lg text-[0.95rem] text-muted">
+          Of what you ticked, these can do more than link out — in-app playback and library sync,
+          using your own free API keys. Everything else (Netflix, Disney+ and the rest) has no API
+          to connect to, so ticking it was all it needed.
+        </p>
+      ) : (
+        <p className="mt-2 max-w-lg text-[0.95rem] text-muted">
+          Nothing you ticked has an account to connect. Netflix, Disney+ and the rest expose no
+          API, so MediaShelf indexes them and links you out — you're already done. Spotify,
+          YouTube and Apple Music can go further, and you can add them any time in Settings.
+        </p>
+      )}
       {error && <p className="mt-3 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
 
-      <div className="mt-6 max-w-xl space-y-3">
-        {(connections.data ?? []).map((c) => (
-          <ConnectionCard key={c.provider} conn={c} origin="onboarding" onError={setError} />
-        ))}
-      </div>
-      <p className="mt-3 max-w-xl font-mono text-[0.75rem] text-muted">
-        Each of these needs its own free API keys before it can connect, and getting them means a
-        trip to that provider's developer site — so this is usually a later job. Finish setup, and
-        add them from Settings → Keys whenever you feel like it.
-      </p>
+      {mine.length > 0 && (
+        <>
+          <div className="mt-6 max-w-xl space-y-3">
+            {mine.map((c) => (
+              <ConnectionCard key={c.provider} conn={c} origin="onboarding" onError={setError} />
+            ))}
+          </div>
+          <p className="mt-3 max-w-xl font-mono text-[0.75rem] text-muted">
+            Each needs its own free API keys first, and getting them means a trip to that
+            provider's developer site — so this is usually a later job.
+          </p>
+        </>
+      )}
 
       {/* yt-dlp suggestion — honest one-paragraph explanation (M6), off by default. */}
       <div className="mt-6 max-w-xl rounded-[10px] border border-line bg-bg1 p-4">
@@ -211,20 +235,25 @@ function StepThree({ onDone }: { onDone: () => void }) {
         )}
       </div>
 
-      {/* "Do this later" is a first-class button, not a text link (Part 2 §4.1). */}
-      <div className="mt-8 flex items-center gap-4">
+      {/* "Do this later" is a first-class button, not a text link (Part 2 §4.1) —
+          and when there's something to set up it goes somewhere different from
+          "done", so the two are no longer the same button twice. */}
+      <div className="mt-8 flex flex-wrap items-center gap-4">
         <button
           onClick={onDone}
           className="rounded-[6px] bg-owned px-5 py-2 font-medium text-bg0"
         >
           Done — open the shelf
         </button>
-        <button
-          onClick={onDone}
-          className="rounded-[6px] border border-line px-5 py-2 font-medium text-ink hover:bg-bg2"
-        >
-          Do this later
-        </button>
+        {mine.length > 0 && (
+          <Link
+            to="/settings#keys"
+            onClick={onDone}
+            className="hoverable rounded-[6px] border border-line px-5 py-2 font-medium text-ink hover:bg-bg2"
+          >
+            Set these up now →
+          </Link>
+        )}
       </div>
     </div>
   );

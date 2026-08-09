@@ -6,6 +6,10 @@
   straight to the form that unblocks it. Onboarding's account step previously offered buttons
   that couldn't be pressed and a note pointing at the wrong settings section — and naming the
   wrong services, since Spotify needs app keys exactly like YouTube and Apple Music do.
+- **Onboarding's account step now shows only the services you just ticked**, and says why the
+  rest aren't there — Netflix, Disney+ and the like expose no API, so ticking them was the whole
+  setup. Tick nothing connectable and the step says you're already done instead of listing three
+  services you don't have.
 - Deep links into a settings section (`/settings#keys`) now scroll there.
 
 ## v0.1.2 — 2026-08-09
