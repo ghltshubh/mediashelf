@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.4 — 2026-08-09
 
 - **Docker builds no longer reinstall every dependency on each release.** The source was copied
   before `pip install`, so any code change invalidated the dependency layer — and for `arm64`,
@@ -9,6 +9,10 @@
   to about 4 seconds on real hardware.
 - The build context dropped from ~1 GB to ~300 KB: the Tauri desktop build's Rust output (2.6 GB
   locally) and `.git` were never excluded.
+- **Each architecture now builds on its own runner** rather than emulating arm64 through QEMU,
+  which had hung a release for five hours. Release builds went from ~5 minutes (at best) to ~2.
+- v0.1.3 was tagged but never produced an image — its build was the one that hung. Everything in
+  it ships here.
 
 - The watchlist importer's address is a setting instead of a hardcoded
   `http://127.0.0.1:8765`, and with none set the links disappear rather than pointing at a tool
