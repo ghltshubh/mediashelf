@@ -21,7 +21,7 @@ from app.providers import spotify as spotify_api
 from app.providers import ytdlp_meta
 from app.providers.tmdb import TMDBClient, TMDBError
 from app.secrets import mask
-from app.services import backups, catalog
+from app.services import backups, catalog, progress
 from app.services import library as library_service
 from app.services import migrate as migrate_service
 from app.services import playback as playback_service
@@ -456,6 +456,70 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     data["world"] = await catalog.world_availability(
         api_key, data["media_type"], data["tmdb_id"], exclude=tracked)
     return data
+
+
+def _tv_or_404(db: Session, item_id: int):
+    from app.models import MediaItem
+
+    item = db.get(MediaItem, item_id)
+    if item is None:
+        raise HTTPException(404, "Title not found")
+    if item.media_type != "tv":
+        raise HTTPException(400, "Episode tracking applies to shows, not movies")
+    return item
+
+
+@router.get("/titles/{item_id}/seasons")
+async def title_seasons(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Season list with per-season watched counts and the next unwatched episode.
+    Separate from GET /titles/{id} so the title page isn't held up by it."""
+    _tv_or_404(db, item_id)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    await catalog.ensure_seasons(db, item_id, api_key)
+    return progress.state_of(_tv_or_404(db, item_id), progress.watched(db, item_id))
+
+
+@router.get("/titles/{item_id}/seasons/{season_number}")
+async def title_season_episodes(item_id: int, season_number: int,
+                                db: Session = Depends(get_session)) -> dict:
+    """Episodes of one season, each flagged with its watched state."""
+    item = _tv_or_404(db, item_id)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    episodes = await catalog.season_episodes(api_key, item.tmdb_id, season_number)
+    seen = progress.watched(db, item_id)
+    return {"season_number": season_number,
+            "episodes": [{**e, "watched": (season_number, e["episode_number"]) in seen}
+                         for e in episodes]}
+
+
+class WatchedBody(BaseModel):
+    season: int
+    episodes: list[int]              # one, or a whole season in a single call
+    watched: bool = True
+
+
+@router.post("/titles/{item_id}/watched")
+async def set_watched(item_id: int, body: WatchedBody,
+                      db: Session = Depends(get_session)) -> dict:
+    """Mark/unmark episodes. Manual only — nothing reports playback back to us
+    (see services/progress.py); Plex and Trakt would write here too."""
+    _tv_or_404(db, item_id)
+    if not body.episodes:
+        raise HTTPException(422, "No episodes given")
+    progress.mark(db, item_id, body.season, body.episodes, body.watched)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    await catalog.ensure_seasons(db, item_id, api_key)
+    return progress.state_of(_tv_or_404(db, item_id), progress.watched(db, item_id))
+
+
+@router.delete("/titles/{item_id}/watched")
+async def clear_watched(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Forget all progress for a show — the undo for a mis-tapped 'whole season'."""
+    _tv_or_404(db, item_id)
+    removed = progress.clear(db, item_id)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    await catalog.ensure_seasons(db, item_id, api_key)
+    return {**progress.state_of(_tv_or_404(db, item_id), set()), "removed": removed}
 
 
 @router.get("/lucky")

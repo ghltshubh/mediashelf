@@ -205,6 +205,12 @@ export interface ShelfItem {
   // Studio-inferred likely home for an upcoming, not-yet-streaming title. A
   // prediction, not confirmed availability — shown dimmed as "expected on X".
   expected_service?: { service_key: string; service_name: string; logo: string | null } | null;
+  // Continue-watching rail only: enough progress to mark the next episode from
+  // the shelf, without opening the show.
+  next_up?: { season: number; episode: number } | null;
+  unwatched_aired?: number;
+  watched_episodes?: number;
+  total_episodes?: number;
 }
 
 export interface Shelf {
@@ -322,6 +328,44 @@ export interface Title extends ShelfItem {
   cast: { id: number | null; name: string; character: string | null; profile: string | null }[];
 }
 
+// Episode progress. Marking is manual — MediaShelf deep-links out for TV and
+// never sees playback, so nothing can report an episode finished on its own.
+export interface SeasonSummary {
+  season_number: number;
+  name: string | null;
+  episode_count: number;
+  air_date: string | null;
+  watched_count: number;
+}
+
+// The four states JustWatch sorts a tracked show into. "caught_up" is the one
+// that needs saying out loud: you've seen everything that exists, but the show
+// is still running — which is not the same as having finished it.
+export type ShowState = "not_started" | "watching" | "caught_up" | "seen";
+
+export interface SeasonProgress {
+  seasons: SeasonSummary[];
+  total_episodes: number;
+  watched_episodes: number;
+  aired_episodes: number;
+  unwatched_aired: number;
+  next_up: { season: number; episode: number } | null;
+  complete: boolean;
+  state: ShowState;
+  show_status: string | null;
+  next_air_date: string | null;
+}
+
+export interface Episode {
+  episode_number: number;
+  name: string | null;
+  air_date: string | null;
+  runtime_minutes: number | null;
+  overview: string | null;
+  still: string | null;
+  watched: boolean;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     headers: { "Content-Type": "application/json" },
@@ -401,6 +445,16 @@ export const api = {
   title: (id: number, region = "") => request<Title>(`/api/titles/${id}?region=${region}`),
   similar: (id: number, region = "") =>
     request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
+  seasons: (id: number) => request<SeasonProgress>(`/api/titles/${id}/seasons`),
+  seasonEpisodes: (id: number, season: number) =>
+    request<{ season_number: number; episodes: Episode[] }>(`/api/titles/${id}/seasons/${season}`),
+  setWatched: (id: number, season: number, episodes: number[], watched: boolean) =>
+    request<SeasonProgress>(`/api/titles/${id}/watched`, {
+      method: "POST",
+      body: JSON.stringify({ season, episodes, watched }),
+    }),
+  clearWatched: (id: number) =>
+    request<SeasonProgress>(`/api/titles/${id}/watched`, { method: "DELETE" }),
   because: () => request<{ seed: string | null; items: VideoResult[] }>("/api/home/because"),
   lucky: (genre = "", maxMinutes: number | null = null, type = "", scope = "mine") =>
     request<{ found: boolean; item?: ShelfItem & { runtime_minutes: number | null; play: Playback } }>(

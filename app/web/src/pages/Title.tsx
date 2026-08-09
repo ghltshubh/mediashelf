@@ -6,6 +6,7 @@ import { DiscoveryCard } from "../components/DiscoveryCard";
 import { EmptyState } from "../components/EmptyState";
 import { PlayButton } from "../components/PlayButton";
 import { countryName, RegionSwitcher } from "../components/RegionSwitcher";
+import { SeasonTracker } from "../components/SeasonTracker";
 import { api } from "../lib/api";
 import { usePlayer } from "../stores/player";
 
@@ -185,6 +186,9 @@ export function TitlePage() {
               </div>
             </section>
           )}
+
+          {/* Shows only: manual episode progress (no playback signal exists). */}
+          {t.media_type === "tv" && <SeasonTracker itemId={t.id} />}
 
           {/* Availability block — the product's money shot (Part 2 §4.4). */}
           <div className="mt-8 max-w-2xl space-y-6">

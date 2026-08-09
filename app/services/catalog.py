@@ -579,6 +579,48 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     return rails
 
 
+def _continue_watching_rail(db: Session, by_id: dict[int, dict]) -> list[dict]:
+    """"Continue watching" — shows started and not finished, most recent first.
+
+    This is the half of issue #2 that tick-boxes alone don't deliver: JustWatch
+    sorts tracked shows into Continue Watching / Caught Up / Seen, and it's the
+    shelf rail, not the title page, that answers "what do I put on tonight".
+
+    Only shows with cached season data can be placed, which is exactly the set
+    that has ever been marked — you cannot mark an episode without opening the
+    show, and opening it caches the seasons.
+    """
+    from app.services import progress
+
+    tracked = progress.tracked_shows(db)
+    if not tracked:
+        return []
+    recency = progress.last_marked_at(db)
+    entries = []
+    for item_id, seen in tracked.items():
+        card = by_id.get(item_id)
+        if card is None:
+            continue  # filtered out by region/ownership/media-type — respect that
+        item = db.get(MediaItem, item_id)
+        if item is None or item.media_type != "tv":
+            continue
+        state = progress.state_of(item, seen)
+        if state["state"] != progress.WATCHING:
+            continue
+        entries.append((recency.get(item_id), {
+            **card,
+            "next_up": state["next_up"],
+            "unwatched_aired": state["unwatched_aired"],
+            "watched_episodes": state["watched_episodes"],
+            "total_episodes": state["total_episodes"],
+        }))
+    if not entries:
+        return []
+    entries.sort(key=lambda pair: (pair[0] is None, pair[0]), reverse=True)
+    return [{"key": "continue_watching", "label": "Continue watching",
+             "items": [card for _, card in entries]}]
+
+
 def _apply_filter(serialized: list[dict], flt: str) -> list[dict]:
     """Ownership filter, applied BEFORE rails are capped — so 'On my services'
     means every owned title, not owned ∩ top-40-by-popularity."""
@@ -651,7 +693,10 @@ def build_shelf(db: Session, country: str, view: str = "categories",
     # discovery rail, so under "Not on my services" it shows the FULL aggregated
     # trending list (Watchlist/Leaving stay hidden there — they're personal).
     if flt in ("all", "mine"):
-        list_rails = _imported_list_rails(db, {s["id"]: s for s in _apply_filter(serialized, flt)})
+        pool = {s["id"]: s for s in _apply_filter(serialized, flt)}
+        # Continue watching leads the personal rails: a half-finished show is a
+        # more specific answer to "what now" than a watchlist entry.
+        list_rails = _continue_watching_rail(db, pool) + _imported_list_rails(db, pool)
     elif flt == "elsewhere":
         list_rails = [r for r in _imported_list_rails(db, {s["id"]: s for s in serialized})
                       if r["key"] == "popular"]
@@ -906,6 +951,67 @@ async def ensure_details(db: Session, item_id: int, api_key: str | None) -> None
     item.extra = {**item.extra, "details_checked": True, "details_v": 2,
                   "keywords": keywords, "cast": cast}
     db.commit()
+
+
+async def ensure_seasons(db: Session, item_id: int, api_key: str | None) -> list[dict]:
+    """Lazily cache a show's season list in ``extra`` (same pattern as keywords
+    and cast). The list is small and near-static; episode lists are fetched per
+    season on demand instead, so opening one show never pulls ten seasons.
+
+    Season 0 is dropped — TMDB files specials there, and they are not part of a
+    linear watch, so counting them would make every show unfinishable.
+    """
+    item = db.get(MediaItem, item_id)
+    if item is None or item.media_type != "tv":
+        return []
+    # v2 added the airing metadata below; v1 caches re-fetch once to gain it.
+    if item.extra.get("seasons_v") == 2:
+        return item.extra.get("seasons") or []
+    if not api_key or item.tmdb_id is None:
+        return []
+    try:
+        detail = await TMDBClient(api_key).detail("tv", item.tmdb_id)
+    except Exception as exc:
+        logger.debug("season list fetch failed for %s: %s", item_id, exc)
+        return []  # transient — don't cache, retry next view
+    seasons = [{"season_number": s["season_number"], "name": s.get("name"),
+                "episode_count": s.get("episode_count") or 0,
+                "air_date": s.get("air_date") or None}
+               for s in detail.get("seasons") or []
+               if s.get("season_number")]
+    # `last_episode_to_air` is what separates "caught up" from "behind": it says
+    # how much of the show actually exists yet. It rides along on this same
+    # detail call, so show state costs no extra requests.
+    last = detail.get("last_episode_to_air") or None
+    nxt = detail.get("next_episode_to_air") or None
+    item.extra = {
+        **item.extra, "seasons": seasons, "seasons_v": 2,
+        "show_status": detail.get("status") or None,
+        "last_aired": ({"season": last["season_number"], "episode": last["episode_number"]}
+                       if last and last.get("season_number") else None),
+        "next_air_date": (nxt or {}).get("air_date") or None,
+    }
+    db.commit()
+    return seasons
+
+
+async def season_episodes(api_key: str | None, tmdb_id: int, season_number: int) -> list[dict]:
+    """Episode list for one season, straight from TMDB (its own 6-hour cache
+    absorbs repeat views). Not persisted: it is display data, and caching it in
+    SQLite would just be a staler copy of what the client already holds."""
+    if not api_key:
+        return []
+    try:
+        data = await TMDBClient(api_key).season(tmdb_id, season_number)
+    except Exception as exc:
+        logger.debug("season %s fetch failed for tv/%s: %s", season_number, tmdb_id, exc)
+        return []
+    return [{"episode_number": e["episode_number"], "name": e.get("name"),
+             "air_date": e.get("air_date") or None,
+             "runtime_minutes": e.get("runtime") or None,
+             "overview": e.get("overview") or None,
+             "still": poster_url(e.get("still_path"), "w185") if e.get("still_path") else None}
+            for e in data.get("episodes") or [] if e.get("episode_number") is not None]
 
 
 async def ensure_runtime(db: Session, item: MediaItem, api_key: str | None) -> None:

@@ -149,6 +149,11 @@ class TMDBClient:
         data = await self._get(f"/{media_type}/{tmdb_id}/watch/providers")
         return data.get("results", {})
 
+    async def season(self, tv_id: int, season_number: int) -> dict:
+        """One season and its episode list (episode tracking). The shared 6-hour
+        GET cache keeps re-opening the same season off the network."""
+        return await self._get(f"/tv/{tv_id}/season/{season_number}")
+
 
 def poster_url(path: str | None, size: str = "w342") -> str | None:
     return f"{IMAGE_BASE}/{size}{path}" if path else None
