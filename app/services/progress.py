@@ -96,7 +96,7 @@ def tracked_shows(db: Session) -> dict[int, set[tuple[int, int]]]:
     out: dict[int, set[tuple[int, int]]] = {}
     for row in rows:
         season, episode = row.payload.get("season"), row.payload.get("episode")
-        if season is None or episode is None:
+        if season is None or episode is None or row.media_item_id is None:
             continue
         out.setdefault(row.media_item_id, set()).add((int(season), int(episode)))
     return out
@@ -111,6 +111,8 @@ def last_marked_at(db: Session) -> dict[int, object]:
                       .order_by(LibraryEntry.created_at))
     out: dict[int, object] = {}
     for row in rows:
+        if row.media_item_id is None:
+            continue
         out[row.media_item_id] = row.created_at  # ascending → last write wins
     return out
 

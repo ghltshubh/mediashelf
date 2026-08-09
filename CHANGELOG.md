@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Episode tracking for shows.** Season and episode lists on a title page; tick episodes or a
+  whole season. A **Continue watching** rail leads the shelf with a one-tap mark for the next
+  episode. Shows sort into not started / watching / caught up / seen — "caught up" being distinct
+  from finished, so a running show you are up to date on steps aside until a new episode airs.
+  Marking is manual: MediaShelf links out to the service and never sees playback, so nothing can
+  report an episode finished on its own. A Plex/Jellyfin or Trakt connector would write into the
+  same store.
+- **"Want to watch"** replaces the *Watchlist* rail label, and titles can now be saved from any
+  title page instead of only arriving via the companion tool's import. Your own saved rows are
+  kept apart from imported ones, so an import's full-state sync never deletes them. A show you
+  have started leaves the saved rail and appears only under Continue watching.
+- Catalog sync at launch now only runs when the catalog is actually stale (20-hour window),
+  instead of on every start.
+- Attribute **JustWatch** as the source of streaming availability, per TMDB's terms.
+
 ## v0.1.0 — 2026-07-22
 
 First versioned release: the complete P1 (self-hosted web + Docker) product.

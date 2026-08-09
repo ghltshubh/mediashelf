@@ -717,10 +717,10 @@ def build_shelf(db: Session, country: str, view: str = "categories",
     # discovery rail, so under "Not on my services" it shows the FULL aggregated
     # trending list (Watchlist/Leaving stay hidden there — they're personal).
     if flt in ("all", "mine"):
-        pool = {s["id"]: s for s in _apply_filter(serialized, flt)}
+        by_id = {s["id"]: s for s in _apply_filter(serialized, flt)}
         # Continue watching leads the personal rails: a half-finished show is a
-        # more specific answer to "what now" than a watchlist entry.
-        list_rails = _continue_watching_rail(db, pool) + _imported_list_rails(db, pool)
+        # more specific answer to "what now" than a saved title.
+        list_rails = _continue_watching_rail(db, by_id) + _imported_list_rails(db, by_id)
     elif flt == "elsewhere":
         list_rails = [r for r in _imported_list_rails(db, {s["id"]: s for s in serialized})
                       if r["key"] == "popular"]
