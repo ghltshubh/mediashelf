@@ -128,6 +128,15 @@ def fake_tmdb(monkeypatch):
                 "last_episode_to_air": {"season_number": 2, "episode_number": 1},
                 "next_episode_to_air": {"air_date": "2026-09-01"}}
 
+    async def season_watch_providers(self, tv_id, season_number):
+        # A real split: S1 on Netflix, S2 moved to Disney+. This is the whole
+        # reason the per-season block exists.
+        if season_number == 1:
+            return {"US": {"flatrate": [{"provider_id": 8, "provider_name": "Netflix"}]}}
+        if season_number == 2:
+            return {"US": {"flatrate": [{"provider_id": 337, "provider_name": "Disney Plus"}]}}
+        return {}
+
     async def season(self, tv_id, season_number):
         count = next((s["episode_count"] for s in SEASONS
                       if s["season_number"] == season_number), 0)
@@ -146,6 +155,7 @@ def fake_tmdb(monkeypatch):
     monkeypatch.setattr(tmdb_mod.TMDBClient, "recommendations", recommendations)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "person", person)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "season", season)
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "season_watch_providers", season_watch_providers)
 
 
 @pytest.fixture

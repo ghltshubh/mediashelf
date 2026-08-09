@@ -6,6 +6,7 @@ import { DiscoveryCard } from "../components/DiscoveryCard";
 import { EmptyState } from "../components/EmptyState";
 import { PlayButton } from "../components/PlayButton";
 import { countryName, RegionSwitcher } from "../components/RegionSwitcher";
+import { SeasonAvailabilityBlock } from "../components/SeasonAvailabilityBlock";
 import { SeasonTracker } from "../components/SeasonTracker";
 import { api } from "../lib/api";
 import { usePlayer } from "../stores/player";
@@ -252,6 +253,9 @@ export function TitlePage() {
               )}
             </div>
             )}
+
+            {/* Only renders when the seasons actually differ from each other. */}
+            {t.media_type === "tv" && <SeasonAvailabilityBlock itemId={t.id} region={region} />}
 
             {t.badges.length > 0 && (
             <div>

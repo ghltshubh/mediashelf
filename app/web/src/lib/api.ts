@@ -357,6 +357,24 @@ export interface SeasonProgress {
   next_air_date: string | null;
 }
 
+// Seasons of one show can sit on different services. `split` is false when they
+// don't differ — the title-level availability block already answers that, so the
+// client shows nothing rather than repeating it.
+export interface SeasonOffer {
+  service_key: string;
+  service_name: string;
+  logo: string | null;
+  offer_type: string;
+  owned: boolean;
+}
+
+export interface SeasonAvailability {
+  country: string;
+  groups: { from: number; to: number; offers: SeasonOffer[] }[];
+  split: boolean;
+  any_data: boolean;
+}
+
 export interface Episode {
   episode_number: number;
   name: string | null;
@@ -453,6 +471,8 @@ export const api = {
       method: "DELETE",
     }),
   seasons: (id: number) => request<SeasonProgress>(`/api/titles/${id}/seasons`),
+  seasonAvailability: (id: number, region = "") =>
+    request<SeasonAvailability>(`/api/titles/${id}/seasons/availability?region=${region}`),
   seasonEpisodes: (id: number, season: number) =>
     request<{ season_number: number; episodes: Episode[] }>(`/api/titles/${id}/seasons/${season}`),
   setWatched: (id: number, season: number, episodes: number[], watched: boolean) =>

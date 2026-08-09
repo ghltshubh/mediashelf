@@ -373,3 +373,75 @@ def test_importer_full_sync_cannot_delete_your_own_entries(client):
                           "list_type": "watchlist"})
     assert r.status_code == 200
     assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is True
+
+
+# ---------- per-season availability (issue #2's actual ask) ----------
+
+def test_season_availability_reports_the_split(client):
+    run_sync_now()
+    _set_key()
+    data = client.get(f"/api/titles/{_tv_id(client)}/seasons/availability").json()
+    assert data["split"] is True
+    assert data["any_data"] is True
+    groups = data["groups"]
+    assert [(g["from"], g["to"]) for g in groups] == [(1, 1), (2, 2)]
+    assert [o["service_name"] for o in groups[0]["offers"]] == ["Netflix"]
+    # TMDB says "Disney Plus"; it folds onto the seeded service, as elsewhere.
+    assert [o["service_name"] for o in groups[1]["offers"]] == ["Disney+"]
+
+
+def test_consecutive_identical_seasons_fold_into_one_row():
+    """Four rows saying Prime Video is noise; "Seasons 1–4" is the point."""
+    from app.services.catalog import group_seasons_by_offers
+
+    prime = [{"service_key": "prime_video", "service_name": "Prime Video"}]
+    netflix = [{"service_key": "netflix", "service_name": "Netflix"}]
+    groups = group_seasons_by_offers([
+        {"season_number": 1, "offers": prime},
+        {"season_number": 2, "offers": prime},
+        {"season_number": 3, "offers": prime},
+        {"season_number": 4, "offers": prime},
+        {"season_number": 5, "offers": netflix},
+    ])
+    assert [(g["from"], g["to"]) for g in groups] == [(1, 4), (5, 5)]
+
+
+def test_non_consecutive_seasons_do_not_fold():
+    """S1 and S3 on Prime with S2 elsewhere must not become "seasons 1-3"."""
+    from app.services.catalog import group_seasons_by_offers
+
+    prime = [{"service_key": "prime_video", "service_name": "Prime Video"}]
+    netflix = [{"service_key": "netflix", "service_name": "Netflix"}]
+    groups = group_seasons_by_offers([
+        {"season_number": 1, "offers": prime},
+        {"season_number": 2, "offers": netflix},
+        {"season_number": 3, "offers": prime},
+    ])
+    assert [(g["from"], g["to"]) for g in groups] == [(1, 1), (2, 2), (3, 3)]
+
+
+def test_movies_have_no_season_availability(client):
+    run_sync_now()
+    _set_key()
+    assert client.get(
+        f"/api/titles/{_movie_id(client)}/seasons/availability").status_code == 400
+
+
+def test_purchase_only_differences_are_not_a_split(client, monkeypatch):
+    """Every season streams on Netflix; only buy options differ. That is not a
+    split, and showing the block would just repeat the title-level rows."""
+    from app.providers import tmdb as tmdb_mod
+
+    async def providers(self, tv_id, season_number):
+        base = {"flatrate": [{"provider_id": 8, "provider_name": "Netflix"}]}
+        if season_number == 2:
+            base = {**base, "buy": [{"provider_id": 2, "provider_name": "Apple TV"}]}
+        return {"US": base}
+
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "season_watch_providers", providers)
+    run_sync_now()
+    _set_key()
+    data = client.get(f"/api/titles/{_tv_id(client)}/seasons/availability").json()
+    assert data["any_data"] is True
+    assert data["split"] is False
+    assert [(g["from"], g["to"]) for g in data["groups"]] == [(1, 2)]

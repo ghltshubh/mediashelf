@@ -519,6 +519,29 @@ async def title_seasons(item_id: int, db: Session = Depends(get_session)) -> dic
     return progress.state_of(_tv_or_404(db, item_id), progress.watched(db, item_id))
 
 
+@router.get("/titles/{item_id}/seasons/availability")
+async def title_season_availability(item_id: int, region: str = "",
+                                    db: Session = Depends(get_session)) -> dict:
+    """Per-season streaming availability, folded into runs.
+
+    Its own endpoint rather than part of the season list: it costs one TMDB
+    request per season, and the episode tracker should not wait on it.
+
+    `split` says whether the seasons actually differ. When they don't, the
+    title-level availability block already answers the question and the client
+    shows nothing — this block exists only for shows that are split.
+    """
+    _tv_or_404(db, item_id)
+    country, _ = _region_or_home(db, region)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    seasons = await catalog.season_availability(db, item_id, api_key, country)
+    groups = catalog.group_seasons_by_offers(seasons)
+    covered = [g for g in groups if g["offers"]]
+    return {"country": country, "groups": groups,
+            "split": len(covered) > 1,
+            "any_data": bool(covered)}
+
+
 @router.get("/titles/{item_id}/seasons/{season_number}")
 async def title_season_episodes(item_id: int, season_number: int,
                                 db: Session = Depends(get_session)) -> dict:

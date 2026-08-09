@@ -1038,6 +1038,91 @@ async def season_episodes(api_key: str | None, tmdb_id: int, season_number: int)
             for e in data.get("episodes") or [] if e.get("episode_number") is not None]
 
 
+async def season_availability(db: Session, item_id: int, api_key: str | None,
+                              country: str) -> list[dict]:
+    """Where each season streams, for shows whose seasons are split across
+    services — "seasons 1–4 on Prime, season 5 on Netflix", which the
+    title-level endpoint cannot express because it answers for the whole show.
+
+    A season counts as available as soon as a provider carries it; whether all
+    its episodes have aired is a separate question and deliberately not asked
+    (issue #2 — a mid-release season is still watchable).
+
+    Not persisted: this is display data, the TMDB client already caches GETs for
+    six hours, and storing it per country would duplicate the availability table
+    in a JSON blob for no gain.
+    """
+    item = db.get(MediaItem, item_id)
+    if item is None or item.media_type != "tv" or not api_key or item.tmdb_id is None:
+        return []
+    seasons = await ensure_seasons(db, item_id, api_key)
+    if not seasons:
+        return []
+    client = TMDBClient(api_key)
+    sem = asyncio.Semaphore(_PROVIDER_CONCURRENCY)
+    tmdb_id = item.tmdb_id  # narrowed above; bind so the closure keeps the type
+
+    async def fetch(season: dict) -> tuple[int, dict]:
+        async with sem:
+            try:
+                regions = await client.season_watch_providers(
+                    tmdb_id, season["season_number"])
+            except Exception as exc:  # one bad season must not blank the rest
+                logger.debug("season providers failed for %s s%s: %s",
+                             item_id, season["season_number"], exc)
+                return season["season_number"], {}
+            return season["season_number"], regions.get(country) or {}
+
+    results = await asyncio.gather(*(fetch(s) for s in seasons))
+
+    by_tmdb_id = {s.tmdb_provider_id: s for s in db.scalars(select(Service))
+                  if s.tmdb_provider_id}
+    by_key = {s.key: s for s in db.scalars(select(Service))}
+    subscribed = subscribed_service_ids(db)
+    out = []
+    for season_number, offers in results:
+        rows = []
+        seen_keys = set()
+        # Streaming only — deliberately not rent/buy. Purchase options routinely
+        # differ season to season while every season streams in the same place
+        # (Black Mirror: all seven on Netflix, some also buyable), and treating
+        # that as a "split" would show this block on shows that aren't split at
+        # all. The title-level block already lists rent and buy for the show.
+        for offer_type in ("flatrate", "free", "ads"):
+            for provider in offers.get(offer_type) or []:
+                svc = _resolve_service(db, provider, by_tmdb_id, by_key)
+                if svc.key in seen_keys:
+                    continue  # same service listed under two offer types
+                seen_keys.add(svc.key)
+                rows.append({"service_key": svc.key, "service_name": svc.name,
+                             "logo": svc.logo_url, "offer_type": offer_type,
+                             "owned": svc.id in subscribed
+                                      and offer_type in ("flatrate", "free", "ads")})
+        out.append({"season_number": season_number, "offers": rows})
+    db.commit()  # _resolve_service may have auto-added services
+    return out
+
+
+def group_seasons_by_offers(seasons: list[dict]) -> list[dict]:
+    """Fold runs of consecutive seasons that stream in the same places.
+
+    "Seasons 1–4 · Prime Video" beats four identical rows, and the split is the
+    only reason this block exists.
+    """
+    groups: list[dict] = []
+    for season in seasons:
+        signature = sorted(o["service_key"] for o in season["offers"])
+        if groups and groups[-1]["_sig"] == signature \
+                and groups[-1]["to"] == season["season_number"] - 1:
+            groups[-1]["to"] = season["season_number"]
+            continue
+        groups.append({"_sig": signature, "from": season["season_number"],
+                       "to": season["season_number"], "offers": season["offers"]})
+    for g in groups:
+        g.pop("_sig")
+    return groups
+
+
 async def ensure_runtime(db: Session, item: MediaItem, api_key: str | None) -> None:
     """Lazily fetch a title's runtime (bulk sync never does — TMDB list endpoints
     don't carry it). Cached on the row forever after; used by the lucky dice's
