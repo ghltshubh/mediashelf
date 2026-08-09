@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The watchlist importer's address is a setting instead of a hardcoded
+  `http://127.0.0.1:8765`, and with none set the links disappear rather than pointing at a tool
+  that isn't there. It runs on the computer you browse from — it needs your signed-in streaming
+  sessions — which the copy now says, since on a server install the old link looked broken.
+
 ## v0.1.3 — 2026-08-09
 
 - **A service with no keys yet shows "Add keys →" instead of a dead Connect button**, linking

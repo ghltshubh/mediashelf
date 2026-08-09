@@ -98,3 +98,14 @@ def test_leaving_soon_surfaces_on_the_title(client):
 
     data = client.get(f"/api/titles/{item_id}").json()
     assert data["leaving_soon"] == {"service_name": "Netflix", "note": "leaves Aug 31"}
+
+
+def test_importer_url_defaults_empty_and_validates(client):
+    """The companion tool runs on the machine you browse from, not the server,
+    so its address can't be assumed — and an unset one shows no link at all."""
+    assert client.get("/api/settings").json()["importer_url"] == ""
+    assert client.put("/api/settings",
+                      json={"importer_url": "127.0.0.1:8765"}).status_code == 422
+    r = client.put("/api/settings", json={"importer_url": "http://127.0.0.1:8765/"})
+    assert r.json()["importer_url"] == "http://127.0.0.1:8765"
+    assert client.put("/api/settings", json={"importer_url": ""}).json()["importer_url"] == ""

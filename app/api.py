@@ -63,6 +63,9 @@ class SettingsUpdate(BaseModel):
     # Base URL of the user's own Overseerr/Jellyseerr. Not a secret (a LAN
     # address), so it is stored in the clear like the other plain settings.
     overseerr_url: str | None = None
+    # Where the watchlist companion tool is listening. Runs on the machine you
+    # browse from, not the server — it needs your logged-in streaming sessions.
+    importer_url: str | None = None
     # Display locale (BCP-47, e.g. "fr-FR") for date/number formatting.
     # INDEPENDENT of `country`: language/formatting is presentation, region is
     # content availability. Empty string clears it → follow the browser.
@@ -97,6 +100,7 @@ def _settings_payload(db: Session) -> dict:
         "ytdlp_detected": ytdlp_meta.detected(),
         "ytdlp_enabled": settings_store.get_setting(db, "ytdlp_enabled") == "true",
         "overseerr_url": settings_store.get_setting(db, "overseerr_url") or "",
+        "importer_url": settings_store.get_setting(db, "importer_url") or "",
     }
 
 
@@ -142,6 +146,11 @@ async def update_settings(body: SettingsUpdate, db: Session = Depends(get_sessio
         if url and not url.startswith(("http://", "https://")):
             raise HTTPException(422, "Overseerr URL must start with http:// or https://")
         settings_store.set_setting(db, "overseerr_url", url or None)
+    if body.importer_url is not None:
+        url = body.importer_url.strip().rstrip("/")
+        if url and not url.startswith(("http://", "https://")):
+            raise HTTPException(422, "Importer URL must start with http:// or https://")
+        settings_store.set_setting(db, "importer_url", url or None)
     if body.ytdlp_enabled is not None:
         settings_store.set_setting(db, "ytdlp_enabled", "true" if body.ytdlp_enabled else "false")
     if body.dismiss_restore_notice:

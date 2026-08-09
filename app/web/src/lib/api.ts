@@ -25,6 +25,7 @@ export interface Settings {
   ytdlp_detected: boolean;
   ytdlp_enabled: boolean;
   overseerr_url: string;
+  importer_url: string;
   // Display locale (BCP-47) for date/number formatting; "" = follow browser.
   // Independent of `country` (content region).
   locale: string;
@@ -427,6 +428,7 @@ export const api = {
       ytdlp_enabled: boolean;
       locale: string;
       overseerr_url: string;
+      importer_url: string;
     }>,
   ) =>
     request<Settings>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),

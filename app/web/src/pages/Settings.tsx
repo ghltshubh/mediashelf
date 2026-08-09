@@ -160,6 +160,42 @@ function SeerrUrlForm({ current }: { current: string }) {
   );
 }
 
+function ImporterUrlForm({ current }: { current: string }) {
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState(current);
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: () => api.updateSettings({ importer_url: url.trim() }),
+    onSuccess: () => {
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+  return (
+    <div className="mt-3">
+      <div className="flex max-w-lg items-end gap-3">
+        <label className="flex-1">
+          <span className="font-mono text-[0.75rem] text-muted">IMPORTER URL</span>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls}
+                 placeholder="http://127.0.0.1:8765" />
+        </label>
+        <button disabled={save.isPending || url.trim() === current} onClick={() => save.mutate()}
+                className={primaryBtn}>
+          Save
+        </button>
+      </div>
+      {error && <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
+      {!error && current && (
+        <a href={current} target="_blank" rel="noreferrer"
+           className="mt-3 inline-block rounded-[6px] border border-line px-4 py-2 text-[0.9rem] hover:bg-bg2">
+          ↗ Open watchlist control panel
+        </a>
+      )}
+    </div>
+  );
+}
+
 function AddServiceForm() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -369,12 +405,20 @@ export function Settings() {
   const channels = list.filter((sv) => sv.is_channel && m(sv) && notPinned(sv));
   const customServices = list.filter((sv) => sv.custom);
 
+  const importerUrl = settings.data?.importer_url ?? "";
   const tileAction = (sv: Service) => {
     if (sv.integration_kind === "watchlist") {
       const done = sv.watchlist_count > 0;
+      // No importer configured → no link to a tool that isn't there. The count
+      // still shows, because an earlier import's titles are real either way.
+      if (!importerUrl) {
+        return done
+          ? { label: `${sv.watchlist_count} in your watchlist`, href: "#plugins", done }
+          : undefined;
+      }
       return {
         label: done ? `${sv.watchlist_count} in your watchlist · refresh` : "Import your list",
-        href: `http://127.0.0.1:8765/#${sv.key}`, external: true, done,
+        href: `${importerUrl}/#${sv.key}`, external: true, done,
       };
     }
     if (sv.integration_kind === "connector") {
@@ -856,18 +900,12 @@ export function Settings() {
           <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
             <h3 className="font-display text-[1rem] font-semibold">Watchlist importer</h3>
             <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
-              Pull your "My List" from streaming apps into the Watchlist rail. The importer runs
-              as a separate local companion tool — MediaShelf just links to it, keeping logged-in
-              scraping outside the product. Log into a service once; it refreshes automatically.
+              Pull your "My List" from streaming apps into the Want-to-watch rail. The importer is
+              a separate companion tool — MediaShelf just links to it, keeping logged-in scraping
+              outside the product. It runs on the computer you browse from, not on the server,
+              because it needs your signed-in streaming sessions.
             </p>
-            <a
-              href="http://127.0.0.1:8765"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-block rounded-[6px] border border-line px-4 py-2 text-[0.9rem] hover:bg-bg2"
-            >
-              ↗ Open watchlist control panel
-            </a>
+            <ImporterUrlForm current={s?.importer_url ?? ""} />
           </div>
         </Section>
 
