@@ -140,7 +140,8 @@ not part of this product — logged-in scraping stays outside the core per the p
   export/import; a corrupt DB is auto-restored from the latest good backup on boot.
 - **Failure behavior**: if TMDB is unreachable or your key is revoked, the last-synced catalog
   keeps serving with a banner naming its age and the fix.
-- This product uses the TMDB API but is not endorsed or certified by TMDB.
+- This product uses the TMDB API but is not endorsed or certified by TMDB. Streaming
+  availability data is provided by **JustWatch**.
 
 ## License & support
 
