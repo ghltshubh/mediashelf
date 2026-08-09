@@ -21,6 +21,25 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   there's nothing to find unless you already know to look. A pointer in the empty state would fix
   that, at the cost of advertising the integration to people who never asked for it.
 
+- **Notification agents.** MediaShelf already knows things worth telling you: a new episode of a
+  show you're mid-way through has aired, something on your watchlist is leaving a service next
+  week, a title you saved finally landed somewhere you subscribe to. Right now you only find out
+  by opening the app. Jellyseerr's model is the one to copy — a list of agents (Discord, Telegram,
+  ntfy, Gotify, Pushover, Slack, webhook, email, web push), each toggled per event type, each
+  configured with your own credentials. The generic **webhook** agent is the one that matters
+  most: it makes every other integration someone else's problem. Web push also gets the PWA
+  notifying a phone with no third party at all.
+- **Browse by category.** Genre tiles, studios and networks as first-class entry points, plus an
+  "upcoming" rail — the way Jellyseerr's discover page works. MediaShelf has genre rails on the
+  shelf, but no way to say "show me everything on Netflix in Crime" as a browse rather than a
+  filter. TMDB already supplies studio, network and release-date data, so this is mostly UI.
+- **Content-rating filter.** TMDB's `adult` flag is already excluded at source, but that only
+  covers pornography — it does nothing about an 18-rated film appearing on a shelf a child
+  browses, or the lucky dice landing on one. Certifications come from TMDB per country
+  (`/movie/{id}/release_dates`, `/tv/{id}/content_ratings`), so a household ceiling ("nothing
+  above PG-13") is a small filter over data we can already fetch. Worth doing as a global setting;
+  per-profile would need user accounts, which MediaShelf deliberately doesn't have.
+
 ## Wants verifying
 
 - **Per-season availability coverage.** TMDB's per-season watch-provider data looked good in spot
