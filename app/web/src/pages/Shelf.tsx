@@ -6,6 +6,7 @@ import { EmptyState } from "../components/EmptyState";
 import { FilterChips } from "../components/FilterChips";
 import { LuckyDice } from "../components/LuckyDice";
 import { GenreSelect } from "../components/GenreSelect";
+import { ContinueWatchingCard } from "../components/ContinueWatchingCard";
 import { MediaCard } from "../components/MediaCard";
 import { MusicRail } from "../components/MusicRail";
 import { RailSection } from "../components/RailSection";
@@ -165,6 +166,34 @@ export function Shelf() {
     );
   }
 
+  // Continue watching is pulled out of the rail list so it can lead the page,
+  // above discovery; everything else keeps the server's order.
+  const continueRail = data.rails.find((r) => r.key === "continue_watching");
+  const otherRails = data.rails.filter((r) => r.key !== "continue_watching");
+  const renderRail = (rail: (typeof data.rails)[number]) => (
+    <RailSection
+      key={rail.key}
+      label={rail.label}
+      railKey={rail.key}
+      total={rail.total}
+      shown={rail.items.length}
+      region={data.country}
+      filter={active}
+      mediaType={mediaType}
+      genre={effGenre}
+    >
+      {rail.items.map((item) =>
+        // Continue watching gets an inline tick — marking the next episode is
+        // the point of the rail, so it shouldn't cost a page visit.
+        rail.key === "continue_watching" ? (
+          <ContinueWatchingCard key={`${rail.key}-${item.id}`} item={item} />
+        ) : (
+          <MediaCard key={`${rail.key}-${item.id}`} item={item} />
+        ),
+      )}
+    </RailSection>
+  );
+
   return (
     <div>
       {tabBar}
@@ -196,6 +225,11 @@ export function Shelf() {
       {/* Home: the curated shelf, controls-free — the music rail leads, then
           personalized recommendations seeded by the watchlist. */}
       {showMusicRail && <MusicRail />}
+
+      {/* First rail of the video shelf: a half-finished show beats every other
+          suggestion, because you already chose it and you're mid-way. */}
+      {continueRail && renderRail(continueRail)}
+
       {isHome && <BecauseRail />}
 
       {/* Stats + toolbar belong to the browsing tabs; Home stays pure rails. */}
@@ -285,23 +319,7 @@ export function Shelf() {
         />
       )}
 
-      {data.rails.map((rail) => (
-        <RailSection
-          key={rail.key}
-          label={rail.label}
-          railKey={rail.key}
-          total={rail.total}
-          shown={rail.items.length}
-          region={data.country}
-          filter={active}
-          mediaType={mediaType}
-          genre={effGenre}
-        >
-          {rail.items.map((item) => (
-            <MediaCard key={`${rail.key}-${item.id}`} item={item} />
-          ))}
-        </RailSection>
-      ))}
+      {otherRails.map(renderRail)}
     </div>
   );
 }

@@ -85,6 +85,11 @@ WATCHLIST_SERVICES = {
 # in the long tail until then — "featured" means an action is available NOW.
 CONNECTOR_KEYS = {"spotify", "youtube", "youtube_music", "apple_music"}
 
+# Titles you added yourself, kept apart from imported "watchlist" rows on
+# purpose: the companion tool's import is a full-state sync that deletes
+# anything the source list no longer has, and it must never reach your own.
+WATCHLIST_MANUAL = "watchlist_manual"
+
 
 def service_integration(key: str, tier: int, capabilities: dict) -> tuple[bool, str, str]:
     """(featured, short-label, kind). kind ∈ connector | watchlist | basic —
@@ -524,13 +529,25 @@ def _service_rails(serialized: list[dict]) -> list[dict]:
 def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     """Rails built from imported lists (companion tool): unified Watchlist, then
     per-service Top 10 (rank-ordered) and Leaving-soon. `by_id` is the already
-    filtered/serialized pool so these respect region, media-type and filter."""
-    from app.models import LibraryEntry, Service
+    filtered/serialized pool so these respect region, media-type and filter.
 
+    A show you have started drops out of Watchlist: "want to watch" and "part
+    way through" are states of one list, not two lists, and showing the same
+    poster in both rails on one screen is just confusing. Top 10 and Leaving
+    soon keep it — those are facts about the service, not about your intent.
+    """
+    from app.models import LibraryEntry, Service
+    from app.services import progress
+
+    started = set(progress.tracked_shows(db))
+
+    # outerjoin, not join: entries you added yourself have no service — they
+    # came from you, not from a list on Netflix.
     rows = db.execute(
         select(LibraryEntry, Service.name, Service.key, Service.logo_url)
-        .join(Service, Service.id == LibraryEntry.service_id)
-        .where(LibraryEntry.entry_type.in_(["watchlist", "top10", "leaving_soon"]),
+        .outerjoin(Service, Service.id == LibraryEntry.service_id)
+        .where(LibraryEntry.entry_type.in_(
+                   ["watchlist", WATCHLIST_MANUAL, "top10", "leaving_soon"]),
                LibraryEntry.media_item_id.isnot(None))
     ).all()
 
@@ -546,12 +563,17 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
         item = by_id.get(entry.media_item_id)
         if item is None:
             continue
-        if entry.entry_type == "watchlist":
+        if entry.entry_type in ("watchlist", WATCHLIST_MANUAL):
+            if entry.media_item_id in started:
+                continue  # now in Continue watching — one list, one place
             wl = watchlist_map.get(item["id"])
             if wl is None:
                 watchlist_map[item["id"]] = {**item, "list_source": svc_name,
                                              "list_source_logo": svc_logo}
-            elif svc_name not in wl["list_source"]:
+            elif svc_name and not wl["list_source"]:
+                # Added by hand first, then found on a service list — name it.
+                wl["list_source"], wl["list_source_logo"] = svc_name, svc_logo
+            elif svc_name and svc_name not in wl["list_source"]:
                 wl["list_source"] += f", {svc_name}"
                 wl["list_source_logo"] = None  # multiple sources → name, not one logo
         elif entry.entry_type == "top10":
@@ -565,7 +587,9 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
 
     rails: list[dict] = []
     if watchlist_map:
-        rails.append({"key": "watchlist", "label": "Watchlist",
+        # "Want to watch" rather than "Watchlist": next to "Continue watching"
+        # the old name read as "things I'm watching", which is the opposite.
+        rails.append({"key": "watchlist", "label": "Want to watch",
                       "items": list(watchlist_map.values())})
     if popular:
         ranked = sorted(popular.values(), key=lambda a: (-len(a["services"]), a["best"]))
@@ -577,6 +601,48 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
         rails.append({"key": f"leaving_{svc_key}", "label": f"Leaving {g['name']} soon",
                       "items": g["items"]})
     return rails
+
+
+def _continue_watching_rail(db: Session, by_id: dict[int, dict]) -> list[dict]:
+    """"Continue watching" — shows started and not finished, most recent first.
+
+    This is the half of issue #2 that tick-boxes alone don't deliver: JustWatch
+    sorts tracked shows into Continue Watching / Caught Up / Seen, and it's the
+    shelf rail, not the title page, that answers "what do I put on tonight".
+
+    Only shows with cached season data can be placed, which is exactly the set
+    that has ever been marked — you cannot mark an episode without opening the
+    show, and opening it caches the seasons.
+    """
+    from app.services import progress
+
+    tracked = progress.tracked_shows(db)
+    if not tracked:
+        return []
+    recency = progress.last_marked_at(db)
+    entries = []
+    for item_id, seen in tracked.items():
+        card = by_id.get(item_id)
+        if card is None:
+            continue  # filtered out by region/ownership/media-type — respect that
+        item = db.get(MediaItem, item_id)
+        if item is None or item.media_type != "tv":
+            continue
+        state = progress.state_of(item, seen)
+        if state["state"] != progress.WATCHING:
+            continue
+        entries.append((recency.get(item_id), {
+            **card,
+            "next_up": state["next_up"],
+            "unwatched_aired": state["unwatched_aired"],
+            "watched_episodes": state["watched_episodes"],
+            "total_episodes": state["total_episodes"],
+        }))
+    if not entries:
+        return []
+    entries.sort(key=lambda pair: (pair[0] is None, pair[0]), reverse=True)
+    return [{"key": "continue_watching", "label": "Continue watching",
+             "items": [card for _, card in entries]}]
 
 
 def _apply_filter(serialized: list[dict], flt: str) -> list[dict]:
@@ -651,7 +717,10 @@ def build_shelf(db: Session, country: str, view: str = "categories",
     # discovery rail, so under "Not on my services" it shows the FULL aggregated
     # trending list (Watchlist/Leaving stay hidden there — they're personal).
     if flt in ("all", "mine"):
-        list_rails = _imported_list_rails(db, {s["id"]: s for s in _apply_filter(serialized, flt)})
+        by_id = {s["id"]: s for s in _apply_filter(serialized, flt)}
+        # Continue watching leads the personal rails: a half-finished show is a
+        # more specific answer to "what now" than a saved title.
+        list_rails = _continue_watching_rail(db, by_id) + _imported_list_rails(db, by_id)
     elif flt == "elsewhere":
         list_rails = [r for r in _imported_list_rails(db, {s["id"]: s for s in serialized})
                       if r["key"] == "popular"]
@@ -908,6 +977,152 @@ async def ensure_details(db: Session, item_id: int, api_key: str | None) -> None
     db.commit()
 
 
+async def ensure_seasons(db: Session, item_id: int, api_key: str | None) -> list[dict]:
+    """Lazily cache a show's season list in ``extra`` (same pattern as keywords
+    and cast). The list is small and near-static; episode lists are fetched per
+    season on demand instead, so opening one show never pulls ten seasons.
+
+    Season 0 is dropped — TMDB files specials there, and they are not part of a
+    linear watch, so counting them would make every show unfinishable.
+    """
+    item = db.get(MediaItem, item_id)
+    if item is None or item.media_type != "tv":
+        return []
+    # v2 added the airing metadata below; v1 caches re-fetch once to gain it.
+    if item.extra.get("seasons_v") == 2:
+        return item.extra.get("seasons") or []
+    if not api_key or item.tmdb_id is None:
+        return []
+    try:
+        detail = await TMDBClient(api_key).detail("tv", item.tmdb_id)
+    except Exception as exc:
+        logger.debug("season list fetch failed for %s: %s", item_id, exc)
+        return []  # transient — don't cache, retry next view
+    seasons = [{"season_number": s["season_number"], "name": s.get("name"),
+                "episode_count": s.get("episode_count") or 0,
+                "air_date": s.get("air_date") or None}
+               for s in detail.get("seasons") or []
+               if s.get("season_number")]
+    # `last_episode_to_air` is what separates "caught up" from "behind": it says
+    # how much of the show actually exists yet. It rides along on this same
+    # detail call, so show state costs no extra requests.
+    last = detail.get("last_episode_to_air") or None
+    nxt = detail.get("next_episode_to_air") or None
+    item.extra = {
+        **item.extra, "seasons": seasons, "seasons_v": 2,
+        "show_status": detail.get("status") or None,
+        "last_aired": ({"season": last["season_number"], "episode": last["episode_number"]}
+                       if last and last.get("season_number") else None),
+        "next_air_date": (nxt or {}).get("air_date") or None,
+    }
+    db.commit()
+    return seasons
+
+
+async def season_episodes(api_key: str | None, tmdb_id: int, season_number: int) -> list[dict]:
+    """Episode list for one season, straight from TMDB (its own 6-hour cache
+    absorbs repeat views). Not persisted: it is display data, and caching it in
+    SQLite would just be a staler copy of what the client already holds."""
+    if not api_key:
+        return []
+    try:
+        data = await TMDBClient(api_key).season(tmdb_id, season_number)
+    except Exception as exc:
+        logger.debug("season %s fetch failed for tv/%s: %s", season_number, tmdb_id, exc)
+        return []
+    return [{"episode_number": e["episode_number"], "name": e.get("name"),
+             "air_date": e.get("air_date") or None,
+             "runtime_minutes": e.get("runtime") or None,
+             "overview": e.get("overview") or None,
+             "still": poster_url(e.get("still_path"), "w185") if e.get("still_path") else None}
+            for e in data.get("episodes") or [] if e.get("episode_number") is not None]
+
+
+async def season_availability(db: Session, item_id: int, api_key: str | None,
+                              country: str) -> list[dict]:
+    """Where each season streams, for shows whose seasons are split across
+    services — "seasons 1–4 on Prime, season 5 on Netflix", which the
+    title-level endpoint cannot express because it answers for the whole show.
+
+    A season counts as available as soon as a provider carries it; whether all
+    its episodes have aired is a separate question and deliberately not asked
+    (issue #2 — a mid-release season is still watchable).
+
+    Not persisted: this is display data, the TMDB client already caches GETs for
+    six hours, and storing it per country would duplicate the availability table
+    in a JSON blob for no gain.
+    """
+    item = db.get(MediaItem, item_id)
+    if item is None or item.media_type != "tv" or not api_key or item.tmdb_id is None:
+        return []
+    seasons = await ensure_seasons(db, item_id, api_key)
+    if not seasons:
+        return []
+    client = TMDBClient(api_key)
+    sem = asyncio.Semaphore(_PROVIDER_CONCURRENCY)
+    tmdb_id = item.tmdb_id  # narrowed above; bind so the closure keeps the type
+
+    async def fetch(season: dict) -> tuple[int, dict]:
+        async with sem:
+            try:
+                regions = await client.season_watch_providers(
+                    tmdb_id, season["season_number"])
+            except Exception as exc:  # one bad season must not blank the rest
+                logger.debug("season providers failed for %s s%s: %s",
+                             item_id, season["season_number"], exc)
+                return season["season_number"], {}
+            return season["season_number"], regions.get(country) or {}
+
+    results = await asyncio.gather(*(fetch(s) for s in seasons))
+
+    by_tmdb_id = {s.tmdb_provider_id: s for s in db.scalars(select(Service))
+                  if s.tmdb_provider_id}
+    by_key = {s.key: s for s in db.scalars(select(Service))}
+    subscribed = subscribed_service_ids(db)
+    out = []
+    for season_number, offers in results:
+        rows = []
+        seen_keys = set()
+        # Streaming only — deliberately not rent/buy. Purchase options routinely
+        # differ season to season while every season streams in the same place
+        # (Black Mirror: all seven on Netflix, some also buyable), and treating
+        # that as a "split" would show this block on shows that aren't split at
+        # all. The title-level block already lists rent and buy for the show.
+        for offer_type in ("flatrate", "free", "ads"):
+            for provider in offers.get(offer_type) or []:
+                svc = _resolve_service(db, provider, by_tmdb_id, by_key)
+                if svc.key in seen_keys:
+                    continue  # same service listed under two offer types
+                seen_keys.add(svc.key)
+                rows.append({"service_key": svc.key, "service_name": svc.name,
+                             "logo": svc.logo_url, "offer_type": offer_type,
+                             "owned": svc.id in subscribed
+                                      and offer_type in ("flatrate", "free", "ads")})
+        out.append({"season_number": season_number, "offers": rows})
+    db.commit()  # _resolve_service may have auto-added services
+    return out
+
+
+def group_seasons_by_offers(seasons: list[dict]) -> list[dict]:
+    """Fold runs of consecutive seasons that stream in the same places.
+
+    "Seasons 1–4 · Prime Video" beats four identical rows, and the split is the
+    only reason this block exists.
+    """
+    groups: list[dict] = []
+    for season in seasons:
+        signature = sorted(o["service_key"] for o in season["offers"])
+        if groups and groups[-1]["_sig"] == signature \
+                and groups[-1]["to"] == season["season_number"] - 1:
+            groups[-1]["to"] = season["season_number"]
+            continue
+        groups.append({"_sig": signature, "from": season["season_number"],
+                       "to": season["season_number"], "offers": season["offers"]})
+    for g in groups:
+        g.pop("_sig")
+    return groups
+
+
 async def ensure_runtime(db: Session, item: MediaItem, api_key: str | None) -> None:
     """Lazily fetch a title's runtime (bulk sync never does — TMDB list endpoints
     don't carry it). Cached on the row forever after; used by the lucky dice's
@@ -1079,4 +1294,12 @@ def build_title(db: Session, item_id: int, country: str,
     data["ratings"] = item.extra.get("ratings") or {}  # imdb/rt/metacritic (OMDb)
     data["keywords"] = item.extra.get("keywords") or []  # tags (M7)
     data["cast"] = item.extra.get("cast") or []
+    # Either kind of saved row lights the button — you don't care whether a
+    # title reached your list by import or by hand, only that it's on it.
+    from app.models import LibraryEntry
+
+    data["in_watchlist"] = bool(db.scalar(
+        select(LibraryEntry.id).where(
+            LibraryEntry.media_item_id == item.id,
+            LibraryEntry.entry_type.in_(["watchlist", WATCHLIST_MANUAL])).limit(1)))
     return data

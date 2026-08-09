@@ -18,6 +18,12 @@ TV = [
      "genre_ids": [10765], "popularity": 95.0, "vote_average": 8.4},
 ]
 
+SEASONS = [
+    {"season_number": 0, "name": "Specials", "episode_count": 2, "air_date": "2022-08-01"},
+    {"season_number": 1, "name": "Season 1", "episode_count": 3, "air_date": "2022-09-09"},
+    {"season_number": 2, "name": "Season 2", "episode_count": 2, "air_date": "2023-09-09"},
+]
+
 PROVIDERS = {
     (101, "movie"): {"US": {
         "link": "https://www.themoviedb.org/movie/101/watch?locale=US",
@@ -113,8 +119,31 @@ def fake_tmdb(monkeypatch):
         if media_type == "movie":
             return {**base, "title": f"Movie {tmdb_id}", "release_date": "2023-01-01",
                     "runtime": 115}
+        # Season 0 (specials) is present on purpose — episode tracking must drop it.
+        # Still running, and only S2E1 has aired: enough to tell "caught up"
+        # (watched everything that exists) from "watching" (episodes waiting).
         return {**base, "name": f"Show {tmdb_id}", "first_air_date": "2022-01-01",
-                "episode_run_time": [45]}
+                "episode_run_time": [45], "seasons": SEASONS,
+                "status": "Returning Series",
+                "last_episode_to_air": {"season_number": 2, "episode_number": 1},
+                "next_episode_to_air": {"air_date": "2026-09-01"}}
+
+    async def season_watch_providers(self, tv_id, season_number):
+        # A real split: S1 on Netflix, S2 moved to Disney+. This is the whole
+        # reason the per-season block exists.
+        if season_number == 1:
+            return {"US": {"flatrate": [{"provider_id": 8, "provider_name": "Netflix"}]}}
+        if season_number == 2:
+            return {"US": {"flatrate": [{"provider_id": 337, "provider_name": "Disney Plus"}]}}
+        return {}
+
+    async def season(self, tv_id, season_number):
+        count = next((s["episode_count"] for s in SEASONS
+                      if s["season_number"] == season_number), 0)
+        return {"season_number": season_number, "episodes": [
+            {"episode_number": n, "name": f"Episode {n}", "air_date": "2022-09-09",
+             "runtime": 45, "overview": "Things happen.", "still_path": None}
+            for n in range(1, count + 1)]}
 
     monkeypatch.setattr(tmdb_mod.TMDBClient, "detail", detail)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "validate_key", validate_key)
@@ -125,6 +154,8 @@ def fake_tmdb(monkeypatch):
     monkeypatch.setattr(tmdb_mod.TMDBClient, "title_extras", title_extras)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "recommendations", recommendations)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "person", person)
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "season", season)
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "season_watch_providers", season_watch_providers)
 
 
 @pytest.fixture

@@ -26,9 +26,14 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 <summary>More screenshots</summary>
 
 **Title page** — where a title streams (on your services vs elsewhere), deep links, plan
-prices, and cast:
+prices, and cast. Shows whose seasons sit on different services get a **by season** breakdown:
 
 ![Title page — availability split with deep links](docs/img/title.jpg)
+
+**Episode tracking** — tick episodes or a whole season; the shelf's "Continue watching" rail
+picks up from there:
+
+![Episode tracking — season chips and per-episode ticks](docs/img/episodes.jpg)
 
 </details>
 
@@ -48,9 +53,14 @@ prices, and cast:
   across all of them, at zero extra TMDB cost), switch region anywhere, and every title page can
   expand **"In other regions"** to show where it streams in every country worldwide — for when
   something isn't available where you live.
-- **Media-type tabs** (All / Movies / Shows / Music) and a personal **Watchlist** rail imported
-  from your streaming apps via a separate local companion tool (logged-in scraping stays out of
-  the product).
+- **Media-type tabs** (All / Movies / Shows / Music) and a **"Want to watch"** rail — save titles
+  from any title page, or import your existing "My List" from your streaming apps via a separate
+  local companion tool (logged-in scraping stays out of the product).
+- **Episode tracking** for shows — tick episodes or whole seasons, and a **"Continue watching"**
+  rail leads the shelf with a one-tap mark for the next episode. Shows sort themselves into not
+  started / watching / caught up / seen, so a running show you're up to date on steps aside until
+  a new episode airs. Marking is manual: MediaShelf links out to the service and never sees
+  playback, so nothing can report an episode finished on its own.
 - **"Popular right now"** aggregated from per-service Top 10s, **IMDb/RT/Metacritic** ratings
   (optional, via OMDb) alongside TMDB scores, service logos on every card, and studio-inferred
   **"expected on X"** hints for upcoming titles that aren't streaming yet.
@@ -128,7 +138,9 @@ their own services in the checklist (e.g. "HBO Max Amazon Channel") — tick whi
 actually subscribe, and titles light up accordingly.
 
 **Watchlist import** ("My List" from Netflix/Tubi/etc.) runs as a **separate local companion tool**,
-not part of this product — logged-in scraping stays outside the core per the plugin boundary.
+not part of this product — logged-in scraping stays outside the core per the plugin boundary. Each
+import is a full-state sync of that service's list; titles you save yourself are kept separately,
+so an import never removes them.
 
 ## Notes
 

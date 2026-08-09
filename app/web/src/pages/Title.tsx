@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AvailabilityRow } from "../components/AvailabilityRow";
@@ -6,6 +6,8 @@ import { DiscoveryCard } from "../components/DiscoveryCard";
 import { EmptyState } from "../components/EmptyState";
 import { PlayButton } from "../components/PlayButton";
 import { countryName, RegionSwitcher } from "../components/RegionSwitcher";
+import { SeasonAvailabilityBlock } from "../components/SeasonAvailabilityBlock";
+import { SeasonTracker } from "../components/SeasonTracker";
 import { api } from "../lib/api";
 import { usePlayer } from "../stores/player";
 
@@ -13,6 +15,7 @@ export function TitlePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const player = usePlayer();
+  const qc = useQueryClient();
   const [region, setRegion] = useState("");
   const query = useQuery({
     queryKey: ["title", id, region],
@@ -23,6 +26,14 @@ export function TitlePage() {
     queryKey: ["similar", id, region],
     queryFn: () => api.similar(Number(id), region),
     enabled: !!id,
+  });
+  const watchlist = useMutation({
+    mutationFn: (action: "add" | "remove") =>
+      action === "add" ? api.addToWatchlist(Number(id)) : api.removeFromWatchlist(Number(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["title", id] });
+      qc.invalidateQueries({ queryKey: ["shelf"] });  // the rail changes too
+    },
   });
 
   if (query.isError) {
@@ -127,6 +138,21 @@ export function TitlePage() {
                 artwork={t.poster}
               />
             )}
+            {/* Save it yourself — until now the list could only arrive from the
+                companion tool's import, so there was no way to say "later". */}
+            <button
+              disabled={watchlist.isPending}
+              onClick={() =>
+                watchlist.mutate(t.in_watchlist ? "remove" : "add")
+              }
+              className={`rounded-[6px] border px-4 py-2 text-[0.9rem] disabled:opacity-50 ${
+                t.in_watchlist
+                  ? "border-owned/50 bg-owned/10 text-owned hover:bg-owned/20"
+                  : "border-line hover:bg-bg2"
+              }`}
+            >
+              {t.in_watchlist ? "✓ On your list" : "+ Want to watch"}
+            </button>
             {t.trailer_youtube_id && (
               <button
                 onClick={() =>
@@ -186,6 +212,9 @@ export function TitlePage() {
             </section>
           )}
 
+          {/* Shows only: manual episode progress (no playback signal exists). */}
+          {t.media_type === "tv" && <SeasonTracker itemId={t.id} />}
+
           {/* Availability block — the product's money shot (Part 2 §4.4). */}
           <div className="mt-8 max-w-2xl space-y-6">
             {t.regions.length > 1 && (
@@ -224,6 +253,9 @@ export function TitlePage() {
               )}
             </div>
             )}
+
+            {/* Only renders when the seasons actually differ from each other. */}
+            {t.media_type === "tv" && <SeasonAvailabilityBlock itemId={t.id} region={region} />}
 
             {t.badges.length > 0 && (
             <div>

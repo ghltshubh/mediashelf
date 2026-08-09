@@ -12,7 +12,10 @@ export function MediaCard({ item, fluid = false }: { item: ShelfItem; fluid?: bo
   return (
     <Link
       to={`/title/${item.id}`}
-      className={`hoverable group relative rounded-[10px] bg-bg1 outline-offset-4 ${
+      // `block` matters: as a direct flex child of a rail the <a> is blockified
+      // anyway, but wrapped (Continue watching) it would fall back to inline,
+      // where width is ignored and the poster balloons to fill the row.
+      className={`hoverable group relative block rounded-[10px] bg-bg1 outline-offset-4 ${
         fluid ? "w-full" : "w-[148px] shrink-0 sm:w-[168px]"
       } ${item.owned ? "lit" : "dimmed"}`}
       aria-label={`${item.title}${item.year ? ` (${item.year})` : ""}${item.owned ? " — on your services" : ""}`}

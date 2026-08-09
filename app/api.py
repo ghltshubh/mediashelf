@@ -21,7 +21,7 @@ from app.providers import spotify as spotify_api
 from app.providers import ytdlp_meta
 from app.providers.tmdb import TMDBClient, TMDBError
 from app.secrets import mask
-from app.services import backups, catalog
+from app.services import backups, catalog, progress
 from app.services import library as library_service
 from app.services import migrate as migrate_service
 from app.services import playback as playback_service
@@ -456,6 +456,133 @@ async def title(item_id: int, region: str = "", db: Session = Depends(get_sessio
     data["world"] = await catalog.world_availability(
         api_key, data["media_type"], data["tmdb_id"], exclude=tracked)
     return data
+
+
+@router.post("/titles/{item_id}/watchlist")
+def add_to_watchlist(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Save a title yourself, without the companion tool.
+
+    Its own entry type, with no service attached: the importer's `replace` pass
+    is a full-state sync that deletes rows the source list no longer carries,
+    and it must never be able to remove something you added by hand.
+    """
+    from app.models import LibraryEntry, MediaItem
+
+    if db.get(MediaItem, item_id) is None:
+        raise HTTPException(404, "Title not found")
+    existing = db.scalar(select(LibraryEntry).where(
+        LibraryEntry.media_item_id == item_id,
+        LibraryEntry.entry_type == catalog.WATCHLIST_MANUAL))
+    if existing is None:
+        db.add(LibraryEntry(media_item_id=item_id,
+                            entry_type=catalog.WATCHLIST_MANUAL,
+                            external_id=f"manual:{item_id}", payload={}))
+        db.commit()
+    return {"in_watchlist": True}
+
+
+@router.delete("/titles/{item_id}/watchlist")
+def remove_from_watchlist(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Remove only your own row — an imported one belongs to the source list,
+    so it would come straight back on the next import anyway."""
+    from app.models import LibraryEntry
+
+    for row in db.scalars(select(LibraryEntry).where(
+            LibraryEntry.media_item_id == item_id,
+            LibraryEntry.entry_type == catalog.WATCHLIST_MANUAL)):
+        db.delete(row)
+    db.commit()
+    still = db.scalar(select(LibraryEntry.id).where(
+        LibraryEntry.media_item_id == item_id,
+        LibraryEntry.entry_type == "watchlist").limit(1))
+    return {"in_watchlist": bool(still), "imported": bool(still)}
+
+
+def _tv_or_404(db: Session, item_id: int):
+    from app.models import MediaItem
+
+    item = db.get(MediaItem, item_id)
+    if item is None:
+        raise HTTPException(404, "Title not found")
+    if item.media_type != "tv":
+        raise HTTPException(400, "Episode tracking applies to shows, not movies")
+    return item
+
+
+@router.get("/titles/{item_id}/seasons")
+async def title_seasons(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Season list with per-season watched counts and the next unwatched episode.
+    Separate from GET /titles/{id} so the title page isn't held up by it."""
+    _tv_or_404(db, item_id)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    await catalog.ensure_seasons(db, item_id, api_key)
+    return progress.state_of(_tv_or_404(db, item_id), progress.watched(db, item_id))
+
+
+@router.get("/titles/{item_id}/seasons/availability")
+async def title_season_availability(item_id: int, region: str = "",
+                                    db: Session = Depends(get_session)) -> dict:
+    """Per-season streaming availability, folded into runs.
+
+    Its own endpoint rather than part of the season list: it costs one TMDB
+    request per season, and the episode tracker should not wait on it.
+
+    `split` says whether the seasons actually differ. When they don't, the
+    title-level availability block already answers the question and the client
+    shows nothing — this block exists only for shows that are split.
+    """
+    _tv_or_404(db, item_id)
+    country, _ = _region_or_home(db, region)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    seasons = await catalog.season_availability(db, item_id, api_key, country)
+    groups = catalog.group_seasons_by_offers(seasons)
+    covered = [g for g in groups if g["offers"]]
+    return {"country": country, "groups": groups,
+            "split": len(covered) > 1,
+            "any_data": bool(covered)}
+
+
+@router.get("/titles/{item_id}/seasons/{season_number}")
+async def title_season_episodes(item_id: int, season_number: int,
+                                db: Session = Depends(get_session)) -> dict:
+    """Episodes of one season, each flagged with its watched state."""
+    item = _tv_or_404(db, item_id)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    episodes = await catalog.season_episodes(api_key, item.tmdb_id, season_number)
+    seen = progress.watched(db, item_id)
+    return {"season_number": season_number,
+            "episodes": [{**e, "watched": (season_number, e["episode_number"]) in seen}
+                         for e in episodes]}
+
+
+class WatchedBody(BaseModel):
+    season: int
+    episodes: list[int]              # one, or a whole season in a single call
+    watched: bool = True
+
+
+@router.post("/titles/{item_id}/watched")
+async def set_watched(item_id: int, body: WatchedBody,
+                      db: Session = Depends(get_session)) -> dict:
+    """Mark/unmark episodes. Manual only — nothing reports playback back to us
+    (see services/progress.py); Plex and Trakt would write here too."""
+    _tv_or_404(db, item_id)
+    if not body.episodes:
+        raise HTTPException(422, "No episodes given")
+    progress.mark(db, item_id, body.season, body.episodes, body.watched)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    await catalog.ensure_seasons(db, item_id, api_key)
+    return progress.state_of(_tv_or_404(db, item_id), progress.watched(db, item_id))
+
+
+@router.delete("/titles/{item_id}/watched")
+async def clear_watched(item_id: int, db: Session = Depends(get_session)) -> dict:
+    """Forget all progress for a show — the undo for a mis-tapped 'whole season'."""
+    _tv_or_404(db, item_id)
+    removed = progress.clear(db, item_id)
+    api_key = settings_store.get_setting(db, "tmdb_api_key")
+    await catalog.ensure_seasons(db, item_id, api_key)
+    return {**progress.state_of(_tv_or_404(db, item_id), set()), "removed": removed}
 
 
 @router.get("/lucky")
