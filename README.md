@@ -170,4 +170,5 @@ Self-host it freely; if you offer a modified version as a network service, you m
 changes under the same license. Commercial licensing is available from the copyright holder.
 
 If MediaShelf is useful to you:
-[![Support the project](https://img.shields.io/badge/☕-Support%20the%20project-e3a84c)](https://buymeacoffee.com/shubhankar)
+[![Sponsor](https://img.shields.io/badge/♥-Sponsor-e3a84c)](https://github.com/sponsors/ghltshubh)
+[![Buy me a coffee](https://img.shields.io/badge/☕-One--off-e3a84c)](https://buymeacoffee.com/shubhankar)

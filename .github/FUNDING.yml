@@ -1,2 +1,4 @@
-# Shows the "Sponsor" button on the repo once public.
+# Drives the "Sponsor" button on the repo. GitHub Sponsors leads: it takes no
+# fee and it is where people already are when they are looking at the code.
+github: [ghltshubh]
 custom: ["https://buymeacoffee.com/shubhankar"]

@@ -922,11 +922,12 @@ export function Settings() {
           <p className="mt-3 flex items-center gap-1.5 font-mono text-[0.8rem] text-muted">
             <CoffeeCup className="h-[1.1rem] w-[1.1rem] shrink-0" />
             <span>
-              {/* Platform-agnostic wording: the link can change, or gain a
-                  second one, without rewriting the sentence. */}
+              {/* Still one link, per the note above. It points at Sponsors
+                  rather than the tip jar: GitHub takes no cut, and that page
+                  carries the one-off option anyway. */}
               Enjoying MediaShelf?{" "}
               <a
-                href="https://buymeacoffee.com/shubhankar"
+                href="https://github.com/sponsors/ghltshubh"
                 target="_blank"
                 rel="noreferrer"
                 className="text-owned underline underline-offset-2 hover:opacity-80"
