@@ -105,6 +105,21 @@ Open http://localhost:8000 — onboarding asks for your own free TMDB API key
 (create one at https://www.themoviedb.org/settings/api) and your country, then lets you tick
 the services you subscribe to. That's all the app needs.
 
+Everything else is optional and off until you fill it in — nothing nags, and nothing is broken
+for leaving it blank:
+
+| Optional | What it adds | Where |
+|---|---|---|
+| Spotify / YouTube / Apple Music keys | in-app playback and library sync | Settings → Keys |
+| OMDb key | IMDb / RT / Metacritic scores | Settings → Keys |
+| Overseerr / Jellyseerr URL | a **Request on Seer** button when nothing you subscribe to has a title | Settings → Plugins |
+| Watchlist importer URL | pulls your "My List" in — **the tool itself isn't shipped**, see [§8b](docs/INSTALL.md#8b-watchlist-import-optional-and-not-shipped) | Settings → Plugins |
+| `yt-dlp` | zero-quota YouTube search | Settings → Plugins |
+
+**Running it on a server or NAS?** Two things differ from localhost: the OAuth redirect has to
+point at that host, and the watchlist importer stays on the computer you browse from.
+[docs/INSTALL.md §8](docs/INSTALL.md) covers both.
+
 **→ Full setup, key-by-key: see [docs/INSTALL.md](docs/INSTALL.md)** — step-by-step for every API
 key, connecting Spotify / YouTube / Apple, the optional yt-dlp plugin, remote hosting, and
 troubleshooting.
