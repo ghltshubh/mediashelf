@@ -2,10 +2,11 @@
 
 ## Unreleased
 
-- Onboarding's "connect accounts" step pointed at the wrong place and named the wrong services:
-  the OAuth app keys live in **Settings → Keys**, not Accounts, and Spotify needs them just like
-  YouTube and Apple Music do. Connect is correctly disabled until they're saved; the note under
-  the cards now says so.
+- **A service with no keys yet shows "Add keys →" instead of a dead Connect button**, linking
+  straight to the form that unblocks it. Onboarding's account step previously offered buttons
+  that couldn't be pressed and a note pointing at the wrong settings section — and naming the
+  wrong services, since Spotify needs app keys exactly like YouTube and Apple Music do.
+- Deep links into a settings section (`/settings#keys`) now scroll there.
 
 ## v0.1.2 — 2026-08-09
 

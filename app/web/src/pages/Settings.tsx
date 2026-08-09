@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { ConnectionCard } from "../components/ConnectionCard";
 import { KeyValueMono } from "../components/KeyValueMono";
 import { RegionPicker } from "../components/RegionPicker";
@@ -216,6 +216,15 @@ export function Settings() {
   const t = useT();
   const [params] = useSearchParams();
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const { hash } = useLocation();
+
+  // Deep links like /settings#keys arrive by client-side navigation, which does
+  // no scrolling of its own, and the target only exists once settings load —
+  // so scroll after the data, not on mount.
+  useEffect(() => {
+    if (!hash || !settings.data) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+  }, [hash, settings.data]);
   const [svcRegion, setSvcRegion] = useState("");  // "" = home; "ALL" = every region
   const services = useQuery({
     queryKey: ["services", svcRegion],

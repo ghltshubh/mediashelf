@@ -169,9 +169,9 @@ function StepThree({ onDone }: { onDone: () => void }) {
         ))}
       </div>
       <p className="mt-3 max-w-xl font-mono text-[0.75rem] text-muted">
-        Connect stays greyed out until that service's own keys are saved in Settings → Keys —
-        every one of these needs them, and each is guided there. You can finish setup now and
-        come back to it.
+        Each of these needs its own free API keys before it can connect, and getting them means a
+        trip to that provider's developer site — so this is usually a later job. Finish setup, and
+        add them from Settings → Keys whenever you feel like it.
       </p>
 
       {/* yt-dlp suggestion — honest one-paragraph explanation (M6), off by default. */}

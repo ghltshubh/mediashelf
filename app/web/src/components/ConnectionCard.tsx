@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api, type Connection } from "../lib/api";
 import { ageOf } from "../lib/time";
 
@@ -64,14 +65,34 @@ export function ConnectionCard({
       )}
 
       <div className="mt-3 flex items-center gap-3">
-        {canOAuth && conn.state === "none" && (
+        {/* Unconfigured means no app keys yet, so there is no OAuth flow to
+            start. A greyed-out Connect is a dead end — send people to the form
+            that unblocks it instead, which is the only action available. */}
+        {canOAuth && conn.state === "none" && !conn.configured && (
+          <Link
+            to="/settings#keys"
+            className="hoverable rounded-[6px] border border-owned/50 px-3 py-1.5 text-[0.875rem] font-medium text-owned hover:bg-owned/15"
+          >
+            Add keys →
+          </Link>
+        )}
+        {canOAuth && conn.state === "none" && conn.configured && (
           <button
             onClick={() => connect.mutate()}
-            disabled={!conn.configured || connect.isPending}
+            disabled={connect.isPending}
             className="rounded-[6px] bg-owned px-3 py-1.5 text-[0.875rem] font-medium text-bg0 disabled:opacity-40"
           >
             Connect
           </button>
+        )}
+        {/* Apple Music has no OAuth — it needs a developer token pasted in. */}
+        {!canOAuth && !conn.configured && (
+          <Link
+            to="/settings#keys"
+            className="hoverable rounded-[6px] border border-owned/50 px-3 py-1.5 text-[0.875rem] font-medium text-owned hover:bg-owned/15"
+          >
+            Add token →
+          </Link>
         )}
         {canOAuth && conn.state === "expired" && (
           <button
