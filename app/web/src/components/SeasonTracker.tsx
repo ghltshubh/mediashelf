@@ -111,9 +111,11 @@ export function SeasonTracker({ itemId }: { itemId: number }) {
         {p.state === "seen" && (
           <span className="font-mono text-[0.8rem] text-muted">Every episode marked.</span>
         )}
+        {/* Bordered like "Next up": hover styles are the only other tappable
+            signal, and hover doesn't exist on touch (issue #2 feedback). */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className="hoverable rounded-[6px] px-2 py-1 font-mono text-[0.8rem] text-muted hover:bg-bg2 hover:text-ink"
+          className="hoverable rounded-[6px] border border-line px-3 py-1.5 font-mono text-[0.8rem] hover:bg-bg2"
         >
           {open ? "Hide episodes" : "Track episodes"}
         </button>
