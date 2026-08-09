@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.3 — 2026-08-09
 
 - **A service with no keys yet shows "Add keys →" instead of a dead Connect button**, linking
   straight to the form that unblocks it. Onboarding's account step previously offered buttons
