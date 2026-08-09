@@ -282,6 +282,10 @@ domain:
 
 ## 8b. Watchlist import (paste, upload, or an external tool)
 
+None of this section is needed for the **"Popular right now"** rail: that fills itself during the
+normal catalog sync from the weekly Top 10 Netflix publishes as open data. This section is only
+about getting *your* lists in.
+
 The no-tool routes cover almost everyone:
 
 - **Save titles in the app.** Every title page has a **+ Want to watch** button.
