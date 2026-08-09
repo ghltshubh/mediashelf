@@ -922,6 +922,8 @@ export function Settings() {
           <p className="mt-3 flex items-center gap-1.5 font-mono text-[0.8rem] text-muted">
             <CoffeeCup className="h-[1.1rem] w-[1.1rem] shrink-0" />
             <span>
+              {/* Platform-agnostic wording: the link can change, or gain a
+                  second one, without rewriting the sentence. */}
               Enjoying MediaShelf?{" "}
               <a
                 href="https://buymeacoffee.com/shubhankar"
@@ -929,7 +931,7 @@ export function Settings() {
                 rel="noreferrer"
                 className="text-owned underline underline-offset-2 hover:opacity-80"
               >
-                Buy me a coffee
+                Support the project
               </a>
             </span>
           </p>
