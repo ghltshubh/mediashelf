@@ -125,6 +125,41 @@ function GoogleKeysForm({ onSaved }: { onSaved: () => void }) {
 }
 
 
+function SeerrUrlForm({ current }: { current: string }) {
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState(current);
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: () => api.updateSettings({ overseerr_url: url.trim() }),
+    onSuccess: () => {
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+  return (
+    <div className="mt-3">
+      <div className="flex max-w-lg items-end gap-3">
+        <label className="flex-1">
+          <span className="font-mono text-[0.75rem] text-muted">BASE URL</span>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls}
+                 placeholder="http://192.168.1.10:5055" />
+        </label>
+        <button disabled={save.isPending || url.trim() === current} onClick={() => save.mutate()}
+                className={primaryBtn}>
+          Save
+        </button>
+      </div>
+      {error && <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
+      {!error && current && (
+        <p className="mt-2 font-mono text-[0.75rem] text-muted">
+          linking to {current}/movie/… and {current}/tv/…
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AddServiceForm() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -799,6 +834,15 @@ export function Settings() {
                 <code>pip install yt-dlp</code>), then reload.
               </p>
             )}
+          </div>
+          <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
+            <h3 className="font-display text-[1rem] font-semibold">Overseerr / Jellyseerr</h3>
+            <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
+              If you self-host a request pipeline, titles that aren't on any service you've ticked
+              get a <strong>Request on Seer</strong> button pointing at your own instance.
+              MediaShelf only links out — it never sends the request or touches any media.
+            </p>
+            <SeerrUrlForm current={s?.overseerr_url ?? ""} />
           </div>
           <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
             <h3 className="font-display text-[1rem] font-semibold">Watchlist importer</h3>

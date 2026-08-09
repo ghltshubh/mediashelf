@@ -24,6 +24,7 @@ export interface Settings {
   omdb_configured: boolean;
   ytdlp_detected: boolean;
   ytdlp_enabled: boolean;
+  overseerr_url: string;
   // Display locale (BCP-47) for date/number formatting; "" = follow browser.
   // Independent of `country` (content region).
   locale: string;
@@ -327,6 +328,8 @@ export interface Title extends ShelfItem {
   keywords: string[];
   cast: { id: number | null; name: string; character: string | null; profile: string | null }[];
   in_watchlist: boolean;
+  // Link into the user's own Overseerr/Jellyseerr; null unless configured.
+  request_url: string | null;
 }
 
 // Episode progress. Marking is manual — MediaShelf deep-links out for TV and
@@ -421,6 +424,7 @@ export const api = {
       preferred_music_service: "auto" | "spotify" | "apple_music" | "youtube";
       ytdlp_enabled: boolean;
       locale: string;
+      overseerr_url: string;
     }>,
   ) =>
     request<Settings>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),

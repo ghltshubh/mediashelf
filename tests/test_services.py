@@ -38,3 +38,39 @@ def test_subscription_checklist_toggle(client):
 
     services = client.get("/api/services").json()
     assert next(s for s in services if s["key"] == "netflix")["subscribed"] is True
+
+
+# ---------- Overseerr / Jellyseerr deep link ----------
+
+def test_request_url_absent_until_configured(client):
+    from tests.conftest import run_sync_now
+    run_sync_now()
+    shelf = client.get("/api/shelf?filter=all").json()
+    item_id = shelf["rails"][0]["items"][0]["id"]
+    assert client.get(f"/api/titles/{item_id}").json()["request_url"] is None
+
+
+def test_request_url_is_tmdb_keyed_and_exact(client):
+    """Unlike the service deep links (search-URL templates), Overseerr is TMDB
+    keyed like us, so this lands on the precise title."""
+    from tests.conftest import run_sync_now
+    run_sync_now()
+    r = client.put("/api/settings", json={"overseerr_url": "http://192.168.1.10:5055/"})
+    assert r.status_code == 200
+    assert r.json()["overseerr_url"] == "http://192.168.1.10:5055"  # trailing slash trimmed
+
+    shelf = client.get("/api/shelf?filter=all").json()
+    item = shelf["rails"][0]["items"][0]
+    data = client.get(f"/api/titles/{item['id']}").json()
+    assert data["request_url"] == (
+        f"http://192.168.1.10:5055/{data['media_type']}/{data['tmdb_id']}")
+
+
+def test_request_url_rejects_a_bare_host(client):
+    r = client.put("/api/settings", json={"overseerr_url": "192.168.1.10:5055"})
+    assert r.status_code == 422
+
+
+def test_request_url_can_be_cleared(client):
+    client.put("/api/settings", json={"overseerr_url": "http://seerr.local"})
+    assert client.put("/api/settings", json={"overseerr_url": ""}).json()["overseerr_url"] == ""

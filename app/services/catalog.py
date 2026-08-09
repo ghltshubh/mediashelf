@@ -1302,4 +1302,11 @@ def build_title(db: Session, item_id: int, country: str,
         select(LibraryEntry.id).where(
             LibraryEntry.media_item_id == item.id,
             LibraryEntry.entry_type.in_(["watchlist", WATCHLIST_MANUAL])).limit(1)))
+    # Overseerr/Jellyseerr link for people who self-host a request pipeline.
+    # Both are TMDB-keyed like us, so this lands on the exact title — unlike the
+    # service deep links, which can only aim at a search page. The client shows
+    # it only when nothing on your own services carries the title.
+    seerr = settings_store.get_setting(db, "overseerr_url")
+    data["request_url"] = (f"{seerr}/{item.media_type}/{item.tmdb_id}"
+                           if seerr and item.tmdb_id else None)
     return data

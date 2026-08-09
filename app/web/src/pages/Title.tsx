@@ -247,9 +247,25 @@ export function TitlePage() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-[6px] border border-line bg-bg1 px-3 py-2.5 text-[0.875rem] text-muted">
-                  Not on any service you've ticked. Update your services in Settings, or see below.
-                </p>
+                // Nothing you pay for carries it. If you self-host a request
+                // pipeline, that IS the action here — so it sits beside the
+                // message as a primary button rather than buried below.
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="min-w-0 flex-1 rounded-[6px] border border-line bg-bg1 px-3 py-2.5 text-[0.875rem] text-muted">
+                    Not on any service you've ticked. Update your services in Settings, or see below.
+                  </p>
+                  {t.request_url && (
+                    <a
+                      href={t.request_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open this title in your own Overseerr/Jellyseerr"
+                      className="shrink-0 rounded-[6px] bg-owned px-4 py-2.5 text-[0.9rem] font-medium text-bg0"
+                    >
+                      ↗ Request on Seer
+                    </a>
+                  )}
+                </div>
               )}
             </div>
             )}

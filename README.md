@@ -61,6 +61,10 @@ picks up from there:
   started / watching / caught up / seen, so a running show you're up to date on steps aside until
   a new episode airs. Marking is manual: MediaShelf links out to the service and never sees
   playback, so nothing can report an episode finished on its own.
+- **Overseerr / Jellyseerr** — if you self-host a request pipeline, a title that isn't on any
+  service you've ticked gets a **Request on Seer** button pointing at your own instance. Both are
+  TMDB-keyed like MediaShelf, so the link lands on the exact title. Configure the base URL in
+  Settings → Plugins; MediaShelf only links out — it never sends the request or touches media.
 - **"Popular right now"** aggregated from per-service Top 10s, **IMDb/RT/Metacritic** ratings
   (optional, via OMDb) alongside TMDB scores, service logos on every card, and studio-inferred
   **"expected on X"** hints for upcoming titles that aren't streaming yet.
