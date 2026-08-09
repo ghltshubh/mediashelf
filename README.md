@@ -145,10 +145,13 @@ OAuth accounts in **Settings → Accounts**. The OAuth redirect URI is always
 their own services in the checklist (e.g. "HBO Max Amazon Channel") — tick whichever way you
 actually subscribe, and titles light up accordingly.
 
-**Watchlist import** ("My List" from Netflix/Tubi/etc.) runs as a **separate local companion tool**,
-not part of this product — logged-in scraping stays outside the core per the plugin boundary. Each
-import is a full-state sync of that service's list; titles you save yourself are kept separately,
-so an import never removes them.
+**Watchlist import** ("My List" from Netflix/Tubi/etc.) needs a **separate companion tool, which
+MediaShelf does not ship** — reading a logged-in streaming session breaches those services' terms
+and the risk lands on your account, so the product provides only the receiving endpoint. Nothing
+breaks without one: leave **Settings → Plugins → Importer URL** empty and the links don't appear.
+Save titles with **+ Want to watch** instead, or import an official data export from the service.
+See [docs/INSTALL.md §8b](docs/INSTALL.md). Each import is a full-state sync of that service's
+list; titles you save yourself are kept separately, so an import never removes them.
 
 ## Notes
 

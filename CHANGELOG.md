@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The setup guide now explains the watchlist importer at all — what it is, that MediaShelf doesn't
+  ship one and why, that nothing breaks without it, and that it belongs on the machine you browse
+  from rather than the server. It had never been mentioned in the install docs, so a Docker user's
+  only exposure to it was a settings panel referring to a tool they'd never heard of.
+
 ## v0.1.4 — 2026-08-09
 
 - **Docker builds no longer reinstall every dependency on each release.** The source was copied

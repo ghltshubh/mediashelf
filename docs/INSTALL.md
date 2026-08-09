@@ -15,6 +15,7 @@ This guide takes you from zero to a running instance with your services connecte
 - [6. Connecting accounts (OAuth)](#6-connecting-accounts-oauth)
 - [7. Optional: yt-dlp plugin](#7-optional-yt-dlp-plugin-zero-quota-youtube-search)
 - [8. Running on a remote host / custom domain](#8-running-on-a-remote-host--custom-domain)
+- [8b. Watchlist import (optional, and not shipped)](#8b-watchlist-import-optional-and-not-shipped)
 - [9. Updating](#9-updating)
 - [10. Troubleshooting](#10-troubleshooting)
 
@@ -245,6 +246,38 @@ domain:
    (Settings store) to the same URL. It must match on both sides exactly.
 3. **Keep it private.** MediaShelf is single-user/household scale with no auth layer of its own —
    don't expose it to the open internet. Use a LAN, a VPN, or Tailscale.
+4. **The watchlist importer, if you use one, stays on your own computer** — see below. Its address
+   is a setting, not an assumption about where MediaShelf runs.
+
+---
+
+## 8b. Watchlist import (optional, and not shipped)
+
+**Settings → Plugins → Watchlist importer** takes the address of a *companion tool*. MediaShelf
+does not include one, and nothing breaks without it — with the field empty, the importer links
+simply don't appear.
+
+The reason it isn't shipped: pulling your "My List" out of Netflix or Prime means driving a
+browser that is **logged into your account**. That breaches those services' terms, and the risk
+would land on your account rather than ours, so MediaShelf ships only the receiving end — a
+`POST /api/watchlist/import` endpoint — and never the part that reads a logged-in session.
+
+If you do run such a tool:
+
+- **It belongs on the machine you browse from, not on the server.** It needs your signed-in
+  sessions and, for most services, an interactive login the first time. A headless NAS has neither.
+- Point MediaShelf at it with the **Importer URL** setting (e.g. `http://127.0.0.1:8765`), and
+  point the tool at MediaShelf's own address — on a server that is `http://<host>:8000`, not
+  `127.0.0.1`.
+- Each import is a **full-state sync** for that service: titles the list no longer has are
+  removed. Titles you saved yourself inside MediaShelf are stored separately and are never touched
+  by it.
+
+Ways to fill the rail without any of this:
+
+- **Save titles in the app.** Every title page has a **+ Want to watch** button.
+- **Official data exports.** Several services will export your list on request through their
+  privacy/data-download portal — a sanctioned route that needs no automation.
 
 ---
 
