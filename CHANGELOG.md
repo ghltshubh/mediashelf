@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Onboarding's "connect accounts" step pointed at the wrong place and named the wrong services:
+  the OAuth app keys live in **Settings → Keys**, not Accounts, and Spotify needs them just like
+  YouTube and Apple Music do. Connect is correctly disabled until they're saved; the note under
+  the cards now says so.
+
 ## v0.1.2 — 2026-08-09
 
 - **Request on Seer** now also appears on titles nothing streams anywhere (it was skipped

@@ -169,7 +169,9 @@ function StepThree({ onDone }: { onDone: () => void }) {
         ))}
       </div>
       <p className="mt-3 max-w-xl font-mono text-[0.75rem] text-muted">
-        YouTube and Apple Music need keys added in Settings → Accounts first — both are guided there.
+        Connect stays greyed out until that service's own keys are saved in Settings → Keys —
+        every one of these needs them, and each is guided there. You can finish setup now and
+        come back to it.
       </p>
 
       {/* yt-dlp suggestion — honest one-paragraph explanation (M6), off by default. */}
