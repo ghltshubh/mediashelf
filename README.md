@@ -26,9 +26,14 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 <summary>More screenshots</summary>
 
 **Title page** — where a title streams (on your services vs elsewhere), deep links, plan
-prices, and cast:
+prices, and cast. Shows whose seasons sit on different services get a **by season** breakdown:
 
 ![Title page — availability split with deep links](docs/img/title.jpg)
+
+**Episode tracking** — tick episodes or a whole season; the shelf's "Continue watching" rail
+picks up from there:
+
+![Episode tracking — season chips and per-episode ticks](docs/img/episodes.jpg)
 
 </details>
 
