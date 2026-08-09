@@ -74,3 +74,27 @@ def test_request_url_rejects_a_bare_host(client):
 def test_request_url_can_be_cleared(client):
     client.put("/api/settings", json={"overseerr_url": "http://seerr.local"})
     assert client.put("/api/settings", json={"overseerr_url": ""}).json()["overseerr_url"] == ""
+
+
+def test_leaving_soon_surfaces_on_the_title(client):
+    """Watchable today, gone next week — the one case where a request makes
+    sense even though a service you pay for still carries it."""
+    from app.db import session_factory
+    from app.models import LibraryEntry, Service
+    from tests.conftest import run_sync_now
+
+    run_sync_now()
+    client.put("/api/settings", json={"overseerr_url": "http://seerr.local"})
+    shelf = client.get("/api/shelf?filter=all").json()
+    item_id = shelf["rails"][0]["items"][0]["id"]
+    assert client.get(f"/api/titles/{item_id}").json()["leaving_soon"] is None
+
+    with session_factory()() as db:
+        svc = db.query(Service).filter(Service.key == "netflix").first()
+        db.add(LibraryEntry(service_id=svc.id, media_item_id=item_id,
+                            entry_type="leaving_soon", external_id="netflix:leaving:x",
+                            payload={"title": "x", "note": "leaves Aug 31"}))
+        db.commit()
+
+    data = client.get(f"/api/titles/{item_id}").json()
+    assert data["leaving_soon"] == {"service_name": "Netflix", "note": "leaves Aug 31"}

@@ -330,6 +330,8 @@ export interface Title extends ShelfItem {
   in_watchlist: boolean;
   // Link into the user's own Overseerr/Jellyseerr; null unless configured.
   request_url: string | null;
+  // Set when a service you pay for is about to drop it.
+  leaving_soon: { service_name: string; note: string | null } | null;
 }
 
 // Episode progress. Marking is manual — MediaShelf deep-links out for TV and

@@ -1309,4 +1309,15 @@ def build_title(db: Session, item_id: int, country: str,
     seerr = settings_store.get_setting(db, "overseerr_url")
     data["request_url"] = (f"{seerr}/{item.media_type}/{item.tmdb_id}"
                            if seerr and item.tmdb_id else None)
+    # Watchable today, gone next week — the one case where wanting your own copy
+    # makes sense even though a service you pay for still carries it.
+    leaving = db.execute(
+        select(LibraryEntry, Service.name)
+        .join(Service, Service.id == LibraryEntry.service_id)
+        .where(LibraryEntry.media_item_id == item.id,
+               LibraryEntry.entry_type == "leaving_soon")
+        .limit(1)).first()
+    data["leaving_soon"] = ({"service_name": leaving[1],
+                             "note": (leaving[0].payload or {}).get("note")}
+                            if leaving else None)
     return data

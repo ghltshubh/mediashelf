@@ -5,7 +5,8 @@
 - **Overseerr / Jellyseerr link.** A title on none of your ticked services shows a "Request on
   Seer" button pointing at your own instance (base URL in Settings → Plugins). Both are
   TMDB-keyed, so it lands on the exact title rather than a search page. MediaShelf only links
-  out — it never sends the request or touches media.
+  out — it never sends the request or touches media. It also appears on titles leaving a
+  service you have, and on titles nothing streams at all.
 
 - **Episode tracking for shows.** Season and episode lists on a title page; tick episodes or a
   whole season. A **Continue watching** rail leads the shelf with a one-tap mark for the next
