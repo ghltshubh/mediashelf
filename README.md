@@ -84,6 +84,8 @@ picks up from there:
 yt-dlp, concierge & a11y polish, podcasts) plus i18n and PWA installability. M9 (social/feed
 layer) is deferred.
 
+**→ What's next, and what isn't: [ROADMAP.md](ROADMAP.md).**
+
 ## Quick start (Docker)
 
 Prebuilt image (no build):
