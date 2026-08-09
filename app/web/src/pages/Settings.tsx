@@ -6,7 +6,7 @@ import { KeyValueMono } from "../components/KeyValueMono";
 import { RegionPicker } from "../components/RegionPicker";
 import { ServiceTile } from "../components/ServiceTile";
 import { StatusBanner } from "../components/StatusBanner";
-import { api, type Service } from "../lib/api";
+import { api, type ImportListResult, type Service } from "../lib/api";
 import { useT } from "../lib/i18n";
 import { LOCALE_OPTIONS } from "../lib/locale";
 import { ageOf } from "../lib/time";
@@ -191,6 +191,158 @@ function ImporterUrlForm({ current }: { current: string }) {
            className="mt-3 inline-block rounded-[6px] border border-line px-4 py-2 text-[0.9rem] hover:bg-bg2">
           ↗ Open watchlist control panel
         </a>
+      )}
+    </div>
+  );
+}
+
+// Minimal CSV: commas split fields, double quotes group them ("" escapes one).
+function splitCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ",") {
+      out.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+// Accepts both shapes people actually have: a CSV export with a header
+// (Letterboxd's "Name"/"Year", IMDb's "Title"/"Year") and a plain list with
+// one "Title (Year)" per line. The year matters: without it "Dune" 1984 and
+// 2021 are the same row.
+function parseListText(text: string): { title: string; year: number | null }[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+  const header = splitCsvLine(lines[0]).map((c) => c.trim().toLowerCase());
+  const titleCol = header.findIndex((c) => c === "name" || c === "title");
+  if (titleCol >= 0 && lines.length > 1) {
+    const yearCol = header.indexOf("year");
+    return lines.slice(1).flatMap((line) => {
+      const cells = splitCsvLine(line);
+      const title = (cells[titleCol] ?? "").trim();
+      if (!title) return [];
+      const y = yearCol >= 0 ? parseInt(cells[yearCol] ?? "", 10) : NaN;
+      return [{ title, year: Number.isFinite(y) ? y : null }];
+    });
+  }
+  return lines.map((line) => {
+    const m = line.match(/^(.*?)\s*\((\d{4})\)$/);
+    return m ? { title: m[1], year: parseInt(m[2], 10) } : { title: line, year: null };
+  });
+}
+
+function ImportListForm() {
+  const queryClient = useQueryClient();
+  const [text, setText] = useState("");
+  const [source, setSource] = useState("");
+  const [result, setResult] = useState<ImportListResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const services = useQuery({ queryKey: ["services", ""], queryFn: () => api.services("") });
+
+  // The source service steers matching (a "Ludo" from your Netflix list should
+  // resolve to the one ON Netflix), so offer the services you've ticked.
+  const video = (services.data ?? []).filter((s) => s.kind === "video" && !s.custom);
+  const subscribed = video.filter((s) => s.subscribed);
+  const opts = subscribed.length > 0 ? subscribed : video;
+  const sourceKey = source || opts[0]?.key || "";
+
+  const items = parseListText(text);
+  const send = useMutation({
+    mutationFn: () => api.importWatchlist(sourceKey, items),
+    onSuccess: (r) => {
+      setResult(r);
+      setError(null);
+      setText("");
+      queryClient.invalidateQueries({ queryKey: ["shelf"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <div className="mt-3">
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setResult(null);
+        }}
+        rows={5}
+        placeholder={"One title per line — the year helps:\nDune (2021)\nThe Long Voyage"}
+        className={`${inputCls} min-h-24 font-mono text-[0.85rem]`}
+        aria-label="Titles to import"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <label className="cursor-pointer rounded-[6px] border border-line px-3 py-2 text-[0.85rem] hover:bg-bg2">
+          Upload .txt / .csv
+          <input
+            type="file"
+            accept=".txt,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) {
+                // Fills the textarea rather than importing directly, so what
+                // gets sent is always exactly what's on screen.
+                f.text().then((content) => {
+                  setText(content);
+                  setResult(null);
+                });
+              }
+              e.target.value = "";
+            }}
+          />
+        </label>
+        <label className="flex items-center gap-2 text-[0.85rem] text-muted">
+          from
+          <select
+            value={sourceKey}
+            onChange={(e) => setSource(e.target.value)}
+            className="rounded-[6px] border border-line bg-bg0 px-2 py-2 text-[0.85rem] text-fg"
+            aria-label="Which service this list is from"
+          >
+            {opts.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          disabled={send.isPending || items.length === 0 || !sourceKey}
+          onClick={() => send.mutate()}
+          className={primaryBtn}
+        >
+          {send.isPending
+            ? "Importing…"
+            : `Import ${items.length > 0 ? items.length : ""} title${items.length === 1 ? "" : "s"}`}
+        </button>
+      </div>
+      {error && <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
+      {result && (
+        <div className="mt-2 font-mono text-[0.8rem] text-muted">
+          <p>
+            {result.added} added · {result.kept} already saved
+            {result.truncated > 0 && ` · ${result.truncated} over the 500-per-import limit — paste the rest separately`}
+          </p>
+          {result.unmatched.length > 0 && (
+            <p className="mt-1">
+              no match found for: {result.unmatched.join(", ")}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
@@ -898,12 +1050,23 @@ export function Settings() {
             <SeerrUrlForm current={s?.overseerr_url ?? ""} />
           </div>
           <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
+            <h3 className="font-display text-[1rem] font-semibold">Import a list</h3>
+            <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
+              Bring an existing list into the Want-to-watch rail: paste titles, or upload a{" "}
+              <code>.txt</code> / <code>.csv</code> — an official data export from your streaming
+              service, a Letterboxd or IMDb export, or a hand-written list all work. Imports only
+              ever add; nothing you've saved is removed.
+            </p>
+            <ImportListForm />
+          </div>
+          <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
             <h3 className="font-display text-[1rem] font-semibold">Watchlist importer</h3>
             <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
-              Pull your "My List" from streaming apps into the Want-to-watch rail. The importer is
-              a separate companion tool — MediaShelf just links to it, keeping logged-in scraping
-              outside the product. It runs on the computer you browse from, not on the server,
-              because it needs your signed-in streaming sessions.
+              For keeping "My List" in continuous sync via an external tool. MediaShelf doesn't
+              ship one — logged-in scraping stays outside the product — it just links to whatever
+              you run yourself. The tool runs on the computer you browse from, not on the server,
+              because it needs your signed-in streaming sessions. Most people want the paste/upload
+              box above instead.
             </p>
             <ImporterUrlForm current={s?.importer_url ?? ""} />
           </div>
@@ -912,7 +1075,7 @@ export function Settings() {
         <Section id="about" title={t("settings.section.about")}>
           <KeyValueMono
             pairs={[
-              ["MediaShelf", "0.1.4"],
+              ["MediaShelf", "0.1.5"],
               ["License", "AGPL-3.0-or-later"],
               ["Data", "TMDB — this product uses the TMDB API but is not endorsed or certified by TMDB · streaming availability by JustWatch"],
               ["Storage", "SQLite in your data dir · keys encrypted at rest · nightly backups (keep 7)"],

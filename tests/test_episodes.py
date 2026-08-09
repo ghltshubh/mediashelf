@@ -370,7 +370,7 @@ def test_importer_full_sync_cannot_delete_your_own_entries(client):
     client.post(f"/api/titles/{item_id}/watchlist")
     r = client.post("/api/watchlist/import",
                     json={"source": "netflix", "items": [], "replace": True,
-                          "list_type": "watchlist"})
+                          "list_type": "watchlist", "allow_empty": True})
     assert r.status_code == 200
     assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is True
 

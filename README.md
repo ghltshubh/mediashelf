@@ -54,8 +54,8 @@ picks up from there:
   expand **"In other regions"** to show where it streams in every country worldwide — for when
   something isn't available where you live.
 - **Media-type tabs** (All / Movies / Shows / Music) and a **"Want to watch"** rail — save titles
-  from any title page, or import your existing "My List" from your streaming apps via a separate
-  local companion tool (logged-in scraping stays out of the product).
+  from any title page, or bring an existing list in via Settings: paste titles or upload a
+  `.txt`/`.csv` (official service data exports, Letterboxd/IMDb exports, hand-written lists).
 - **Episode tracking** for shows — tick episodes or whole seasons, and a **"Continue watching"**
   rail leads the shelf with a one-tap mark for the next episode. Shows sort themselves into not
   started / watching / caught up / seen, so a running show you're up to date on steps aside until
@@ -63,14 +63,13 @@ picks up from there:
   playback, so nothing can report an episode finished on its own.
 - **Overseerr / Jellyseerr** — if you self-host a request pipeline, a title that isn't on any
   service you've ticked gets a **Request on Seer** button pointing at your own instance. Both are
-  TMDB-keyed like MediaShelf, so the link lands on the exact title. It also appears on titles
-  that are **leaving a service you have** — watchable today, gone next week. Configure the base
+  TMDB-keyed like MediaShelf, so the link lands on the exact title. Configure the base
   URL in Settings → Plugins; MediaShelf only links out — it never sends the request or touches
   media, and without that setting the button doesn't exist.
-- **"Trending this week"** straight from TMDB — no extra key, no companion tool.
-  *(A separate **"Popular right now"** rail aggregates per-service Top 10s, but that data
-  only arrives via an importer MediaShelf does not ship — see
-  [docs/INSTALL.md §8b](docs/INSTALL.md#8b-watchlist-import-optional-and-not-shipped).)*
+- **"Trending this week"** straight from TMDB, and **"Popular right now"** from the weekly
+  Top 10 **Netflix itself publishes as open data** — both refresh with the nightly sync on a
+  stock install, no extra key, no tooling. (Other services publish no equivalent; their
+  per-service views rank by TMDB popularity instead.)
 - **IMDb/RT/Metacritic** ratings (optional, via OMDb) alongside TMDB scores, service logos on
   every card, and studio-inferred **"expected on X"** hints for upcoming titles.
 - **Podcasts** — subscribe by RSS feed URL or bulk-import an OPML file from any other app;
@@ -116,7 +115,8 @@ for leaving it blank:
 | Spotify / YouTube / Apple Music keys | in-app playback and library sync | Settings → Keys |
 | OMDb key | IMDb / RT / Metacritic scores | Settings → Keys |
 | Overseerr / Jellyseerr URL | a **Request on Seer** button when nothing you subscribe to has a title | Settings → Plugins |
-| Watchlist importer URL | pulls your "My List" in — **the tool itself isn't shipped**, see [§8b](docs/INSTALL.md#8b-watchlist-import-optional-and-not-shipped) | Settings → Plugins |
+| Paste / upload a list | brings an existing watchlist in (`.txt`/`.csv` or plain text) | Settings → Plugins |
+| Watchlist importer URL | continuous "My List" sync — **the tool itself isn't shipped**, see [§8b](docs/INSTALL.md#8b-watchlist-import-paste-upload-or-an-external-tool) | Settings → Plugins |
 | `yt-dlp` | zero-quota YouTube search | Settings → Plugins |
 
 **Running it on a server or NAS?** Two things differ from localhost: the OAuth redirect has to
@@ -163,13 +163,15 @@ OAuth accounts in **Settings → Accounts**. The OAuth redirect URI is always
 their own services in the checklist (e.g. "HBO Max Amazon Channel") — tick whichever way you
 actually subscribe, and titles light up accordingly.
 
-**Watchlist import** ("My List" from Netflix/Tubi/etc.) needs a **separate companion tool, which
-MediaShelf does not ship** — reading a logged-in streaming session breaches those services' terms
-and the risk lands on your account, so the product provides only the receiving endpoint. Nothing
-breaks without one: leave **Settings → Plugins → Importer URL** empty and the links don't appear.
-Save titles with **+ Want to watch** instead, or import an official data export from the service.
-See [docs/INSTALL.md §8b](docs/INSTALL.md). Each import is a full-state sync of that service's
-list; titles you save yourself are kept separately, so an import never removes them.
+**Watchlist import**: save titles with **+ Want to watch**, or paste/upload a list in
+**Settings → Plugins** — official service data exports, Letterboxd/IMDb CSVs, or a plain
+`Title (Year)` list all work, and a paste only ever adds. *Continuous* "My List" sync needs a
+**separate external tool, which MediaShelf does not ship** — reading a logged-in streaming
+session breaches those services' terms and the risk lands on your account, so the product
+provides only the receiving endpoint. Nothing breaks without one: leave
+**Settings → Plugins → Importer URL** empty and the links don't appear.
+See [docs/INSTALL.md §8b](docs/INSTALL.md). Titles you save yourself are kept separately, so a
+tool's full-state sync never removes them.
 
 ## Notes
 

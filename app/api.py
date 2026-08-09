@@ -778,149 +778,41 @@ async def import_title(body: ImportBody, db: Session = Depends(get_session)) -> 
     return data
 
 
-# ---------- Watchlist import (decided in plan; product ships importer only) ----------
+# ---------- Watchlist import (paste/upload in Settings, or an external tool) ----------
 
-LIST_TYPES = ("watchlist", "top10", "leaving_soon")
-
-_ARTICLE_RE = re.compile(r"^(the|a|an)\s+", re.IGNORECASE)
-
-
-def _norm_title(t: str) -> str:
-    t = _ARTICLE_RE.sub("", t.lower().strip())
-    return re.sub(r"[^a-z0-9]+", " ", t).strip()
-
-
-def _resolve_best(results: list[dict], title: str, year: int | None) -> dict | None:
-    """Pick the best TMDB hit for a scraped title. Article-insensitive
-    ("Devil's Advocate" == "The Devil's Advocate"); among title matches, prefer
-    a year match then popularity; else fall back to the most popular result."""
-    qn = _norm_title(title)
-    matches: list[tuple[bool, float, dict]] = []
-    for r in results:
-        name = r.get("title") or r.get("name") or ""
-        date = r.get("release_date") or r.get("first_air_date") or ""
-        r_year = int(date[:4]) if date[:4].isdigit() else None
-        if _norm_title(name) == qn:
-            matches.append((year is not None and r_year == year,
-                            r.get("popularity", 0.0), r))
-    if matches:
-        matches.sort(key=lambda mrec: (not mrec[0], -mrec[1]))
-        return matches[0][2]
-    return results[0] if results else None
-
-
-async def _resolve_for_service(client: TMDBClient, results: list[dict], title: str,
-                               year: int | None, source_key: str, country: str,
-                               known_keys: set[str]) -> dict | None:
-    """Service-aware resolution: a title from your Netflix list should match the
-    TMDB entry that's actually ON Netflix. Disambiguates same-name films
-    ("Ludo" 2020 Bollywood on Netflix vs a 2021 documentary) by checking each
-    candidate's availability on the source service; falls back to _resolve_best."""
-    qn = _norm_title(title)
-    matches = [r for r in results
-               if _norm_title(r.get("title") or r.get("name") or "") == qn]
-    pool = matches or results
-    if len(pool) <= 1:
-        return pool[0] if pool else None
-    from app.services.catalog import _slugify, resolve_alias_key
-
-    for cand in sorted(pool, key=lambda r: -(r.get("popularity") or 0.0))[:6]:
-        try:
-            regions = await client.watch_providers(cand["media_type"], cand["id"])
-        except Exception:
-            continue
-        data = regions.get(country) or {}
-        keys: set[str] = set()
-        for field in ("flatrate", "free", "ads", "rent", "buy"):
-            for p in data.get(field, []) or []:
-                name = p.get("provider_name", "")
-                keys.add(resolve_alias_key(name, known_keys) or _slugify(name))
-        if source_key in keys:
-            return cand
-    return _resolve_best(results, title, year)
-
-
-class WatchlistItem(BaseModel):
-    title: str
-    year: int | None = None
-    rank: int | None = None          # top10 ordering
-    note: str | None = None          # e.g. "leaves Jul 31"
+# The pipeline itself lives in services/list_import.py — catalog.run_sync feeds
+# the Netflix Top 10 through it too, and a sync job must not import from here.
+from app.services.list_import import LIST_TYPES, UnknownServiceError, import_list  # noqa: E402
+from app.services.list_import import ImportItem as WatchlistItem  # noqa: E402
 
 
 class WatchlistImportBody(BaseModel):
     source: str                      # service key, e.g. "netflix"
     items: list[WatchlistItem]
     replace: bool = True             # full-state sync: adds AND removals
-    list_type: str = "watchlist"     # watchlist | top10 | leaving_soon
+    list_type: str = "watchlist"     # watchlist | top10
+    # A full-state sync of nothing deletes the whole list, which is exactly what
+    # a scraper returning zero titles looks like. Clearing has to be asked for.
+    allow_empty: bool = False
 
 
 @router.post("/watchlist/import")
 async def import_watchlist(body: WatchlistImportBody,
                            db: Session = Depends(get_session)) -> dict:
-    from app.models import LibraryEntry
-
     if body.list_type not in LIST_TYPES:
         raise HTTPException(422, f"list_type must be one of {LIST_TYPES}")
+    if body.replace and not body.items and not body.allow_empty:
+        raise HTTPException(422, "Refusing to clear this list from an empty import — "
+                                 "pass allow_empty=true if that is what you meant")
     api_key = settings_store.get_setting(db, "tmdb_api_key")
     if not api_key:
         raise HTTPException(400, "Add your TMDB key first")
-    svc = db.scalar(select(Service).where(Service.key == body.source.strip().lower()))
-    if svc is None:
-        raise HTTPException(404, f"Unknown service '{body.source}'")
-    countries = _tracked_countries(db)
-    client = TMDBClient(api_key)
-    lt = body.list_type
-    known_keys = set(db.scalars(select(Service.key)))
-
-    added, kept, unmatched = 0, 0, []
-    seen_external: set[str] = set()
-    for idx, item in enumerate(body.items[:500]):
-        title = item.title.strip()
-        if not title:
-            continue
-        external_id = f"{body.source}:{lt}:{title.lower()}"
-        if external_id in seen_external:
-            continue
-        seen_external.add(external_id)
-        rank = item.rank if item.rank is not None else (idx + 1 if lt == "top10" else None)
-        payload = {"title": title, "year": item.year, "rank": rank, "note": item.note}
-        existing = db.scalar(select(LibraryEntry).where(
-            LibraryEntry.service_id == svc.id,
-            LibraryEntry.entry_type == lt,
-            LibraryEntry.external_id == external_id))
-        if existing is not None:
-            existing.payload = payload  # refresh rank/note even when title unchanged
-            kept += 1
-            continue
-        # Resolve against TMDB: prefer the match that's on the source service,
-        # else article-insensitive popularity-best.
-        try:
-            results = [r for r in await client.search_multi(title)
-                       if r.get("media_type") in ("movie", "tv")]
-        except TMDBError:
-            results = []
-        best = await _resolve_for_service(client, results, title, item.year,
-                                          svc.key, countries[0], known_keys)
-        if best is None:
-            unmatched.append(title)
-            continue
-        media = await catalog.import_title(db, api_key, best["media_type"], best["id"], countries)
-        db.add(LibraryEntry(service_id=svc.id, media_item_id=media.id,
-                            entry_type=lt, external_id=external_id, payload=payload))
-        db.commit()
-        added += 1
-
-    removed = 0
-    if body.replace:
-        for entry in db.scalars(select(LibraryEntry).where(
-                LibraryEntry.service_id == svc.id,
-                LibraryEntry.entry_type == lt)):
-            if entry.external_id not in seen_external:
-                db.delete(entry)
-                removed += 1
-        db.commit()
-    return {"source": body.source, "added": added, "kept": kept,
-            "removed": removed, "unmatched": unmatched}
+    try:
+        return await import_list(db, api_key, source=body.source, items=body.items,
+                                 countries=_tracked_countries(db),
+                                 list_type=body.list_type, replace=body.replace)
+    except UnknownServiceError as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 # ---------- Migrations (M5) ----------

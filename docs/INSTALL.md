@@ -16,7 +16,7 @@ This guide takes you from zero to a running instance with your services connecte
 - [6. Connecting accounts (OAuth)](#6-connecting-accounts-oauth)
 - [7. Optional: yt-dlp plugin](#7-optional-yt-dlp-plugin-zero-quota-youtube-search)
 - [8. Running on a remote host / custom domain](#8-running-on-a-remote-host--custom-domain)
-- [8b. Watchlist import (optional, and not shipped)](#8b-watchlist-import-optional-and-not-shipped)
+- [8b. Watchlist import (paste, upload, or an external tool)](#8b-watchlist-import-paste-upload-or-an-external-tool)
 - [9. Updating](#9-updating)
 - [10. Troubleshooting](#10-troubleshooting)
 
@@ -138,7 +138,8 @@ Three more optional integrations need no API key — they take a URL or a binary
 | Integration | Unlocks | Notes |
 |---|---|---|
 | **Overseerr / Jellyseerr** | a **Request on Seer** button on titles nothing you subscribe to carries | your own instance's base URL, e.g. `http://192.168.1.10:5055`; §5b |
-| **Watchlist importer** | pulls your "My List" from streaming apps | **the tool is not shipped** — §8b |
+| **Import a list** | paste or upload titles into Want to watch | built in, no tool — §8b |
+| **Watchlist importer** | continuous "My List" sync via an external tool | **the tool is not shipped** — §8b |
 | **yt-dlp** | zero-quota YouTube search | a binary you install locally — §7 |
 
 ### TMDB (required) — ~2 minutes
@@ -214,8 +215,8 @@ it into **Settings → Keys → Apple Music**.
 ## 5b. Overseerr / Jellyseerr (optional)
 
 If you self-host a request pipeline, put its base URL in **Settings → Plugins**. A title that isn't
-on any service you've ticked — or that nothing streams anywhere, or that is leaving a service you
-have — then shows a **Request on Seer** button pointing at your own instance.
+on any service you've ticked — or that nothing streams anywhere — then shows a
+**Request on Seer** button pointing at your own instance.
 
 Both are TMDB-keyed like MediaShelf, so the link lands on the exact title rather than a search
 page. MediaShelf only links out: it never sends the request, stores no Seerr API key, and touches
@@ -279,11 +280,20 @@ domain:
 
 ---
 
-## 8b. Watchlist import (optional, and not shipped)
+## 8b. Watchlist import (paste, upload, or an external tool)
 
-**Settings → Plugins → Watchlist importer** takes the address of a *companion tool*. MediaShelf
-does not include one, and nothing breaks without it — with the field empty, the importer links
-simply don't appear.
+The no-tool routes cover almost everyone:
+
+- **Save titles in the app.** Every title page has a **+ Want to watch** button.
+- **Paste or upload a list** in **Settings → Plugins → Import a list**: one `Title (Year)` per
+  line in the textarea, or upload a `.txt`/`.csv`. CSV exports with a `Name`/`Title` (and `Year`)
+  header column work as-is — Letterboxd, IMDb, and the official data exports most streaming
+  services provide through their privacy/data-download portal. Pasted imports only ever **add**
+  titles; they never remove anything.
+
+**Settings → Plugins → Watchlist importer** is the remaining option, for *continuous* sync: it
+takes the address of an external tool. MediaShelf does not include one, and nothing breaks
+without it — with the field empty, the importer links simply don't appear.
 
 The reason it isn't shipped: pulling your "My List" out of Netflix or Prime means driving a
 browser that is **logged into your account**. That breaches those services' terms, and the risk
@@ -297,15 +307,9 @@ If you do run such a tool:
 - Point MediaShelf at it with the **Importer URL** setting (e.g. `http://127.0.0.1:8765`), and
   point the tool at MediaShelf's own address — on a server that is `http://<host>:8000`, not
   `127.0.0.1`.
-- Each import is a **full-state sync** for that service: titles the list no longer has are
-  removed. Titles you saved yourself inside MediaShelf are stored separately and are never touched
-  by it.
-
-Ways to fill the rail without any of this:
-
-- **Save titles in the app.** Every title page has a **+ Want to watch** button.
-- **Official data exports.** Several services will export your list on request through their
-  privacy/data-download portal — a sanctioned route that needs no automation.
+- Each import with `replace` is a **full-state sync** for that service: titles the list no longer
+  has are removed (an empty list is refused unless the request says `allow_empty`). Titles you
+  saved yourself inside MediaShelf are stored separately and are never touched by it.
 
 ---
 

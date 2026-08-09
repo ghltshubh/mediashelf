@@ -258,25 +258,6 @@ export function TitlePage() {
                   {t.on_your_services.map((b) => (
                     <AvailabilityRow key={`${b.service_key}-${b.offer_type}`} badge={b} />
                   ))}
-                  {/* You can watch it now but not for long. Quieter than the
-                      empty-state button — this is a hedge, not the main action. */}
-                  {t.leaving_soon && t.request_url && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-bg1 px-3 py-2.5">
-                      <span className="text-[0.875rem] text-muted">
-                        Leaving {t.leaving_soon.service_name}
-                        {t.leaving_soon.note ? ` — ${t.leaving_soon.note}` : " soon"}.
-                      </span>
-                      <a
-                        href={t.request_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Open this title in your own Overseerr/Jellyseerr"
-                        className="hoverable shrink-0 rounded-[6px] border border-owned/50 px-3 py-1.5 font-mono text-[0.8rem] text-owned hover:bg-owned/15"
-                      >
-                        ↗ Request on Seer
-                      </a>
-                    </div>
-                  )}
                 </div>
               ) : (
                 // Nothing you pay for carries it. If you self-host a request

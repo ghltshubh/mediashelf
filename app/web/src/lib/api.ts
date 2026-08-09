@@ -331,8 +331,6 @@ export interface Title extends ShelfItem {
   in_watchlist: boolean;
   // Link into the user's own Overseerr/Jellyseerr; null unless configured.
   request_url: string | null;
-  // Set when a service you pay for is about to drop it.
-  leaving_soon: { service_name: string; note: string | null } | null;
 }
 
 // Episode progress. Marking is manual — MediaShelf deep-links out for TV and
@@ -389,6 +387,15 @@ export interface Episode {
   overview: string | null;
   still: string | null;
   watched: boolean;
+}
+
+export interface ImportListResult {
+  source: string;
+  added: number;
+  kept: number;
+  removed: number;
+  unmatched: string[];
+  truncated: number;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -474,6 +481,13 @@ export const api = {
     request<{ items: VideoResult[] }>(`/api/titles/${id}/similar?region=${region}`),
   addToWatchlist: (id: number) =>
     request<{ in_watchlist: boolean }>(`/api/titles/${id}/watchlist`, { method: "POST" }),
+  // Paste/upload import: always additive (replace: false) — a paste adds to
+  // the Want-to-watch rail, it never syncs a service list away.
+  importWatchlist: (source: string, items: { title: string; year: number | null }[]) =>
+    request<ImportListResult>("/api/watchlist/import", {
+      method: "POST",
+      body: JSON.stringify({ source, items, list_type: "watchlist", replace: false }),
+    }),
   removeFromWatchlist: (id: number) =>
     request<{ in_watchlist: boolean; imported: boolean }>(`/api/titles/${id}/watchlist`, {
       method: "DELETE",

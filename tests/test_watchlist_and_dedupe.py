@@ -104,7 +104,7 @@ def test_watchlist_import_and_full_state_sync(client, monkeypatch):
 
 
 def test_resolver_prefers_popular_article_insensitive():
-    from app.api import _resolve_best
+    from app.services.resolve_titles import resolve_best as _resolve_best
 
     results = [
         {"media_type": "movie", "id": 1813, "title": "The Devil's Advocate",
@@ -125,8 +125,8 @@ def test_service_aware_resolution(client, monkeypatch):
     same-named obscure title that streams elsewhere."""
     import asyncio
 
-    from app.api import _resolve_for_service
     from app.providers import tmdb as tmdb_mod
+    from app.services.resolve_titles import resolve_for_service as _resolve_for_service
 
     results = [
         {"media_type": "movie", "id": 700, "title": "Ludo",
@@ -157,7 +157,7 @@ def test_watchlist_import_requires_known_service(client):
     assert r.status_code == 404
 
 
-def test_top10_and_leaving_rails(client, monkeypatch):
+def test_top10_popular_rail(client, monkeypatch):
     from app.providers import tmdb as tmdb_mod
 
     catalog_data = {
@@ -194,12 +194,6 @@ def test_top10_and_leaving_rails(client, monkeypatch):
         "source": "tubi", "list_type": "top10",
         "items": [{"title": "Neon Alley", "rank": 1}, {"title": "The Long Voyage", "rank": 2}],
     })
-    # Leaving soon stays per-service.
-    client.post("/api/watchlist/import", json={
-        "source": "tubi", "list_type": "leaving_soon",
-        "items": [{"title": "Quiet Orbit", "note": "leaves Jul 31"}],
-    })
-
     shelf = client.get("/api/shelf", params={"filter": "all"}).json()
     rails = {r["key"]: r for r in shelf["rails"]}
     # One aggregated "Popular right now" rail — no per-service top10 rails.
@@ -212,8 +206,6 @@ def test_top10_and_leaving_rails(client, monkeypatch):
     pop_titles = {i["title"] for i in rails["popular"]["items"]}
     assert pop_titles == {"The Long Voyage", "Neon Alley"}
     assert len(rails["popular"]["items"]) == 2  # deduped across services
-    assert "leaving_tubi" in rails and rails["leaving_tubi"]["label"] == "Leaving Tubi soon"
 
-    # "see all" browse pages resolve for these rails.
+    # "see all" browse page resolves for the aggregated rail.
     assert client.get("/api/shelf/rail/popular").status_code == 200
-    assert client.get("/api/shelf/rail/leaving_tubi").json()["label"] == "Leaving Tubi soon"

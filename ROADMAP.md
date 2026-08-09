@@ -22,8 +22,8 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   that, at the cost of advertising the integration to people who never asked for it.
 
 - **Notification agents.** MediaShelf already knows things worth telling you: a new episode of a
-  show you're mid-way through has aired, something on your watchlist is leaving a service next
-  week, a title you saved finally landed somewhere you subscribe to. Right now you only find out
+  show you're mid-way through has aired, a title you saved finally landed somewhere you
+  subscribe to. Right now you only find out
   by opening the app. Jellyseerr's model is the one to copy — a list of agents (Discord, Telegram,
   ntfy, Gotify, Pushover, Slack, webhook, email, web push), each toggled per event type, each
   configured with your own credentials. The generic **webhook** agent is the one that matters
@@ -69,6 +69,11 @@ nights-and-weekends project. Anything with an issue number is where the discussi
 - **Scraping logged-in sessions.** Watchlist import runs as a separate local companion tool, out
   of the product on purpose.
 - **A Request button on titles you can already watch.** It appears where a gap exists — nothing on
-  your services, nothing anywhere, or a title leaving a service you have. Beside something you can
-  watch right now it would argue against the point of the app.
+  your services, or nothing anywhere. Beside something you can watch right now it would argue
+  against the point of the app.
+- **Per-service Top 10 beyond Netflix.** Netflix publishes its weekly Top 10 as open data, which
+  is what feeds "Popular right now". No other service publishes an equivalent; the aggregators
+  that have the data (JustWatch, FlixPatrol) license it commercially, and scraping them is the
+  kind of tooling this project deliberately excludes. Per-service views rank by TMDB popularity
+  instead, which is the honest free substitute.
 - **Multi-tenant hosting.** Single household, your own machine, your own keys.

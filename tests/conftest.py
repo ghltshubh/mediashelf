@@ -167,6 +167,16 @@ def fake_tmdb(monkeypatch):
     monkeypatch.setattr(tmdb_mod.TMDBClient, "season", season)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "season_watch_providers", season_watch_providers)
 
+    # Netflix Top 10 rides run_sync, so its network seam must be stubbed for
+    # every test that syncs. Default is "304 — nothing new", which imports
+    # nothing; provider tests patch _fetch themselves with real TSV lines.
+    from app.providers import netflix_top10 as netflix_mod
+
+    async def netflix_fetch(last_modified):
+        return 304, None, netflix_mod._no_lines()
+
+    monkeypatch.setattr(netflix_mod, "_fetch", netflix_fetch)
+
 
 @pytest.fixture
 def client(tmp_path, monkeypatch, fake_tmdb):

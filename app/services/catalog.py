@@ -330,6 +330,23 @@ async def run_sync(db: Session, api_key: str, country: str,
         except Exception as exc:
             logger.debug("trending fetch failed: %s", exc)  # a missing rail, not a failed sync
 
+        # Netflix Top 10: Netflix publishes this weekly as open data, so
+        # "Popular right now" works on a stock install with no tooling. The
+        # fetch is a conditional GET (a 304 most nights costs nothing) and an
+        # empty or failed week never clears the rail — import only real rows.
+        try:
+            sync_state["detail"] = "fetching the Netflix Top 10"
+            from app.providers import netflix_top10
+            from app.services import list_import
+            top = await netflix_top10.latest_top10(db, countries)
+            if top:
+                await list_import.import_list(
+                    db, api_key, source=netflix_top10.SOURCE_KEY,
+                    items=[list_import.ImportItem(**t) for t in top],
+                    countries=countries, list_type="top10", replace=True)
+        except Exception as exc:
+            logger.debug("netflix top10 fetch failed: %s", exc)
+
         now = datetime.now(UTC).isoformat()
         settings_store.set_setting(db, "catalog_synced_at", now)
         sync_state.update(status="idle", detail=None, last_completed=now, error_kind=None)
@@ -539,14 +556,14 @@ def _service_rails(serialized: list[dict]) -> list[dict]:
 
 
 def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
-    """Rails built from imported lists (companion tool): unified Watchlist, then
-    per-service Top 10 (rank-ordered) and Leaving-soon. `by_id` is the already
+    """Rails built from imported lists: unified Watchlist, then "Popular right
+    now" from per-service Top 10s (rank-ordered). `by_id` is the already
     filtered/serialized pool so these respect region, media-type and filter.
 
     A show you have started drops out of Watchlist: "want to watch" and "part
     way through" are states of one list, not two lists, and showing the same
-    poster in both rails on one screen is just confusing. Top 10 and Leaving
-    soon keep it — those are facts about the service, not about your intent.
+    poster in both rails on one screen is just confusing. Top 10 keeps it —
+    that is a fact about the service, not about your intent.
     """
     from app.models import LibraryEntry, Service
     from app.services import progress
@@ -556,10 +573,10 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     # outerjoin, not join: entries you added yourself have no service — they
     # came from you, not from a list on Netflix.
     rows = db.execute(
-        select(LibraryEntry, Service.name, Service.key, Service.logo_url)
+        select(LibraryEntry, Service.name, Service.logo_url)
         .outerjoin(Service, Service.id == LibraryEntry.service_id)
         .where(LibraryEntry.entry_type.in_(
-                   ["watchlist", WATCHLIST_MANUAL, "top10", "leaving_soon"]),
+                   ["watchlist", WATCHLIST_MANUAL, "top10"]),
                LibraryEntry.media_item_id.isnot(None))
     ).all()
 
@@ -570,8 +587,7 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     # Top 10s across all services fold into ONE "Popular right now" rail: a title
     # trending on more services ranks higher, ties broken by best rank.
     popular: dict[int, dict] = {}     # item_id -> {item, services:set, best:int}
-    leaving: dict[str, dict] = {}
-    for entry, svc_name, svc_key, svc_logo in rows:
+    for entry, svc_name, svc_logo in rows:
         item = by_id.get(entry.media_item_id)
         if item is None:
             continue
@@ -593,9 +609,6 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
             agg = popular.setdefault(item["id"], {"item": item, "services": set(), "best": 99})
             agg["services"].add(svc_name)
             agg["best"] = min(agg["best"], rank)
-        elif entry.entry_type == "leaving_soon":
-            g = leaving.setdefault(svc_key, {"name": svc_name, "items": []})
-            g["items"].append(item)
 
     rails: list[dict] = []
     if watchlist_map:
@@ -609,19 +622,15 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
         # a "see all N" into the full browse grid for the remainder.
         rails.append({"key": "popular", "label": "Popular right now",
                       "items": [a["item"] for a in ranked]})
-    for svc_key, g in sorted(leaving.items(), key=lambda kv: -len(kv[1]["items"])):
-        rails.append({"key": f"leaving_{svc_key}", "label": f"Leaving {g['name']} soon",
-                      "items": g["items"]})
     return rails
 
 
 def _trending_rail(db: Session, by_id: dict[int, dict]) -> list[dict]:
     """"Trending this week" — TMDB's own weekly list, refreshed by the sync.
 
-    This is the rail every install gets. "Popular right now" below it is built
-    from per-service Top 10s, which only exist if you run an importer, so on a
-    stock install that slot would otherwise be empty — a documented feature
-    nobody could have. TMDB's trending needs no scraping and no extra key.
+    This is the rail every install gets, no key beyond TMDB and no scraping.
+    "Popular right now" below it is built from per-service Top 10 lists — the
+    sync fills Netflix's from their published data, and imports can add more.
 
     Ids are matched against the catalog rather than imported: a trending title
     the catalog hasn't synced simply doesn't appear, which is better than a rail
@@ -748,12 +757,12 @@ def build_shelf(db: Session, country: str, view: str = "categories",
     if genre:
         serialized = [s for s in serialized if genre in s["genres"]]
 
-    # Imported-list rails (Watchlist, Top 10, Leaving soon) are personal, not
-    # catalog rails: they lead BOTH views. Under "All"/"On my services" they
-    # respect the ownership filter (so "On my services" shows only what you can
-    # actually watch — all gold, no gray). Exception: "Popular right now" is a
-    # discovery rail, so under "Not on my services" it shows the FULL aggregated
-    # trending list (Watchlist/Leaving stay hidden there — they're personal).
+    # Imported-list rails (Watchlist, Top 10) are personal, not catalog rails:
+    # they lead BOTH views. Under "All"/"On my services" they respect the
+    # ownership filter (so "On my services" shows only what you can actually
+    # watch — all gold, no gray). Exception: "Popular right now" is a discovery
+    # rail, so under "Not on my services" it shows the FULL aggregated trending
+    # list (Watchlist stays hidden there — it's personal).
     if flt in ("all", "mine"):
         by_id = {s["id"]: s for s in _apply_filter(serialized, flt)}
         # Continue watching leads the personal rails: a half-finished show is a
@@ -1362,15 +1371,4 @@ def build_title(db: Session, item_id: int, country: str,
     seerr = settings_store.get_setting(db, "overseerr_url")
     data["request_url"] = (f"{seerr}/{item.media_type}/{item.tmdb_id}"
                            if seerr and item.tmdb_id else None)
-    # Watchable today, gone next week — the one case where wanting your own copy
-    # makes sense even though a service you pay for still carries it.
-    leaving = db.execute(
-        select(LibraryEntry, Service.name)
-        .join(Service, Service.id == LibraryEntry.service_id)
-        .where(LibraryEntry.media_item_id == item.id,
-               LibraryEntry.entry_type == "leaving_soon")
-        .limit(1)).first()
-    data["leaving_soon"] = ({"service_name": leaving[1],
-                             "note": (leaving[0].payload or {}).get("note")}
-                            if leaving else None)
     return data
