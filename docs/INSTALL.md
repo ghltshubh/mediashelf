@@ -12,6 +12,7 @@ This guide takes you from zero to a running instance with your services connecte
 - [3. First run](#3-first-run)
 - [4. Where your data lives](#4-where-your-data-lives)
 - [5. Getting your API keys](#5-getting-your-api-keys)
+- [5b. Overseerr / Jellyseerr (optional)](#5b-overseerr--jellyseerr-optional)
 - [6. Connecting accounts (OAuth)](#6-connecting-accounts-oauth)
 - [7. Optional: yt-dlp plugin](#7-optional-yt-dlp-plugin-zero-quota-youtube-search)
 - [8. Running on a remote host / custom domain](#8-running-on-a-remote-host--custom-domain)
@@ -94,7 +95,13 @@ On first open, onboarding asks for two things:
 1. **Your TMDB API key** (see §5) — required to load the catalog.
 2. **Your country** — the home region that drives availability (what streams where).
 
-Then you tick the services you subscribe to. That's all MediaShelf needs to light up your shelf.
+Then you tick the services you subscribe to. **That's all MediaShelf needs** to light up your shelf.
+
+A third screen offers to connect Spotify, YouTube or Apple Music. Those are the only three with an
+API to connect to — Netflix, Disney+ and the rest expose none, which is why ticking them was the
+whole setup. Connecting needs that service's own API keys (§5), and getting them means a trip to
+its developer site, so **"Done — open the shelf" is the normal answer here**. You can add them
+later from Settings → Keys; nothing is missing in the meantime.
 
 You can also bootstrap the TMDB key without onboarding by setting `TMDB_API_KEY` in the environment
 (uncomment it in `docker/compose.yaml`).
@@ -124,6 +131,15 @@ Enter all keys in **Settings → Keys**. Only **TMDB** is required.
 | **Spotify** | music search, in-app playback (Premium), migration | Optional |
 | **Google / YouTube** | subscriptions + likes sync, YouTube Music, migration | Optional |
 | **Apple Music** | Apple Music in the playback chain | Optional |
+
+Three more optional integrations need no API key — they take a URL or a binary, and live under
+**Settings → Plugins**:
+
+| Integration | Unlocks | Notes |
+|---|---|---|
+| **Overseerr / Jellyseerr** | a **Request on Seer** button on titles nothing you subscribe to carries | your own instance's base URL, e.g. `http://192.168.1.10:5055`; §5b |
+| **Watchlist importer** | pulls your "My List" from streaming apps | **the tool is not shipped** — §8b |
+| **yt-dlp** | zero-quota YouTube search | a binary you install locally — §7 |
 
 ### TMDB (required) — ~2 minutes
 
@@ -192,6 +208,18 @@ This is the most involved one. It's a standard "bring your own OAuth app" flow.
 
 Requires a paid Apple Developer account. Generate a **MusicKit developer token** (a JWT) and paste
 it into **Settings → Keys → Apple Music**.
+
+---
+
+## 5b. Overseerr / Jellyseerr (optional)
+
+If you self-host a request pipeline, put its base URL in **Settings → Plugins**. A title that isn't
+on any service you've ticked — or that nothing streams anywhere, or that is leaving a service you
+have — then shows a **Request on Seer** button pointing at your own instance.
+
+Both are TMDB-keyed like MediaShelf, so the link lands on the exact title rather than a search
+page. MediaShelf only links out: it never sends the request, stores no Seerr API key, and touches
+no media. With the field empty the button does not exist.
 
 ---
 

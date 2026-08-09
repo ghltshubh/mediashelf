@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The setup guide now covers every optional integration, not just the API keys: a table of the
+  three that need no key (Overseerr/Jellyseerr, the watchlist importer, yt-dlp), a section on
+  Seerr — which had never been mentioned there at all — and a description of onboarding's third
+  screen, whose Connect buttons stay disabled until you've added that service's keys.
 - The setup guide now explains the watchlist importer at all — what it is, that MediaShelf doesn't
   ship one and why, that nothing breaks without it, and that it belongs on the machine you browse
   from rather than the server. It had never been mentioned in the install docs, so a Docker user's
