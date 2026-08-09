@@ -1,12 +1,17 @@
 # Changelog
 
+## v0.1.2 — 2026-08-09
+
+- **Request on Seer** now also appears on titles nothing streams anywhere (it was skipped
+  entirely in that case) and on titles **leaving a service you have** — watchable today, gone
+  next week. Still never shown beside something you can watch right now on a service you pay for.
+
 ## v0.1.1 — 2026-08-09
 
 - **Overseerr / Jellyseerr link.** A title on none of your ticked services shows a "Request on
   Seer" button pointing at your own instance (base URL in Settings → Plugins). Both are
   TMDB-keyed, so it lands on the exact title rather than a search page. MediaShelf only links
-  out — it never sends the request or touches media. It also appears on titles leaving a
-  service you have, and on titles nothing streams at all.
+  out — it never sends the request or touches media.
 
 - **Episode tracking for shows.** Season and episode lists on a title page; tick episodes or a
   whole season. A **Continue watching** rail leads the shelf with a one-tap mark for the next
