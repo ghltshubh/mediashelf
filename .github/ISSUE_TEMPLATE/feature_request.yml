@@ -1,0 +1,69 @@
+name: Feature request
+description: Suggest something MediaShelf should do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing: **[ROADMAP.md](https://github.com/ghltshubh/mediashelf/blob/main/ROADMAP.md)**
+        lists what's already planned and what's deliberately not. The "Not planned" section covers
+        media serving, DRM playback and logged-in scraping — those aren't oversights, so a request
+        for one will be closed with a pointer rather than built.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: >-
+        The situation, not the solution — what you were doing when MediaShelf got in the way.
+        This is the part that decides whether a feature gets built, and it's the part people
+        usually leave out.
+      placeholder: |
+        I subscribe to Prime and Netflix. A show I'm watching moved services partway through and
+        I couldn't tell from the title page which seasons were where.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like it to do?
+      description: Sketches and mock-ups are very welcome — they answer questions text can't.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: media
+    attributes:
+      label: What does this affect?
+      multiple: true
+      options:
+        - Movies / TV
+        - Music
+        - Podcasts
+        - Search
+        - The shelf / home
+        - Settings
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: elsewhere
+    attributes:
+      label: Does another app do this well?
+      description: >-
+        Naming one saves a lot of guessing — screenshots even more so. If it involves a service
+        or tool MediaShelf would have to talk to, say which and link its API docs if you know them.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: >-
+            This doesn't ask MediaShelf to store, serve, download or play media files — it
+            indexes streaming services and links out to them.
+          required: true

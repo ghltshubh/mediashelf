@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setup help
+    url: https://github.com/ghltshubh/mediashelf/blob/main/docs/INSTALL.md
+    about: Key-by-key setup, connecting accounts, remote hosting and troubleshooting.
+  - name: What's planned (and what isn't)
+    url: https://github.com/ghltshubh/mediashelf/blob/main/ROADMAP.md
+    about: Check here before filing a feature request.

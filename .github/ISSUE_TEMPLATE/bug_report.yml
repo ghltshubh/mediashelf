@@ -1,0 +1,67 @@
+name: Bug report
+description: Something isn't working the way it should
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How do you reproduce it?
+      description: >-
+        If it's about a specific title, naming it helps a lot — availability data varies by title
+        and by country, so "Betty Blue (1986) in the UK" is far more use than "some films".
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MediaShelf version
+      description: Settings → About. If you're on `:latest`, say so and roughly when you pulled.
+      placeholder: "0.1.2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How are you running it?
+      options:
+        - Docker (ghcr.io image)
+        - Docker (built from source)
+        - From source (uvicorn)
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: country
+    attributes:
+      label: Your region
+      description: >-
+        Only if it's about availability — the same title streams in different places by country,
+        so a report without one often can't be reproduced.
+      placeholder: "GB"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Anything in the logs?
+      description: >-
+        Server output around the failure, or the browser console. **Check for API keys and OAuth
+        tokens before pasting** — they can appear in URLs.
+      render: text
+    validations:
+      required: false
