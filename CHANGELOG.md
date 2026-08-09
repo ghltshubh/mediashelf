@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Docker builds no longer reinstall every dependency on each release.** The source was copied
+  before `pip install`, so any code change invalidated the dependency layer — and for `arm64`,
+  built under emulation, that meant recompiling C extensions from scratch every time. Deps now
+  install against a stub package first. A rebuild after a source edit went from a full reinstall
+  to about 4 seconds on real hardware.
+- The build context dropped from ~1 GB to ~300 KB: the Tauri desktop build's Rust output (2.6 GB
+  locally) and `.git` were never excluded.
+
 - The watchlist importer's address is a setting instead of a hardcoded
   `http://127.0.0.1:8765`, and with none set the links disappear rather than pointing at a tool
   that isn't there. It runs on the computer you browse from — it needs your signed-in streaming

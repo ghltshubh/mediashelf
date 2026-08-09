@@ -8,3 +8,9 @@ tests
 .pytest_cache
 .mypy_cache
 .ruff_cache
+# The Tauri desktop build's Rust output is ~2.6 GB. Git ignores it, so CI never
+# sees it, but a local `docker build` would otherwise ship all of it as context.
+desktop
+.git
+.github
+docs

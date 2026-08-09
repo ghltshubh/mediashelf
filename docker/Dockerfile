@@ -10,9 +10,20 @@ RUN npm run build
 
 FROM python:3.12-slim
 WORKDIR /srv
+
+# Dependencies install against a stub package, BEFORE the source is copied, so
+# editing app/ doesn't invalidate this layer. It is by far the most expensive
+# one: under QEMU for arm64, any C extension without a prebuilt aarch64 wheel
+# compiles from source, which is minutes each. Copying app/ first (as this once
+# did) meant every release rebuilt all of it.
 COPY pyproject.toml README.md ./
+RUN mkdir -p app && touch app/__init__.py \
+ && pip install --no-cache-dir . \
+ && pip uninstall -y mediashelf \
+ && rm -rf app
+
+# Now the parts that change every commit — cheap layers on top of a cached one.
 COPY app ./app
-RUN pip install --no-cache-dir .
 COPY --from=web /build/dist ./app/web/dist
 
 # Optional: bake in the yt-dlp metadata plugin (zero-quota YouTube search).
