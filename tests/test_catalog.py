@@ -20,16 +20,26 @@ def test_shelf_after_sync(client):
     assert any(k.startswith("genre_") for k in rails)
 
 
+def _find(shelf, title):
+    """Find a title anywhere on the shelf. Indexing rails[0].items[0] breaks the
+    moment a rail is added above, which is not what these tests are about."""
+    for rail in shelf["rails"]:
+        for item in rail["items"]:
+            if item["title"] == title:
+                return item
+    raise AssertionError(f"{title!r} not on the shelf: {[r['key'] for r in shelf['rails']]}")
+
+
 def test_badges_reflect_checklist(client):
     run_sync_now()
     shelf = client.get("/api/shelf").json()
-    voyage = shelf["rails"][0]["items"][0]
+    voyage = _find(shelf, "The Long Voyage")
     assert voyage["owned"] is False
     assert voyage["unlock_service"] == "Netflix"
 
     _subscribe(client, "netflix")
     shelf = client.get("/api/shelf").json()
-    voyage = shelf["rails"][0]["items"][0]
+    voyage = _find(shelf, "The Long Voyage")
     assert voyage["owned"] is True
     netflix_badge = next(b for b in voyage["badges"] if b["service_key"] == "netflix")
     assert netflix_badge["owned"] is True
@@ -41,7 +51,7 @@ def test_badges_reflect_checklist(client):
 def test_deep_links_use_service_template(client):
     run_sync_now()
     shelf = client.get("/api/shelf").json()
-    voyage = shelf["rails"][0]["items"][0]
+    voyage = _find(shelf, "The Long Voyage")
     netflix_badge = next(b for b in voyage["badges"] if b["service_key"] == "netflix")
     q = urllib.parse.quote("The Long Voyage")
     assert netflix_badge["deep_link"] == f"https://www.netflix.com/search?q={q}"

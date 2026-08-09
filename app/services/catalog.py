@@ -6,6 +6,7 @@ in the Service table (Appendix A rule).
 """
 
 import asyncio
+import json
 import logging
 import re
 import urllib.parse
@@ -318,6 +319,17 @@ async def run_sync(db: Session, api_key: str, country: str,
             await asyncio.gather(*(infer_one(it) for it in upcoming))
             db.commit()
 
+        # Trending: TMDB's own weekly list, so "what's everyone watching" needs
+        # no scraping and works on a stock install. Stored as ids and resolved
+        # against the catalog at render time, because the shelf builder is sync.
+        try:
+            sync_state["detail"] = "fetching what's trending"
+            trending = await client.trending("week")
+            settings_store.set_setting(db, "trending_ids", json.dumps(
+                [[r["media_type"], r["id"]] for r in trending if r.get("id")]))
+        except Exception as exc:
+            logger.debug("trending fetch failed: %s", exc)  # a missing rail, not a failed sync
+
         now = datetime.now(UTC).isoformat()
         settings_store.set_setting(db, "catalog_synced_at", now)
         sync_state.update(status="idle", detail=None, last_completed=now, error_kind=None)
@@ -603,6 +615,32 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     return rails
 
 
+def _trending_rail(db: Session, by_id: dict[int, dict]) -> list[dict]:
+    """"Trending this week" — TMDB's own weekly list, refreshed by the sync.
+
+    This is the rail every install gets. "Popular right now" below it is built
+    from per-service Top 10s, which only exist if you run an importer, so on a
+    stock install that slot would otherwise be empty — a documented feature
+    nobody could have. TMDB's trending needs no scraping and no extra key.
+
+    Ids are matched against the catalog rather than imported: a trending title
+    the catalog hasn't synced simply doesn't appear, which is better than a rail
+    of cards with no availability behind them.
+    """
+    raw = settings_store.get_setting(db, "trending_ids")
+    if not raw:
+        return []
+    try:
+        ranked = json.loads(raw)
+    except ValueError:
+        return []
+    by_tmdb = {(s["media_type"], s["tmdb_id"]): s for s in by_id.values() if s.get("tmdb_id")}
+    items = [by_tmdb[(mt, tid)] for mt, tid in ranked if (mt, tid) in by_tmdb]
+    if not items:
+        return []
+    return [{"key": "trending", "label": "Trending this week", "items": items}]
+
+
 def _continue_watching_rail(db: Session, by_id: dict[int, dict]) -> list[dict]:
     """"Continue watching" — shows started and not finished, most recent first.
 
@@ -720,10 +758,15 @@ def build_shelf(db: Session, country: str, view: str = "categories",
         by_id = {s["id"]: s for s in _apply_filter(serialized, flt)}
         # Continue watching leads the personal rails: a half-finished show is a
         # more specific answer to "what now" than a saved title.
-        list_rails = _continue_watching_rail(db, by_id) + _imported_list_rails(db, by_id)
+        list_rails = (_continue_watching_rail(db, by_id)
+                      + _imported_list_rails(db, by_id)
+                      + _trending_rail(db, by_id))
     elif flt == "elsewhere":
-        list_rails = [r for r in _imported_list_rails(db, {s["id"]: s for s in serialized})
-                      if r["key"] == "popular"]
+        # Discovery rails only under "not on my services" — the personal ones
+        # (watchlist, continue watching) would be a contradiction there.
+        all_by_id = {s["id"]: s for s in serialized}
+        list_rails = ([r for r in _imported_list_rails(db, all_by_id) if r["key"] == "popular"]
+                      + _trending_rail(db, all_by_id))
     else:
         list_rails = []
 
@@ -740,6 +783,10 @@ def build_shelf(db: Session, country: str, view: str = "categories",
     else:
         pool = _apply_filter(serialized, flt)
         rails = _category_rails(pool)
+    if view == "services":
+        # This view's rails are services. Discovery belongs to the categories
+        # view, where a rail is a way of looking rather than a place to watch.
+        list_rails = [r for r in list_rails if r["key"] != "trending"]
     rails = list_rails + rails
 
     service_count = len({b["service_key"] for s in serialized for b in s["badges"]})
@@ -808,6 +855,12 @@ def build_rail(db: Session, country: str, rail_key: str, flt: str = "all",
         return {"key": rail_key, "label": rail["label"], "items": rail["items"]}
 
     pool = _apply_filter(serialized, flt)
+    if rail_key == "trending":
+        # Same discovery treatment as "popular": under "not on my services" it
+        # shows the whole trending list, not just the slice you can't watch.
+        lookup = serialized if flt == "elsewhere" else pool
+        rails = _trending_rail(db, {s["id"]: s for s in lookup})
+        return rails[0] if rails else None
     if rail_key in ("watchlist", "popular") or rail_key.startswith("leaving_"):
         # "Popular right now" is a discovery rail: under "Not on my services" it
         # uses the full trending list (matching the shelf), not the not-owned slice.

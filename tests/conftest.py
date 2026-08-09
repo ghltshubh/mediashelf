@@ -86,6 +86,15 @@ def fake_tmdb(monkeypatch):
             ]},
         }
 
+    async def trending(self, window="week"):
+        # 201 is in the catalog, 999 is not — the rail must skip what it can't
+        # resolve rather than render a card with no availability behind it.
+        return [
+            {"media_type": "tv", "id": 201, "name": "Quiet Orbit"},
+            {"media_type": "movie", "id": 999, "title": "Not In Catalog"},
+            {"media_type": "movie", "id": 101, "title": "The Long Voyage"},
+        ]
+
     async def recommendations(self, media_type, tmdb_id):
         # One already-in-catalog title (102) and one not yet imported (555).
         return [
@@ -153,6 +162,7 @@ def fake_tmdb(monkeypatch):
     monkeypatch.setattr(tmdb_mod.TMDBClient, "watch_providers", watch_providers)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "title_extras", title_extras)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "recommendations", recommendations)
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "trending", trending)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "person", person)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "season", season)
     monkeypatch.setattr(tmdb_mod.TMDBClient, "season_watch_providers", season_watch_providers)

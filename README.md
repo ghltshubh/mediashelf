@@ -67,9 +67,12 @@ picks up from there:
   that are **leaving a service you have** — watchable today, gone next week. Configure the base
   URL in Settings → Plugins; MediaShelf only links out — it never sends the request or touches
   media, and without that setting the button doesn't exist.
-- **"Popular right now"** aggregated from per-service Top 10s, **IMDb/RT/Metacritic** ratings
-  (optional, via OMDb) alongside TMDB scores, service logos on every card, and studio-inferred
-  **"expected on X"** hints for upcoming titles that aren't streaming yet.
+- **"Trending this week"** straight from TMDB — no extra key, no companion tool.
+  *(A separate **"Popular right now"** rail aggregates per-service Top 10s, but that data
+  only arrives via an importer MediaShelf does not ship — see
+  [docs/INSTALL.md §8b](docs/INSTALL.md#8b-watchlist-import-optional-and-not-shipped).)*
+- **IMDb/RT/Metacritic** ratings (optional, via OMDb) alongside TMDB scores, service logos on
+  every card, and studio-inferred **"expected on X"** hints for upcoming titles.
 - **Podcasts** — subscribe by RSS feed URL or bulk-import an OPML file from any other app;
   episodes stream in-app and auto-advance through the show. No account, no API key, no setup.
 - **Display language** — the interface follows a locale you pick (or your browser's), independent

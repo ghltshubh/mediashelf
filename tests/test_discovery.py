@@ -99,3 +99,37 @@ def test_cast_carries_person_id(client):
     t = client.get(f"/api/titles/{vid}").json()  # runs ensure_details
     ids = [c["id"] for c in t["cast"]]
     assert 500 in ids and 501 in ids
+
+
+# ---------- Trending rail (the no-scraping "what's everyone watching") ----------
+
+def test_trending_rail_needs_no_companion_tool(client):
+    """"Popular right now" only exists if you run an importer. This is the rail
+    a stock install gets, straight from TMDB with the key you already have."""
+    from tests.conftest import run_sync_now
+
+    _set_key()
+    run_sync_now()
+    rails = client.get("/api/shelf?filter=all").json()["rails"]
+    rail = next((r for r in rails if r["key"] == "trending"), None)
+    assert rail is not None, [r["key"] for r in rails]
+    assert rail["label"] == "Trending this week"
+    # Ordered by TMDB's ranking, and the id that isn't in the catalog is skipped.
+    assert [i["tmdb_id"] for i in rail["items"]] == [201, 101]
+
+
+def test_trending_rail_absent_before_a_sync(client):
+    """No trending data yet → no rail, rather than an empty one."""
+    _set_key()
+    rails = client.get("/api/shelf?filter=all").json()["rails"]
+    assert "trending" not in [r["key"] for r in rails]
+
+
+def test_trending_rail_has_a_see_all_page(client):
+    from tests.conftest import run_sync_now
+
+    _set_key()
+    run_sync_now()
+    r = client.get("/api/shelf/rail/trending")
+    assert r.status_code == 200
+    assert r.json()["label"] == "Trending this week"

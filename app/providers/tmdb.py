@@ -133,6 +133,13 @@ class TMDBClient:
         data = await self._get("/search/multi", query=query, include_adult="false", page=page)
         return data.get("results", [])
 
+    async def trending(self, window: str = "week") -> list[dict]:
+        """What's trending on TMDB right now — the official, no-scraping answer
+        to "what's everyone watching". Results carry media_type; people are
+        filtered out here so callers only ever see movies and shows."""
+        data = await self._get(f"/trending/all/{window}")
+        return [r for r in data.get("results", []) if r.get("media_type") in ("movie", "tv")]
+
     async def recommendations(self, media_type: str, tmdb_id: int) -> list[dict]:
         """"More like this" — TMDB's own recommendations for a title. Each result
         already carries media_type, so it maps straight to a discovery card."""

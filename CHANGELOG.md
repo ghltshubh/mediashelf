@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **A "Trending this week" rail that works on a stock install.** "Popular right now" is built from
+  per-service Top 10s, which only arrive via an importer MediaShelf doesn't ship — so on any
+  normal install that slot was empty while the README advertised it. Trending comes from TMDB with
+  the key you already have: no scraping, no extra tooling. It resolves against your catalog, so
+  titles that aren't synced are skipped rather than shown without availability.
+
 - The setup guide now covers every optional integration, not just the API keys: a table of the
   three that need no key (Overseerr/Jellyseerr, the watchlist importer, yt-dlp), a section on
   Seerr — which had never been mentioned there at all — and a description of onboarding's third
