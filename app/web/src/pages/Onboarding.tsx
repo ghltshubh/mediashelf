@@ -161,6 +161,13 @@ function StepThree({ onDone }: { onDone: () => void }) {
         Connecting adds in-app playback and library sync. Each service uses your own free
         API keys — nothing is shared, nothing phones home.
       </p>
+      {/* Otherwise a Netflix subscriber reads this list as "mine aren't supported
+          yet". They can't be: those services expose no API to connect to. */}
+      <p className="mt-2 max-w-lg text-[0.95rem] text-muted">
+        These three are the only ones there's anything to connect to — Netflix, Disney+ and the
+        rest have no API to sync a library or play from, so MediaShelf indexes them and links you
+        out. Ticking them in the last step is all they need.
+      </p>
       {error && <p className="mt-3 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
 
       <div className="mt-6 max-w-xl space-y-3">
