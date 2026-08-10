@@ -565,13 +565,11 @@ export function Settings() {
   const tileAction = (sv: Service) => {
     if (sv.integration_kind === "watchlist") {
       const done = sv.watchlist_count > 0;
-      // No importer configured → no link to a tool that isn't there. Both
-      // states route to the paste/upload box in Plugins instead.
-      if (!importerUrl) {
-        return done
-          ? { label: `${sv.watchlist_count} in your watchlist`, href: "#import-list", done }
-          : { label: "Import your list", href: "#import-list", done };
-      }
+      // The count/refresh pair was importer telemetry — it only means
+      // something while an external importer is configured. Without one,
+      // tiles just tick: saved titles live on the Want-to-watch rail, and
+      // the paste/upload box reports its own results.
+      if (!importerUrl) return undefined;
       return {
         label: done ? `${sv.watchlist_count} in your watchlist · refresh` : "Import your list",
         href: `${importerUrl}/#${sv.key}`, external: true, done,
@@ -1081,7 +1079,7 @@ export function Settings() {
         <Section id="about" title={t("settings.section.about")}>
           <KeyValueMono
             pairs={[
-              ["MediaShelf", "0.1.7"],
+              ["MediaShelf", "0.1.8"],
               ["License", "AGPL-3.0-or-later"],
               ["Data", "TMDB — this product uses the TMDB API but is not endorsed or certified by TMDB · streaming availability by JustWatch"],
               ["Storage", "SQLite in your data dir · keys encrypted at rest · nightly backups (keep 7)"],

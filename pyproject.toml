@@ -1,6 +1,6 @@
 [project]
 name = "mediashelf"
-version = "0.1.7"
+version = "0.1.8"
 description = "MediaShelf — universal media hub (self-hosted streaming index and router)"
 license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.12"

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { Service } from "../lib/api";
 
 /** Subscription checklist tile: dimmed (off) ↔ lit with glow (on) —
@@ -37,20 +38,31 @@ export function ServiceTile({
           </span>
         )}
       </button>
-      {action && (
-        <a
-          href={action.href}
-          {...(action.external ? { target: "_blank", rel: "noreferrer" } : {})}
-          onClick={(e) => e.stopPropagation()}
-          className={`mt-1.5 self-start rounded-[6px] border px-2 py-0.5 font-mono text-[0.62rem] ${
-            action.done
-              ? "border-[color:var(--play)]/50 text-[color:var(--play)] hover:bg-[color:var(--play)]/10"
-              : "border-line text-owned hover:bg-owned/10"
-          }`}
-        >
-          {action.done ? "✓" : "↗"} {action.label}
-        </a>
-      )}
+      {/* A text link, deliberately not a button: a bordered pill inside the
+          glowing tile read as a button-in-a-button, with no hint that the tile
+          toggles while the pill navigates. Underline = goes somewhere. */}
+      {action && (() => {
+        const cls = `mt-1 self-start font-mono text-[0.65rem] underline decoration-dotted underline-offset-2 hover:decoration-solid ${
+          action.done ? "text-[color:var(--play)]" : "text-owned"
+        }`;
+        const body = <>{action.done ? "✓" : "↗"} {action.label}</>;
+        // In-app routes go through the router (no full reload); hashes and
+        // external tools stay plain anchors.
+        return !action.external && action.href.startsWith("/") ? (
+          <Link to={action.href} onClick={(e) => e.stopPropagation()} className={cls}>
+            {body}
+          </Link>
+        ) : (
+          <a
+            href={action.href}
+            {...(action.external ? { target: "_blank", rel: "noreferrer" } : {})}
+            onClick={(e) => e.stopPropagation()}
+            className={cls}
+          >
+            {body}
+          </a>
+        );
+      })()}
     </div>
   );
 }
