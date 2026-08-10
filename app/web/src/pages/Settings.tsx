@@ -565,11 +565,15 @@ export function Settings() {
   const tileAction = (sv: Service) => {
     if (sv.integration_kind === "watchlist") {
       const done = sv.watchlist_count > 0;
-      // The count/refresh pair was importer telemetry — it only means
-      // something while an external importer is configured. Without one,
-      // tiles just tick: saved titles live on the Want-to-watch rail, and
-      // the paste/upload box reports its own results.
-      if (!importerUrl) return undefined;
+      // No importer configured: the click answers the label's own question —
+      // "which titles?" — via the rail's browse grid. Empty tiles offer the
+      // paste box. (With an importer URL set, the pair below is live tool
+      // telemetry and links to the tool instead.)
+      if (!importerUrl) {
+        return done
+          ? { label: `${sv.watchlist_count} in your watchlist`, href: "/browse/watchlist", done }
+          : { label: "Import your list", href: "#import-list", done };
+      }
       return {
         label: done ? `${sv.watchlist_count} in your watchlist · refresh` : "Import your list",
         href: `${importerUrl}/#${sv.key}`, external: true, done,
