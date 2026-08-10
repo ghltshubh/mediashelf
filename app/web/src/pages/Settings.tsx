@@ -561,12 +561,12 @@ export function Settings() {
   const tileAction = (sv: Service) => {
     if (sv.integration_kind === "watchlist") {
       const done = sv.watchlist_count > 0;
-      // No importer configured → no link to a tool that isn't there. The count
-      // still shows, because an earlier import's titles are real either way.
+      // No importer configured → no link to a tool that isn't there. Both
+      // states route to the paste/upload box in Plugins instead.
       if (!importerUrl) {
         return done
           ? { label: `${sv.watchlist_count} in your watchlist`, href: "#plugins", done }
-          : undefined;
+          : { label: "Import your list", href: "#plugins", done };
       }
       return {
         label: done ? `${sv.watchlist_count} in your watchlist · refresh` : "Import your list",
