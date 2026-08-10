@@ -254,7 +254,11 @@ function ImportListForm() {
 
   // The source service steers matching (a "Ludo" from your Netflix list should
   // resolve to the one ON Netflix), so offer the services you've ticked.
-  const video = (services.data ?? []).filter((s) => s.kind === "video" && !s.custom);
+  // Connector services (YouTube) are excluded: their lists sync through the
+  // account connection, so they'd only be a misleading default here.
+  const video = (services.data ?? []).filter(
+    (s) => s.kind === "video" && !s.custom && s.integration_kind !== "connector",
+  );
   const subscribed = video.filter((s) => s.subscribed);
   const opts = subscribed.length > 0 ? subscribed : video;
   const sourceKey = source || opts[0]?.key || "";
@@ -565,8 +569,8 @@ export function Settings() {
       // states route to the paste/upload box in Plugins instead.
       if (!importerUrl) {
         return done
-          ? { label: `${sv.watchlist_count} in your watchlist`, href: "#plugins", done }
-          : { label: "Import your list", href: "#plugins", done };
+          ? { label: `${sv.watchlist_count} in your watchlist`, href: "#import-list", done }
+          : { label: "Import your list", href: "#import-list", done };
       }
       return {
         label: done ? `${sv.watchlist_count} in your watchlist · refresh` : "Import your list",
@@ -1049,7 +1053,9 @@ export function Settings() {
             </p>
             <SeerrUrlForm current={s?.overseerr_url ?? ""} />
           </div>
-          <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">
+          {/* id: service tiles ("N in your watchlist") land here, not at the
+              top of Plugins where yt-dlp looks like a wrong turn. */}
+          <div id="import-list" className="mt-4 scroll-mt-6 rounded-[10px] border border-line bg-bg1 p-4">
             <h3 className="font-display text-[1rem] font-semibold">Import a list</h3>
             <p className="mt-1 max-w-lg text-[0.85rem] text-muted">
               Bring an existing list into the Want-to-watch rail: paste titles, or upload a{" "}
