@@ -21,6 +21,9 @@ MediaShelf never stores, serves, or plays media files. DRM services are browse-a
 - 🎙️ **Podcasts** (RSS/OPML) · 📱 installable **PWA** with offline shell · 🌐 11 languages
 - 🎲 **Feeling lucky** — pick a genre and a time limit, roll, and get something random you
   can watch *right now* on your services
+- 🧩 **Bring your watchlist with you** — a companion
+  [browser extension](https://github.com/ghltshubh/mediashelf-clipper/releases/latest) copies your
+  **"My List"** across from Netflix, Prime Video, Disney+ and 7 more, in one click
 
 <details>
 <summary>More screenshots</summary>
@@ -91,49 +94,65 @@ layer) is deferred.
 
 **→ What's next, and what isn't: [ROADMAP.md](ROADMAP.md).**
 
-## Quick start (Docker)
+## Quick start
 
-Prebuilt image (no build):
+Two steps to a working shelf. The third is optional and takes a minute.
+
+### 1 · Run it 🐳
 
 ```sh
 docker run -d -p 8000:8000 -v mediashelf-data:/data --restart unless-stopped \
   ghcr.io/ghltshubh/mediashelf:latest
 ```
 
-Or build from source:
+<sub>Prefer to build it yourself? `docker compose -f docker/compose.yaml up --build -d`</sub>
 
-```sh
-docker compose -f docker/compose.yaml up --build -d
-```
+### 2 · Set it up 🔑
 
-Open http://localhost:8000 — onboarding asks for your own free TMDB API key
-(create one at https://www.themoviedb.org/settings/api) and your country, then lets you tick
-the services you subscribe to. That's all the app needs.
+Open **http://localhost:8000**. Onboarding asks for two things: your own free
+[TMDB API key](https://www.themoviedb.org/settings/api) and your country. Then tick the services
+you subscribe to.
 
-Everything else is optional and off until you fill it in — nothing nags, and nothing is broken
-for leaving it blank:
+**That is the whole setup.** Netflix, Disney+ and the rest have no API to connect to, so ticking
+them is all they need. Your data (SQLite DB, encrypted keys, nightly backups) lives in the
+`mediashelf-data` volume.
+
+### 3 · Bring your watchlist over 🧩 *(optional)*
+
+[![Chrome](https://img.shields.io/badge/Chrome-add%20the%20extension-e3a84c?logo=googlechrome&logoColor=white)](https://github.com/ghltshubh/mediashelf-clipper/releases/latest)
+[![Firefox](https://img.shields.io/badge/Firefox-add%20the%20extension-e3a84c?logo=firefoxbrowser&logoColor=white)](https://github.com/ghltshubh/mediashelf-clipper/releases/latest)
+
+The companion **[MediaShelf clipper](https://github.com/ghltshubh/mediashelf-clipper)** copies
+your existing **"My List"** into MediaShelf from Netflix, Prime Video, Disney+, Hulu, Max,
+Paramount+, Peacock, Tubi, Crunchyroll and Apple TV+. Open your list on that service, click the
+toolbar icon, done.
+
+It installs separately and always will: your **browser** is what's signed in to those services,
+not your server — a NAS has neither a browser nor your sessions. Nothing in MediaShelf needs it.
+Without it you can still save titles with **+ Want to watch** on any title page, or paste/upload
+a list in **Settings → Plugins**.
+
+### Optional extras
+
+All off until you fill them in — nothing nags, nothing is broken for leaving them blank:
 
 | Optional | What it adds | Where |
 |---|---|---|
 | Spotify / YouTube / Apple Music keys | in-app playback and library sync | Settings → Keys |
 | OMDb key | IMDb / RT / Metacritic scores | Settings → Keys |
 | Overseerr / Jellyseerr URL | a **Request on Seer** button when nothing you subscribe to has a title | Settings → Plugins |
-| Paste / upload a list | brings an existing watchlist in (`.txt`/`.csv` or plain text) | Settings → Plugins |
-| [Browser extension](https://github.com/ghltshubh/mediashelf-clipper/releases/latest) | copies your "My List" over from 10 services (Chrome + Firefox) | separate install |
-| Watchlist importer URL | continuous "My List" sync — **the tool itself isn't shipped**, see [§8b](docs/INSTALL.md#8b-watchlist-import-paste-upload-or-an-external-tool) | Settings → Plugins |
 | `yt-dlp` | zero-quota YouTube search | Settings → Plugins |
+| Watchlist importer URL | *continuous* "My List" sync via a tool you write yourself — most people want the extension above instead ([§8b](docs/INSTALL.md#8b-watchlist-import-paste-upload-or-an-external-tool)) | Settings → Plugins |
 
 **Running it on a server or NAS?** Two things differ from localhost: the OAuth redirect has to
-point at that host, and the watchlist importer stays on the computer you browse from.
+point at that host, and the extension points at the server's address instead of `127.0.0.1`.
 [docs/INSTALL.md §8](docs/INSTALL.md) covers both.
 
 **→ Full setup, key-by-key: see [docs/INSTALL.md](docs/INSTALL.md)** — step-by-step for every API
 key, connecting Spotify / YouTube / Apple, the optional yt-dlp plugin, remote hosting, and
 troubleshooting.
 
-Your data (SQLite DB, encrypted API keys, backups) lives in the `mediashelf-data` volume.
-
-## Quick start (development)
+## Development
 
 ```sh
 # Backend
@@ -167,15 +186,23 @@ OAuth accounts in **Settings → Accounts**. The OAuth redirect URI is always
 their own services in the checklist (e.g. "HBO Max Amazon Channel") — tick whichever way you
 actually subscribe, and titles light up accordingly.
 
-**Watchlist import**: save titles with **+ Want to watch**, or paste/upload a list in
-**Settings → Plugins** — official service data exports, Letterboxd/IMDb CSVs, or a plain
-`Title (Year)` list all work, and a paste only ever adds. *Continuous* "My List" sync needs a
-**separate external tool, which MediaShelf does not ship** — reading a logged-in streaming
-session breaches those services' terms and the risk lands on your account, so the product
-provides only the receiving endpoint. Nothing breaks without one: leave
-**Settings → Plugins → Importer URL** empty and the links don't appear.
-See [docs/INSTALL.md §8b](docs/INSTALL.md). Titles you save yourself are kept separately, so a
-tool's full-state sync never removes them.
+### Filling your watchlist
+
+Three ways in, all landing in the same **"Want to watch"** rail:
+
+| | How | Good for |
+|---|---|---|
+| ➕ | **+ Want to watch** on any title page | everyday saving, one title at a time |
+| 📋 | **Paste or upload** in Settings → Plugins | a service's official data export, a Letterboxd/IMDb CSV, or a plain `Title (Year)` list — only ever adds |
+| 🧩 | **[Browser extension](https://github.com/ghltshubh/mediashelf-clipper/releases/latest)** | copying your existing "My List" across from 10 services in one click |
+
+Titles you save yourself are stored separately from imported ones, so **an import can never
+delete them** — an extension clip is a full-state sync of that service's list and nothing else.
+
+The extension isn't part of MediaShelf and won't be: reading a logged-in streaming session is a
+decision about *your* account, and it belongs in your browser and your hands rather than running
+unattended on a server. Settings → Plugins also takes an **Importer URL** if you write your own
+sync tool; leave it empty and those links simply don't appear.
 
 ## Notes
 

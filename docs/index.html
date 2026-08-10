@@ -44,6 +44,16 @@
     border:1px solid var(--line); border-radius:8px; padding:12px 16px; margin:22px auto 0;
     max-width:760px; overflow-x:auto; white-space:nowrap; text-align:left;
   }
+  .next {
+    max-width:760px; margin:22px auto 0; padding:18px 20px 16px; text-align:left;
+    background:var(--bg-1); border:1px solid var(--line); border-left:3px solid var(--owned);
+    border-radius:8px;
+  }
+  .next p { margin:0 0 14px; color:var(--muted); font-size:.92rem; }
+  .next b { color:var(--ink); font-weight:600; }
+  .next .cta { justify-content:flex-start; align-items:center; gap:14px; margin:0; }
+  .btn-ext { background:transparent; color:var(--owned); border-color:var(--owned); }
+  .browsers { font-family:var(--mono); font-size:.72rem; color:var(--muted); }
   .shot {
     width:100%; border-radius:12px; border:1px solid var(--line); display:block;
     margin:44px 0; box-shadow:0 20px 60px -20px rgba(0,0,0,.7);
@@ -92,6 +102,23 @@
       <a class="btn btn-ghost" href="https://github.com/ghltshubh/mediashelf/blob/main/docs/INSTALL.md">Setup guide</a>
     </div>
     <div class="run">docker run -d -p 8000:8000 -v mediashelf-data:/data ghcr.io/ghltshubh/mediashelf:latest</div>
+
+    <div class="next">
+      <p>
+        <b>Then bring your watchlist with you.</b> The companion extension copies your
+        <b>"My List"</b> into MediaShelf from Netflix, Prime Video, Disney+, Hulu, Max,
+        Paramount+, Peacock, Tubi, Crunchyroll and Apple TV+ — open your list, click the toolbar
+        icon, done. Optional, and installed separately: your browser is what's signed in to those
+        services, not your server.
+      </p>
+      <div class="cta">
+        <a class="btn btn-ext" href="https://github.com/ghltshubh/mediashelf-clipper/releases/latest">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="vertical-align:-3px;margin-right:6px">
+            <path fill="currentColor" d="M20.5 11H13V3.5a1.5 1.5 0 0 0-3 0V5H6.5A2.5 2.5 0 0 0 4 7.5V11h1.5a2.5 2.5 0 0 1 0 5H4v3.5A2.5 2.5 0 0 0 6.5 22H10v-1.5a2.5 2.5 0 0 1 5 0V22h3.5a2.5 2.5 0 0 0 2.5-2.5V13h-1.5a1.5 1.5 0 0 1 0-3h1.5z"/>
+          </svg>Get the extension</a>
+        <span class="browsers">Chrome · Edge · Brave · Firefox</span>
+      </div>
+    </div>
   </header>
 
   <img class="shot" src="img/home.jpg" alt="The MediaShelf home shelf: a music rail, recommendations, watchlist and popular titles, with owned titles lit and others dimmed.">
