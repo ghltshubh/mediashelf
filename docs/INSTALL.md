@@ -139,7 +139,8 @@ Three more optional integrations need no API key — they take a URL or a binary
 |---|---|---|
 | **Overseerr / Jellyseerr** | a **Request on Seer** button on titles nothing you subscribe to carries | your own instance's base URL, e.g. `http://192.168.1.10:5055`; §5b |
 | **Import a list** | paste or upload titles into Want to watch | built in, no tool — §8b |
-| **Watchlist importer** | continuous "My List" sync via an external tool | **the tool is not shipped** — §8b |
+| **Browser extension** | copies your "My List" over from 10 streaming services | separate install — §8b |
+| **Watchlist importer** | continuous "My List" sync via your own external tool | **no tool shipped** — §8b |
 | **yt-dlp** | zero-quota YouTube search | a binary you install locally — §7 |
 
 ### TMDB (required) — ~2 minutes
@@ -288,7 +289,7 @@ about getting *your* lists in.
 
 Three routes, in the order most people want them:
 
-**1. The browser extension** ([mediashelf-clipper](https://github.com/ghltshubh/mediashelf-clipper))
+**1. The browser extension** ([mediashelf-clipper](https://github.com/ghltshubh/mediashelf-clipper/releases/latest))
 copies your existing **"My List"** across from Netflix, Prime Video, Disney+, Hulu, Max,
 Paramount+, Peacock, Tubi, Crunchyroll or Apple TV+. Open your list on that service, click the
 toolbar icon, and the titles land in MediaShelf. It is not part of MediaShelf and never will be:
