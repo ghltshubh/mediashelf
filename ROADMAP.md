@@ -21,12 +21,6 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   there's nothing to find unless you already know to look. A pointer in the empty state would fix
   that, at the cost of advertising the integration to people who never asked for it.
 
-- **Extension in the browser stores.** The
-  [companion extension](https://github.com/ghltshubh/mediashelf-clipper) installs from a release
-  zip today, which means Developer mode and manual updates. A Chrome Web Store listing and a
-  signed Firefox add-on would make it a normal install with automatic updates — worth doing, with
-  the caveat that a single-purpose extension reading named streaming sites can be pulled on
-  complaint, and a store listing is a more exposed position than a GitHub release.
 - **Notification agents.** MediaShelf already knows things worth telling you: a new episode of a
   show you're mid-way through has aired, a title you saved finally landed somewhere you
   subscribe to. Right now you only find out
@@ -91,4 +85,13 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   that have the data (JustWatch, FlixPatrol) license it commercially, and scraping them is the
   kind of tooling this project deliberately excludes. Per-service views rank by TMDB popularity
   instead, which is the honest free substitute.
+- **Listing the extension in the browser stores.** It installs from a
+  [release zip](https://github.com/ghltshubh/mediashelf-clipper/releases/latest) and stays that
+  way. A store listing is a far more exposed position than a GitHub release: a single-purpose
+  extension that reads named streaming sites can be pulled on one complaint, and a takedown would
+  remove the auto-updates it was added for. The zip route depends on nobody's approval. Its cost
+  is real and accepted — Developer mode to install, and the in-app update notice instead of
+  automatic updates. Firefox pays more, since unsigned add-ons load only until you restart;
+  signing through addons.mozilla.org is a separate question from the Chrome store and could be
+  revisited on its own.
 - **Multi-tenant hosting.** Single household, your own machine, your own keys.
