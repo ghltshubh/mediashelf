@@ -30,8 +30,8 @@ prices, and cast. Shows whose seasons sit on different services get a **by seaso
 
 ![Title page — availability split with deep links](docs/img/title.jpg)
 
-**Episode tracking** — tick episodes or a whole season; the shelf's "Continue watching" rail
-picks up from there:
+**Episode tracking** — the season list is right there on the page; tick episodes or a whole
+season, and the shelf's "Continue watching" rail picks up from there:
 
 ![Episode tracking — season chips and per-episode ticks](docs/img/episodes.jpg)
 
@@ -54,9 +54,12 @@ picks up from there:
   expand **"In other regions"** to show where it streams in every country worldwide — for when
   something isn't available where you live.
 - **Media-type tabs** (All / Movies / Shows / Music) and a **"Want to watch"** rail — save titles
-  from any title page, or bring an existing list in via Settings: paste titles or upload a
-  `.txt`/`.csv` (official service data exports, Letterboxd/IMDb exports, hand-written lists).
-- **Episode tracking** for shows — tick episodes or whole seasons, and a **"Continue watching"**
+  from any title page, bring an existing list in via Settings (paste titles or upload a
+  `.txt`/`.csv`: official service data exports, Letterboxd/IMDb exports, hand-written lists), or
+  copy your **"My List"** over from ten streaming services with the companion
+  [browser extension](https://github.com/ghltshubh/mediashelf-clipper).
+- **Episode tracking** for shows — the season list sits open on every show's page: tick episodes
+  or whole seasons, and a **"Continue watching"**
   rail leads the shelf with a one-tap mark for the next episode. Shows sort themselves into not
   started / watching / caught up / seen, so a running show you're up to date on steps aside until
   a new episode airs. Marking is manual: MediaShelf links out to the service and never sees

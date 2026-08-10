@@ -16,12 +16,12 @@ const STATE_LABEL: Record<ShowState, string> = {
  * Trakt connector would write into the same store and light these boxes up on
  * its own — the UI does not need to change for that to work.
  *
- * Collapsed by default. Someone who tracks nothing should see one quiet line,
- * not an episode grid pushed between them and the availability block.
+ * Always expanded. It used to collapse so an episode grid never sat between
+ * you and the availability block — but availability moved into its own column
+ * on wide screens, so hiding the grid only bought blank space and a click.
  */
 export function SeasonTracker({ itemId }: { itemId: number }) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
   const [season, setSeason] = useState<number | null>(null);
 
   const progress = useQuery({
@@ -39,7 +39,7 @@ export function SeasonTracker({ itemId }: { itemId: number }) {
   const episodes = useQuery({
     queryKey: ["episodes", itemId, season],
     queryFn: () => api.seasonEpisodes(itemId, season!),
-    enabled: open && season !== null,
+    enabled: season !== null,
   });
 
   const write = useMutation({
@@ -93,10 +93,7 @@ export function SeasonTracker({ itemId }: { itemId: number }) {
         {p.state === "watching" && p.next_up && (
           <button
             disabled={busy}
-            onClick={() => {
-              setOpen(true);
-              setSeason(p.next_up!.season);
-            }}
+            onClick={() => setSeason(p.next_up!.season)}
             className="hoverable rounded-[6px] border border-line px-3 py-1.5 font-mono text-[0.8rem] hover:bg-bg2 disabled:opacity-50"
           >
             Next up · S{p.next_up.season} E{p.next_up.episode}
@@ -111,15 +108,7 @@ export function SeasonTracker({ itemId }: { itemId: number }) {
         {p.state === "seen" && (
           <span className="font-mono text-[0.8rem] text-muted">Every episode marked.</span>
         )}
-        {/* Bordered like "Next up": hover styles are the only other tappable
-            signal, and hover doesn't exist on touch (issue #2 feedback). */}
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="hoverable rounded-[6px] border border-line px-3 py-1.5 font-mono text-[0.8rem] hover:bg-bg2"
-        >
-          {open ? "Hide episodes" : "Track episodes"}
-        </button>
-        {open && p.watched_episodes > 0 && (
+        {p.watched_episodes > 0 && (
           <button
             disabled={busy}
             onClick={() => clear.mutate()}
@@ -130,101 +119,99 @@ export function SeasonTracker({ itemId }: { itemId: number }) {
         )}
       </div>
 
-      {open && (
-        <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-3">
-          <div className="flex flex-wrap gap-1.5">
-            {p.seasons.map((s) => (
-              <button
-                key={s.season_number}
-                onClick={() => setSeason(s.season_number)}
-                className={`hoverable rounded-[6px] px-2.5 py-1 font-mono text-[0.75rem] ${
-                  s.season_number === season
-                    ? "bg-owned text-bg0"
-                    : "border border-line text-muted hover:bg-bg2 hover:text-ink"
-                }`}
-              >
-                S{s.season_number}
-                <span className={s.season_number === season ? "opacity-70" : "opacity-60"}>
-                  {" "}
-                  {s.watched_count}/{s.episode_count}
-                </span>
-              </button>
-            ))}
-          </div>
+      <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-3">
+        <div className="flex flex-wrap gap-1.5">
+          {p.seasons.map((s) => (
+            <button
+              key={s.season_number}
+              onClick={() => setSeason(s.season_number)}
+              className={`hoverable rounded-[6px] px-2.5 py-1 font-mono text-[0.75rem] ${
+                s.season_number === season
+                  ? "bg-owned text-bg0"
+                  : "border border-line text-muted hover:bg-bg2 hover:text-ink"
+              }`}
+            >
+              S{s.season_number}
+              <span className={s.season_number === season ? "opacity-70" : "opacity-60"}>
+                {" "}
+                {s.watched_count}/{s.episode_count}
+              </span>
+            </button>
+          ))}
+        </div>
 
-          {season !== null && current && (
-            <div className="mt-3 flex justify-end">
-              <button
-                disabled={busy || current.episode_count === 0}
-                onClick={() =>
-                  write.mutate({
-                    s: season,
-                    eps: Array.from({ length: current.episode_count }, (_, i) => i + 1),
-                    watched: !seasonAllWatched,
-                  })
-                }
-                className="hoverable rounded-[6px] px-2 py-1 font-mono text-[0.75rem] text-muted hover:bg-bg2 hover:text-ink disabled:opacity-50"
-              >
-                {seasonAllWatched ? "Unmark whole season" : "Mark whole season"}
-              </button>
+        {season !== null && current && (
+          <div className="mt-3 flex justify-end">
+            <button
+              disabled={busy || current.episode_count === 0}
+              onClick={() =>
+                write.mutate({
+                  s: season,
+                  eps: Array.from({ length: current.episode_count }, (_, i) => i + 1),
+                  watched: !seasonAllWatched,
+                })
+              }
+              className="hoverable rounded-[6px] px-2 py-1 font-mono text-[0.75rem] text-muted hover:bg-bg2 hover:text-ink disabled:opacity-50"
+            >
+              {seasonAllWatched ? "Unmark whole season" : "Mark whole season"}
+            </button>
+          </div>
+        )}
+
+        <div className="mt-2 space-y-1">
+          {episodes.isPending && (
+            <div className="space-y-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-9 animate-pulse rounded-[6px] bg-bg2" />
+              ))}
             </div>
           )}
-
-          <div className="mt-2 space-y-1">
-            {episodes.isPending && (
-              <div className="space-y-1">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-9 animate-pulse rounded-[6px] bg-bg2" />
-                ))}
-              </div>
-            )}
-            {episodes.data?.episodes.length === 0 && (
-              <p className="px-1 py-2 text-[0.85rem] text-muted">
-                TMDB lists no episodes for this season yet.
-              </p>
-            )}
-            {episodes.data?.episodes.map((ep) => (
-              <button
-                key={ep.episode_number}
-                disabled={busy}
-                onClick={() =>
-                  write.mutate({ s: season!, eps: [ep.episode_number], watched: !ep.watched })
-                }
-                className={`hoverable flex w-full items-center gap-3 rounded-[6px] px-2 py-1.5 text-left hover:bg-bg2 disabled:opacity-50 ${
-                  ep.watched ? "text-muted" : "text-ink"
+          {episodes.data?.episodes.length === 0 && (
+            <p className="px-1 py-2 text-[0.85rem] text-muted">
+              TMDB lists no episodes for this season yet.
+            </p>
+          )}
+          {episodes.data?.episodes.map((ep) => (
+            <button
+              key={ep.episode_number}
+              disabled={busy}
+              onClick={() =>
+                write.mutate({ s: season!, eps: [ep.episode_number], watched: !ep.watched })
+              }
+              className={`hoverable flex w-full items-center gap-3 rounded-[6px] px-2 py-1.5 text-left hover:bg-bg2 disabled:opacity-50 ${
+                ep.watched ? "text-muted" : "text-ink"
+              }`}
+            >
+              {/* The tick is the control — the whole row is the hit target. */}
+              <span
+                aria-hidden
+                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border text-[0.7rem] ${
+                  ep.watched ? "border-owned bg-owned text-bg0" : "border-line"
                 }`}
               >
-                {/* The tick is the control — the whole row is the hit target. */}
-                <span
-                  aria-hidden
-                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border text-[0.7rem] ${
-                    ep.watched ? "border-owned bg-owned text-bg0" : "border-line"
-                  }`}
-                >
-                  {ep.watched ? "✓" : ""}
+                {ep.watched ? "✓" : ""}
+              </span>
+              <span className="w-8 shrink-0 font-mono text-[0.75rem] text-muted">
+                E{ep.episode_number}
+              </span>
+              <span className={`min-w-0 flex-1 truncate text-[0.9rem] ${ep.watched ? "line-through" : ""}`}>
+                {ep.name ?? `Episode ${ep.episode_number}`}
+              </span>
+              {ep.runtime_minutes && (
+                <span className="shrink-0 font-mono text-[0.7rem] text-muted">
+                  {ep.runtime_minutes}m
                 </span>
-                <span className="w-8 shrink-0 font-mono text-[0.75rem] text-muted">
-                  E{ep.episode_number}
-                </span>
-                <span className={`min-w-0 flex-1 truncate text-[0.9rem] ${ep.watched ? "line-through" : ""}`}>
-                  {ep.name ?? `Episode ${ep.episode_number}`}
-                </span>
-                {ep.runtime_minutes && (
-                  <span className="shrink-0 font-mono text-[0.7rem] text-muted">
-                    {ep.runtime_minutes}m
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Say why this is manual, once, where the question actually arises. */}
-          <p className="mt-3 border-t border-line pt-2 font-mono text-[0.68rem] leading-relaxed text-muted/70">
-            You mark these yourself — MediaShelf links you out to the service and
-            can't see what you finished there.
-          </p>
+              )}
+            </button>
+          ))}
         </div>
-      )}
+
+        {/* Say why this is manual, once, where the question actually arises. */}
+        <p className="mt-3 border-t border-line pt-2 font-mono text-[0.68rem] leading-relaxed text-muted/70">
+          You mark these yourself — MediaShelf links you out to the service and
+          can't see what you finished there.
+        </p>
+      </div>
     </section>
   );
 }
