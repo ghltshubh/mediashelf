@@ -286,7 +286,17 @@ None of this section is needed for the **"Popular right now"** rail: that fills 
 normal catalog sync from the weekly Top 10 Netflix publishes as open data. This section is only
 about getting *your* lists in.
 
-The no-tool routes cover almost everyone:
+Three routes, in the order most people want them:
+
+**1. The browser extension** ([mediashelf-clipper](https://github.com/ghltshubh/mediashelf-clipper))
+copies your existing **"My List"** across from Netflix, Prime Video, Disney+, Hulu, Max,
+Paramount+, Peacock, Tubi, Crunchyroll or Apple TV+. Open your list on that service, click the
+toolbar icon, and the titles land in MediaShelf. It is not part of MediaShelf and never will be:
+your browser is what's signed in to those services, not this server — a NAS has no browser and no
+sessions. Reading those pages sits against the letter of most services' terms, so it's a separate
+tool you install deliberately; its README says so plainly.
+
+**2 and 3, needing nothing extra:**
 
 - **Save titles in the app.** Every title page has a **+ Want to watch** button.
 - **Paste or upload a list** in **Settings → Plugins → Import a list**: one `Title (Year)` per

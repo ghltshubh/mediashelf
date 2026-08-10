@@ -211,6 +211,28 @@ function StepThree({ onDone }: { onDone: () => void }) {
         </>
       )}
 
+      {/* Where your saved titles come from. New users otherwise finish setup
+          with an empty Want-to-watch rail and no idea it can be filled. */}
+      <div className="mt-6 max-w-xl rounded-[10px] border border-line bg-bg1 p-4">
+        <h2 className="font-display text-[1.05rem] font-semibold">Bringing your watchlist in</h2>
+        <p className="mt-1 text-[0.9rem] text-muted">
+          Every title page has a <strong>+ Want to watch</strong> button, and Settings → Plugins
+          takes a pasted or uploaded list (including the data export your streaming service will
+          give you on request). To copy your existing <strong>"My List"</strong> across in one
+          click, there's an optional{" "}
+          <a
+            href="https://github.com/ghltshubh/mediashelf-clipper"
+            target="_blank"
+            rel="noreferrer"
+            className="text-owned underline underline-offset-2 hover:opacity-80"
+          >
+            browser extension
+          </a>
+          . It lives outside MediaShelf on purpose: your browser is the thing that's signed in,
+          not this server. Nothing here needs it.
+        </p>
+      </div>
+
       {/* yt-dlp suggestion — honest one-paragraph explanation (M6), off by default. */}
       <div className="mt-6 max-w-xl rounded-[10px] border border-line bg-bg1 p-4">
         <div className="flex items-start justify-between gap-3">

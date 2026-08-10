@@ -1065,6 +1065,21 @@ export function Settings() {
               service, a Letterboxd or IMDb export, or a hand-written list all work. Imports only
               ever add; nothing you've saved is removed.
             </p>
+            <p className="mt-2 max-w-lg text-[0.85rem] text-muted">
+              To pull your <strong>"My List"</strong> straight off Netflix, Prime Video, Disney+
+              and others, there's a separate{" "}
+              <a
+                href="https://github.com/ghltshubh/mediashelf-clipper"
+                target="_blank"
+                rel="noreferrer"
+                className="text-owned underline underline-offset-2 hover:opacity-80"
+              >
+                browser extension
+              </a>
+              : open your list on that service, click the toolbar icon, and the titles land here.
+              It runs in your browser rather than on this server, because only your browser is
+              signed in — which is also why it isn't part of MediaShelf.
+            </p>
             <ImportListForm />
           </div>
           <div className="mt-4 rounded-[10px] border border-line bg-bg1 p-4">

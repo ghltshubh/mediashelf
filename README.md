@@ -116,6 +116,7 @@ for leaving it blank:
 | OMDb key | IMDb / RT / Metacritic scores | Settings → Keys |
 | Overseerr / Jellyseerr URL | a **Request on Seer** button when nothing you subscribe to has a title | Settings → Plugins |
 | Paste / upload a list | brings an existing watchlist in (`.txt`/`.csv` or plain text) | Settings → Plugins |
+| [Browser extension](https://github.com/ghltshubh/mediashelf-clipper) | copies your "My List" over from Netflix, Prime Video, Disney+ and 7 more | separate install |
 | Watchlist importer URL | continuous "My List" sync — **the tool itself isn't shipped**, see [§8b](docs/INSTALL.md#8b-watchlist-import-paste-upload-or-an-external-tool) | Settings → Plugins |
 | `yt-dlp` | zero-quota YouTube search | Settings → Plugins |
 
