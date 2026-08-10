@@ -139,7 +139,7 @@ Three more optional integrations need no API key — they take a URL or a binary
 |---|---|---|
 | **Overseerr / Jellyseerr** | a **Request on Seer** button on titles nothing you subscribe to carries | your own instance's base URL, e.g. `http://192.168.1.10:5055`; §5b |
 | **Import a list** | paste or upload titles into Want to watch | built in, no tool — §8b |
-| **Browser extension** | copies your "My List" over from 10 streaming services | separate install — §8b |
+| **Browser extension** | copies your "My List" over from 10 streaming services (Chrome + Firefox) | separate install — §8b |
 | **Watchlist importer** | continuous "My List" sync via your own external tool | **no tool shipped** — §8b |
 | **yt-dlp** | zero-quota YouTube search | a binary you install locally — §7 |
 
