@@ -221,7 +221,7 @@ function StepThree({ onDone }: { onDone: () => void }) {
           give you on request). To copy your existing <strong>"My List"</strong> across in one
           click, there's an optional{" "}
           <a
-            href="https://github.com/ghltshubh/mediashelf-clipper"
+            href="https://github.com/ghltshubh/mediashelf-clipper/releases/latest"
             target="_blank"
             rel="noreferrer"
             className="text-owned underline underline-offset-2 hover:opacity-80"

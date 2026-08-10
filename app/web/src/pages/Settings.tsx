@@ -1069,7 +1069,7 @@ export function Settings() {
               To pull your <strong>"My List"</strong> straight off Netflix, Prime Video, Disney+
               and others, there's a separate{" "}
               <a
-                href="https://github.com/ghltshubh/mediashelf-clipper"
+                href="https://github.com/ghltshubh/mediashelf-clipper/releases/latest"
                 target="_blank"
                 rel="noreferrer"
                 className="text-owned underline underline-offset-2 hover:opacity-80"
