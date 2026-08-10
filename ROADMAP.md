@@ -21,6 +21,12 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   there's nothing to find unless you already know to look. A pointer in the empty state would fix
   that, at the cost of advertising the integration to people who never asked for it.
 
+- **Extension in the browser stores.** The
+  [companion extension](https://github.com/ghltshubh/mediashelf-clipper) installs from a release
+  zip today, which means Developer mode and manual updates. A Chrome Web Store listing and a
+  signed Firefox add-on would make it a normal install with automatic updates — worth doing, with
+  the caveat that a single-purpose extension reading named streaming sites can be pulled on
+  complaint, and a store listing is a more exposed position than a GitHub release.
 - **Notification agents.** MediaShelf already knows things worth telling you: a new episode of a
   show you're mid-way through has aired, a title you saved finally landed somewhere you
   subscribe to. Right now you only find out
@@ -48,6 +54,12 @@ nights-and-weekends project. Anything with an issue number is where the discussi
 - **Add-on channel noise.** Some titles list nine near-identical variants ("Paramount+ Essential",
   "Paramount+ Amazon Channel", …). Rows cap and fold them, but the underlying services could
   probably collapse further.
+- **The extension's Firefox build is untested.** Built from the same source as the Chrome one and
+  checked in CI, but never loaded in Firefox by anyone yet. Reports welcome on
+  [its issue tracker](https://github.com/ghltshubh/mediashelf-clipper/issues).
+- **Extension selectors drift.** Each service is a handful of CSS selectors against markup its
+  owner can change without warning. A clip that finds nothing means that service redesigned — it
+  fails quietly and never sends an empty list, but it does need someone to notice and fix it.
 
 ## Known debt
 
@@ -66,8 +78,11 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   your server, it never becomes one.
 - **Downloading or proxying DRM streams**, or any playback path through yt-dlp. yt-dlp is
   metadata-only, wrapped in one module that exposes nothing else.
-- **Scraping logged-in sessions.** Watchlist import runs as a separate local companion tool, out
-  of the product on purpose.
+- **Scraping logged-in sessions.** Reading your "My List" happens in the
+  [companion extension](https://github.com/ghltshubh/mediashelf-clipper), in your browser, on a
+  page you opened, when you click — never in MediaShelf. The server has no browser and none of
+  your sessions, and whether to read your own account is your decision rather than a side effect
+  of installing a server app. MediaShelf ships only the receiving endpoint.
 - **A Request button on titles you can already watch.** It appears where a gap exists — nothing on
   your services, or nothing anywhere. Beside something you can watch right now it would argue
   against the point of the app.
