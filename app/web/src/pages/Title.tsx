@@ -173,8 +173,21 @@ export function TitlePage() {
             )}
           </div>
 
+          {/* Below the header the page splits on a wide screen: who's in it and
+              where you are in it on the left, where to watch it on the right.
+              Stacked (and text-width capped) below xl, as before. Falls back to
+              one column when there's nothing for the left — an empty half is
+              worse than the blank margin it replaces. */}
+          <div
+            className={`mt-8 grid max-w-2xl gap-x-10 gap-y-8 ${
+              t.cast?.length > 0 || t.media_type === "tv"
+                ? "xl:max-w-none xl:grid-cols-2 xl:items-start"
+                : ""
+            }`}
+          >
+            <div className="min-w-0 space-y-8">
           {t.cast?.length > 0 && (
-            <section className="mt-8 max-w-2xl">
+            <section>
               <h2 className="mb-3 font-mono text-[0.75rem] tracking-widest text-muted">CAST</h2>
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {t.cast.map((c, i) => {
@@ -214,9 +227,10 @@ export function TitlePage() {
 
           {/* Shows only: manual episode progress (no playback signal exists). */}
           {t.media_type === "tv" && <SeasonTracker itemId={t.id} />}
+            </div>
 
           {/* Availability block — the product's money shot (Part 2 §4.4). */}
-          <div className="mt-8 max-w-2xl space-y-6">
+          <div className="min-w-0 space-y-6">
             {t.regions.length > 1 && (
               <div className="flex items-center gap-2 font-mono text-[0.75rem] text-muted">
                 <span>availability in</span>
@@ -324,6 +338,7 @@ export function TitlePage() {
                 </div>
               </details>
             )}
+          </div>
           </div>
         </div>
       </div>
