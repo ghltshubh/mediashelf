@@ -91,7 +91,10 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   extension that reads named streaming sites can be pulled on one complaint, and a takedown would
   remove the auto-updates it was added for. The zip route depends on nobody's approval. Its cost
   is real and accepted — Developer mode to install, and the in-app update notice instead of
-  automatic updates. Firefox pays more, since unsigned add-ons load only until you restart;
-  signing through addons.mozilla.org is a separate question from the Chrome store and could be
-  revisited on its own.
+  automatic updates. Firefox pays most: unsigned add-ons load only for the session, so it is a
+  per-session install unless you run Developer Edition, Nightly or ESR with
+  `xpinstall.signatures.required` off. Signing through addons.mozilla.org is not planned either.
+  If that ever changes, the route worth looking at first is AMO's **unlisted** signing, which
+  returns a permanently installable file without a public listing — permanence without the
+  storefront exposure that ruled the rest of this out.
 - **Multi-tenant hosting.** Single household, your own machine, your own keys.
