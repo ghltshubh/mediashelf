@@ -6,6 +6,8 @@ encrypted in the Setting table via a spotipy CacheHandler.
 
 import json
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import spotipy
@@ -14,7 +16,7 @@ from spotipy.oauth2 import SpotifyOAuth
 from sqlalchemy.orm import Session
 
 from app import settings_store
-from app.connectors.base import AuthExpired, NotConnected
+from app.connectors.base import AuthExpired, NotConnected, ProviderRefused
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,25 @@ class _SettingCache(CacheHandler):
 
     def save_token_to_cache(self, token_info: dict) -> None:
         settings_store.set_setting(self.db, self.key, json.dumps(token_info))
+
+
+@contextmanager
+def _refusal_is_not_an_expired_token() -> Iterator[None]:
+    """Spotify answers 403 when the app itself is barred from the Web API —
+    currently when the app owner has no Premium subscription. The token is
+    perfectly valid, so the default "Reconnect Spotify" advice sends people to
+    re-authorise an account that was never at fault. Say what happened instead.
+    """
+    try:
+        yield
+    except spotipy.SpotifyException as exc:
+        if exc.http_status == 403:
+            raise ProviderRefused(
+                "spotify",
+                "Spotify refused API access for this app. Spotify currently "
+                "requires the app owner to have a Premium subscription; "
+                "reconnecting will not change it.") from exc
+        raise
 
 
 class SpotifyConnector:
@@ -142,7 +163,8 @@ class SpotifyConnector:
     def read_likes(self, db: Session, redirect_uri: str = "") -> list[dict[str, Any]]:
         sp = self._client(db, redirect_uri)
         out: list[dict] = []
-        results = sp.current_user_saved_tracks(limit=50)
+        with _refusal_is_not_an_expired_token():
+            results = sp.current_user_saved_tracks(limit=50)
         while results:
             for row in results["items"]:
                 t = row["track"]
@@ -161,7 +183,8 @@ class SpotifyConnector:
                         "uri": t.get("uri"),
                     },
                 })
-            results = sp.next(results) if results.get("next") else None
+            with _refusal_is_not_an_expired_token():
+                results = sp.next(results) if results.get("next") else None
         return out
 
     # ---------- M5: matching + writes ----------

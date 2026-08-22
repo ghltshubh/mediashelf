@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app import settings_store
-from app.connectors.base import AuthExpired, NotConnected
+from app.connectors.base import AuthExpired, NotConnected, ProviderRefused
 from app.connectors.spotify import SpotifyConnector
 from app.connectors.youtube import YouTubeConnector
 from app.models import LibraryEntry, Service
@@ -79,6 +79,12 @@ def sync_provider(db: Session, provider: str) -> dict:
     except AuthExpired:
         # Marked expired by the connector; UI shows "Reconnect".
         state.update(status="auth", detail=f"Reconnect {connector.name}")
+        return {"likes": 0, "follows": 0}
+    except ProviderRefused as exc:
+        # A live token the provider won't honour. Reconnecting is the one thing
+        # that cannot help, so this must not look like an expired session.
+        logger.warning("library sync %s refused: %s", provider, exc.detail)
+        state.update(status="blocked", detail=exc.detail)
         return {"likes": 0, "follows": 0}
     except NotConnected:
         state.update(status="idle", detail=None)

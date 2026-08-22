@@ -171,8 +171,12 @@ Component demo page (dev builds): http://localhost:5173/dev/components
 
 All keys are **your own** — nothing is shared or embedded. Only **TMDB is required**; everything
 else is optional and unlocks a specific feature. Enter them in **Settings → Keys**; connect the
-OAuth accounts in **Settings → Accounts**. The OAuth redirect URI is always
-`http://127.0.0.1:8000/oauth2callback`.
+OAuth accounts in **Settings → Accounts**. The OAuth redirect URI defaults to
+`http://127.0.0.1:8000/oauth2callback`, which is right when MediaShelf runs on the machine you
+browse from. **Running it on a server or NAS? Change it** in Settings → Accounts to that server's
+own address ending in `/oauth2callback`, and register the same string with each provider.
+Otherwise the provider sends the callback to your laptop, the server never receives the token,
+and Connect fails without saying why.
 
 | Provider | Unlocks | How to get it |
 |---|---|---|

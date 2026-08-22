@@ -58,6 +58,13 @@ export function ConnectionCard({
           library synced {ageOf(conn.synced_at)}
         </p>
       )}
+      {/* A token the provider won't honour. Deliberately louder than a stale
+          sync and deliberately not next to Reconnect, which cannot fix it. */}
+      {conn.sync?.status === "blocked" && conn.sync.detail && (
+        <p className="mt-2 rounded-[6px] border border-[color:var(--danger)]/40 bg-[color:var(--danger)]/10 px-2.5 py-2 text-[0.8rem] text-[color:var(--danger)]">
+          {conn.sync.detail}
+        </p>
+      )}
       {conn.token_expiring_soon && (
         <p className="mt-1 font-mono text-[0.75rem] text-owned">
           developer token expires {conn.token_expires?.slice(0, 10)} — renew it soon

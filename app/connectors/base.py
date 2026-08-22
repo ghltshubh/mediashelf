@@ -25,6 +25,20 @@ class NotConnected(Exception):
         super().__init__(f"{provider} is not connected")
 
 
+class ProviderRefused(Exception):
+    """The provider accepted the token and then refused the API anyway.
+
+    Distinct from AuthExpired on purpose: reconnecting cannot fix it, so
+    showing "Reconnect" sends someone to re-authorise an account that was
+    never the problem. Carries a message written for the person reading it.
+    """
+
+    def __init__(self, provider: str, detail: str):
+        self.provider = provider
+        self.detail = detail
+        super().__init__(detail)
+
+
 class QuotaExhausted(Exception):
     """Daily API quota hit. Never an error state: jobs persist progress, pause
     cleanly as `paused_quota`, and resume after the provider's reset."""

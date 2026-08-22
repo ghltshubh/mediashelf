@@ -126,3 +126,30 @@ def test_oauth_redirect_uri_is_settable_and_validated(client):
 
     cleared = client.put("/api/settings", json={"oauth_redirect_uri": ""}).json()
     assert cleared["oauth_redirect_uri"] == ""
+
+
+def test_spotify_403_is_not_reported_as_an_expired_token(client, monkeypatch):
+    """Spotify answers 403 when it bars the app itself from the Web API. The
+    token is fine, so 'Reconnect' is the one piece of advice that cannot help."""
+    import spotipy
+
+    from app.connectors.base import ProviderRefused
+    from app.connectors.spotify import SpotifyConnector
+
+    conn = SpotifyConnector()
+
+    def boom(*a, **kw):
+        raise spotipy.SpotifyException(403, -1, "Forbidden")
+
+    monkeypatch.setattr(SpotifyConnector, "_client",
+                        lambda self, db, redirect: type("S", (), {
+                            "current_user_saved_tracks": staticmethod(boom)})())
+    from app.db import session_factory
+    with session_factory()() as db:
+        try:
+            conn.read_likes(db)
+        except ProviderRefused as exc:
+            assert "Premium" in exc.detail
+            assert "econnect" in exc.detail  # says reconnecting won't help
+        else:
+            raise AssertionError("a 403 should raise ProviderRefused")
