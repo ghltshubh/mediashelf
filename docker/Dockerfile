@@ -1,7 +1,7 @@
 # MediaShelf — one image, one container, one process.
 # Stage 1: build the React SPA. Stage 2: Python runtime serving API + static bundle.
 
-FROM node:22-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /build
 COPY app/web/package.json app/web/package-lock.json ./
 RUN npm ci
