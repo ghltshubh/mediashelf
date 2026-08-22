@@ -81,10 +81,15 @@ nights-and-weekends project. Anything with an issue number is where the discussi
   your services, or nothing anywhere. Beside something you can watch right now it would argue
   against the point of the app.
 - **Per-service Top 10 beyond Netflix.** Netflix publishes its weekly Top 10 as open data, which
-  is what feeds "Popular right now". No other service publishes an equivalent; the aggregators
-  that have the data (JustWatch, FlixPatrol) license it commercially, and scraping them is the
-  kind of tooling this project deliberately excludes. Per-service views rank by TMDB popularity
-  instead, which is the honest free substitute.
+  is what feeds "Popular right now". No other service publishes an equivalent, and the aggregators
+  that hold the data license it commercially. This was checked rather than assumed: JustWatch
+  quoted **from ~€1,500/month** for API access in August 2026, with affiliate revenue shared and a
+  requirement that every page showing their data carry their logo and link back. That is not a
+  price or a shape this project can take — MediaShelf carries no ads and no affiliate links. Their
+  free widget is a non-customisable third-party embed showing *availability*, not charts, and
+  MediaShelf already gets JustWatch-sourced availability free through TMDB. Scraping an aggregator
+  is the kind of tooling this project deliberately excludes. Per-service views rank by TMDB
+  popularity instead, which is the honest free substitute.
 - **Listing the extension in the browser stores.** It installs from a
   [release zip](https://github.com/ghltshubh/mediashelf-clipper/releases/latest) and stays that
   way. A store listing is a far more exposed position than a GitHub release: a single-purpose
