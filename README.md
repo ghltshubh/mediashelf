@@ -245,5 +245,5 @@ If MediaShelf is useful to you:
 [![Buy me a coffee](https://img.shields.io/badge/☕-One--off-e3a84c)](https://buymeacoffee.com/shubhankar)
 
 What the money is for is written down in [funding.json](funding.json), a
-[FLOSS/fund](https://floss.fund) manifest: maintenance time, and the small ARM machines the
-Docker images are tested on.
+[FLOSS/fund](https://floss.fund) manifest: upkeep of the extension's site readers, and the small
+ARM machines the Docker images are tested on.
