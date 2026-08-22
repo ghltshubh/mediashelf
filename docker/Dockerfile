@@ -8,7 +8,7 @@ RUN npm ci
 COPY app/web ./
 RUN npm run build
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /srv
 
 # Dependencies install against a stub package, BEFORE the source is copied, so
