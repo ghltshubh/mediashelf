@@ -1,0 +1,88 @@
+{
+    "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+    "version": "v1.1.0",
+    "entity": {
+        "type": "individual",
+        "role": "owner",
+        "name": "Shubhankar Gahlot",
+        "email": "shubhankargahlot@gmail.com",
+        "description": "I build and maintain MediaShelf on my own time. My day job is high-performance computing; this project started because I pay for six streaming subscriptions and still could not answer the question of where a given film was, or get my own saved lists back out of the apps that hold them. Everything I release is AGPL and self-hosted first: no accounts, no telemetry, no affiliate links, no ads.",
+        "webpageUrl": {
+            "url": "https://github.com/ghltshubh"
+        }
+    },
+    "projects": [{
+        "guid": "mediashelf",
+        "name": "MediaShelf",
+        "description": "MediaShelf is a self-hosted index and router for the streaming services you already pay for. It reads TMDB availability, your own music and video accounts (Spotify, YouTube, Apple Music, Trakt), and the watchlists you copy out of the streaming apps, then shows one shelf across all of them and deep-links to the service that has the title.\n\nThe part that funding is for is portability. Streaming services hold your watchlist and your viewing history, and there is no API to get either out. MediaShelf ships a companion browser extension that reads your own \"My List\" pages in your own browser and posts them to your own server, which is the only lawful route available. Keeping that working means tracking ten services' markup, and doing it again each time one of them changes.\n\nIt runs on a Raspberry Pi, a NAS, or a laptop, in Docker or from source. There is no hosted version and no paid tier. About 185 tests, multi-arch images, AGPL-3.0-or-later.",
+        "webpageUrl": {
+            "url": "https://github.com/ghltshubh/mediashelf"
+        },
+        "repositoryUrl": {
+            "url": "https://github.com/ghltshubh/mediashelf"
+        },
+        "licenses": ["spdx:AGPL-3.0-or-later"],
+        "tags": ["self-hosted", "media", "streaming", "privacy", "metadata", "browser-extension", "python", "fastapi", "react", "docker"]
+    },
+    {
+        "guid": "mediashelf-clipper",
+        "name": "MediaShelf clipper",
+        "description": "A Chrome and Firefox extension that copies your saved list from ten streaming services into your own MediaShelf instance. It reads the page you are already signed in to, in your browser, and sends the titles to the address you configure. Nothing goes anywhere else. A built-in timer can repeat the copy on a schedule so the shelf does not go stale.\n\nThis is the only route to your own watchlist that does not depend on a service granting access, so it is also the piece that needs the most upkeep: each site's markup changes without notice.",
+        "webpageUrl": {
+            "url": "https://github.com/ghltshubh/mediashelf-clipper"
+        },
+        "repositoryUrl": {
+            "url": "https://github.com/ghltshubh/mediashelf-clipper"
+        },
+        "licenses": ["spdx:AGPL-3.0-or-later"],
+        "tags": ["browser-extension", "chrome", "firefox", "self-hosted", "streaming", "data-portability"]
+    }],
+    "funding": {
+        "channels": [
+            {
+                "guid": "github-sponsors",
+                "type": "payment-provider",
+                "address": "https://github.com/sponsors/ghltshubh",
+                "description": "Recurring or one-off, through GitHub Sponsors."
+            },
+            {
+                "guid": "buymeacoffee",
+                "type": "payment-provider",
+                "address": "https://buymeacoffee.com/shubhankar",
+                "description": "One-off, card or PayPal, no account needed."
+            }
+        ],
+        "plans": [
+            {
+                "guid": "maintenance",
+                "status": "active",
+                "name": "Maintenance time",
+                "description": "Roughly one day a week of paid time on the project: keeping the ten site readers in the extension working, answering issues, and shipping releases.",
+                "amount": 400,
+                "currency": "USD",
+                "frequency": "monthly",
+                "channels": ["github-sponsors"]
+            },
+            {
+                "guid": "test-hardware",
+                "status": "active",
+                "name": "Test hardware and running costs",
+                "description": "MediaShelf is meant to run on small home servers, so it has to be tested on them. This covers a Raspberry Pi and an ARM NAS to test the multi-arch images on, plus the domain.",
+                "amount": 600,
+                "currency": "USD",
+                "frequency": "yearly",
+                "channels": ["github-sponsors", "buymeacoffee"]
+            },
+            {
+                "guid": "goodwill",
+                "status": "active",
+                "name": "Any amount",
+                "description": "If MediaShelf saved you an evening of hunting for where something is streaming, this is the plan.",
+                "amount": 0,
+                "currency": "USD",
+                "frequency": "one-time",
+                "channels": ["github-sponsors", "buymeacoffee"]
+            }
+        ]
+    }
+}
