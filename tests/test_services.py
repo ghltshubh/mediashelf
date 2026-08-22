@@ -101,3 +101,28 @@ def test_importer_url_defaults_empty_and_validates(client):
     r = client.put("/api/settings", json={"importer_url": "http://127.0.0.1:8765/"})
     assert r.json()["importer_url"] == "http://127.0.0.1:8765"
     assert client.put("/api/settings", json={"importer_url": ""}).json()["importer_url"] == ""
+
+
+def test_oauth_redirect_uri_is_settable_and_validated(client):
+    """Unset, the app falls back to 127.0.0.1:8000 — correct on a laptop and
+    silently wrong on a NAS, where the provider posts the callback to the
+    user's own machine and the server never sees it."""
+    s = client.get("/api/settings").json()
+    assert s["oauth_redirect_uri"] == ""
+    assert s["oauth_redirect_effective"] == "http://127.0.0.1:8000/oauth2callback"
+
+    assert client.put("/api/settings",
+                      json={"oauth_redirect_uri": "192.168.1.105:8010/oauth2callback"}
+                      ).status_code == 422
+    # Providers match the string exactly, so a missing path fails later, not now.
+    assert client.put("/api/settings",
+                      json={"oauth_redirect_uri": "http://192.168.1.105:8010"}
+                      ).status_code == 422
+
+    ok = client.put("/api/settings",
+                    json={"oauth_redirect_uri": "http://192.168.1.105:8010/oauth2callback"})
+    assert ok.status_code == 200
+    assert ok.json()["oauth_redirect_effective"] == "http://192.168.1.105:8010/oauth2callback"
+
+    cleared = client.put("/api/settings", json={"oauth_redirect_uri": ""}).json()
+    assert cleared["oauth_redirect_uri"] == ""

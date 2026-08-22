@@ -352,6 +352,65 @@ function ImportListForm() {
   );
 }
 
+function RedirectUriForm({ current, effective }: { current: string; effective: string }) {
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState(current);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const save = useMutation({
+    mutationFn: () => api.updateSettings({ oauth_redirect_uri: url.trim() }),
+    onSuccess: () => {
+      setError(null);
+      setSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e: Error) => { setSaved(false); setError(e.message); },
+  });
+  // Running anywhere but the machine you browse from makes the default wrong,
+  // and the failure is silent: the provider sends the callback to your laptop,
+  // this server never sees it, and Connect looks like it just didn't work.
+  const isDefault = !current;
+  const looksLocal = /\/\/(127\.0\.0\.1|localhost)\b/.test(effective);
+  return (
+    <div className="mt-6 max-w-xl rounded-[10px] border border-line bg-bg1 p-4">
+      <h3 className="font-display text-[1rem] font-semibold">OAuth redirect URI</h3>
+      <p className="mt-1 text-[0.85rem] text-muted">
+        Where Spotify, Google and Apple send you back after you approve. It has to match{" "}
+        <strong>exactly</strong> what you registered with each provider, and it has to point at{" "}
+        <strong>this</strong> MediaShelf.
+      </p>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="min-w-64 flex-1">
+          <span className="font-mono text-[0.75rem] text-muted">REDIRECT URI</span>
+          <input value={url} onChange={(e) => { setUrl(e.target.value); setSaved(false); }}
+                 className={inputCls} placeholder={effective} />
+        </label>
+        <button disabled={save.isPending || url.trim() === current} onClick={() => save.mutate()}
+                className={primaryBtn}>
+          Save
+        </button>
+      </div>
+      {error && <p className="mt-2 font-mono text-[0.8rem] text-[color:var(--danger)]">{error}</p>}
+      {saved && !error && (
+        <p className="mt-2 font-mono text-[0.75rem] text-[color:var(--play)]">
+          Saved. Register this exact URI with each provider before connecting.
+        </p>
+      )}
+      <p className="mt-2 font-mono text-[0.75rem] text-muted">
+        currently using {effective}{isDefault ? " (default)" : ""}
+      </p>
+      {looksLocal && (
+        <p className="mt-2 text-[0.8rem] text-[color:var(--danger)]">
+          This points at localhost. If you are reading this over the network rather than on the
+          machine running MediaShelf, connecting will fail silently — the provider will send the
+          callback to your own computer and this server will never receive it. Set it to this
+          server's address, ending in <code>/oauth2callback</code>.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AddServiceForm() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -790,6 +849,10 @@ export function Settings() {
               <ConnectionCard key={c.provider} conn={c} origin="settings" onError={setConnectError} />
             ))}
           </div>
+          <RedirectUriForm
+            current={s?.oauth_redirect_uri ?? ""}
+            effective={s?.oauth_redirect_effective ?? "http://127.0.0.1:8000/oauth2callback"}
+          />
         </Section>
 
         <Section id="keys" title={t("settings.section.keys")}>
@@ -1098,7 +1161,7 @@ export function Settings() {
         <Section id="about" title={t("settings.section.about")}>
           <KeyValueMono
             pairs={[
-              ["MediaShelf", "0.1.12"],
+              ["MediaShelf", "0.1.13"],
               ["License", "AGPL-3.0-or-later"],
               ["Data", "TMDB — this product uses the TMDB API but is not endorsed or certified by TMDB · streaming availability by JustWatch"],
               ["Storage", "SQLite in your data dir · keys encrypted at rest · nightly backups (keep 7)"],

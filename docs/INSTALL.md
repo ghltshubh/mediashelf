@@ -271,9 +271,17 @@ domain:
 1. **Serve over HTTPS.** OAuth providers (and browser features like the PWA and Spotify SDK) expect
    a secure origin for anything but `localhost`. Put MediaShelf behind a reverse proxy (Caddy, nginx,
    Traefik) that terminates TLS and forwards to the container's port 8000.
-2. **Set the OAuth redirect URI to your host.** Register `https://your-domain/oauth2callback` in each
-   provider's app settings, and point MediaShelf at it by setting the `oauth_redirect_uri` value
-   (Settings store) to the same URL. It must match on both sides exactly.
+2. **Set the OAuth redirect URI to your host.** In **Settings → Accounts → OAuth redirect URI**,
+   enter this server's own address ending in `/oauth2callback` — e.g.
+   `http://192.168.1.50:8000/oauth2callback` — and register that exact string in each provider's
+   app settings (Spotify dashboard, Google Cloud console). It must match on both sides, character
+   for character.
+
+   Skip this and connecting fails **silently**: MediaShelf falls back to
+   `http://127.0.0.1:8000/oauth2callback`, so the provider sends the callback to the machine
+   you're browsing from instead of the server. The server never receives the token, and the
+   Connect button looks like it simply didn't work. Settings warns you when the effective value
+   still points at localhost.
 3. **Keep it private.** MediaShelf is single-user/household scale with no auth layer of its own —
    don't expose it to the open internet. Use a LAN, a VPN, or Tailscale.
 4. **The watchlist importer, if you use one, stays on your own computer** — see below. Its address

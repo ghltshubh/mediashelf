@@ -26,6 +26,10 @@ export interface Settings {
   ytdlp_enabled: boolean;
   overseerr_url: string;
   importer_url: string;
+  oauth_redirect_uri: string;
+  // What the server would actually use, including the default. Lets the UI
+  // show the effective value instead of an empty box.
+  oauth_redirect_effective: string;
   // Display locale (BCP-47) for date/number formatting; "" = follow browser.
   // Independent of `country` (content region).
   locale: string;
@@ -439,6 +443,7 @@ export const api = {
       locale: string;
       overseerr_url: string;
       importer_url: string;
+      oauth_redirect_uri: string;
     }>,
   ) =>
     request<Settings>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),

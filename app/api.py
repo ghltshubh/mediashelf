@@ -66,6 +66,11 @@ class SettingsUpdate(BaseModel):
     # Where the watchlist companion tool is listening. Runs on the machine you
     # browse from, not the server — it needs your logged-in streaming sessions.
     importer_url: str | None = None
+    # Where OAuth providers send you back after you approve. Defaults to
+    # 127.0.0.1:8000, which is wrong the moment MediaShelf runs anywhere but
+    # your own machine: the callback lands on your laptop instead of the
+    # server, and the connection silently never completes.
+    oauth_redirect_uri: str | None = None
     # Display locale (BCP-47, e.g. "fr-FR") for date/number formatting.
     # INDEPENDENT of `country`: language/formatting is presentation, region is
     # content availability. Empty string clears it → follow the browser.
@@ -101,6 +106,11 @@ def _settings_payload(db: Session) -> dict:
         "ytdlp_enabled": settings_store.get_setting(db, "ytdlp_enabled") == "true",
         "overseerr_url": settings_store.get_setting(db, "overseerr_url") or "",
         "importer_url": settings_store.get_setting(db, "importer_url") or "",
+        "oauth_redirect_uri": settings_store.get_setting(db, "oauth_redirect_uri") or "",
+        # What the app would use right now, so the UI can show the effective
+        # value rather than an empty box that means "something else".
+        "oauth_redirect_effective": (settings_store.get_setting(db, "oauth_redirect_uri")
+                                     or "http://127.0.0.1:8000/oauth2callback"),
     }
 
 
@@ -151,6 +161,16 @@ async def update_settings(body: SettingsUpdate, db: Session = Depends(get_sessio
         if url and not url.startswith(("http://", "https://")):
             raise HTTPException(422, "Importer URL must start with http:// or https://")
         settings_store.set_setting(db, "importer_url", url or None)
+    if body.oauth_redirect_uri is not None:
+        url = body.oauth_redirect_uri.strip()
+        if url:
+            if not url.startswith(("http://", "https://")):
+                raise HTTPException(422, "Redirect URI must start with http:// or https://")
+            # Providers match this string exactly against what you registered,
+            # so a missing path is a silent failure later rather than an error.
+            if not url.rstrip("/").endswith("/oauth2callback"):
+                raise HTTPException(422, "Redirect URI must end with /oauth2callback")
+        settings_store.set_setting(db, "oauth_redirect_uri", url or None)
     if body.ytdlp_enabled is not None:
         settings_store.set_setting(db, "ytdlp_enabled", "true" if body.ytdlp_enabled else "false")
     if body.dismiss_restore_notice:
