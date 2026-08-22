@@ -12,7 +12,7 @@ function StepOne({ onDone }: { onDone: () => void }) {
   const [country, setCountry] = useState("US");
   const [validation, setValidation] = useState<Validation>({ state: "idle" });
   const [saveError, setSaveError] = useState<string | null>(null);
-  const timer = useRef<number>();
+  const timer = useRef<number | undefined>(undefined);  // React 19 types want an explicit initial value
   const queryClient = useQueryClient();
 
   // Live validation: fires a real test request, shows ✓ or the actual error text.
