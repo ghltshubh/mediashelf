@@ -60,10 +60,6 @@ nights-and-weekends project. Anything with an issue number is where the discussi
 - **No schema migrations.** The database is created from the models at startup, which does nothing
   for a database that already exists — new columns never reach one. Episode tracking was built to
   need no schema change partly because of this. Fixing it properly gates anything that does.
-- **No security scanning and no way to report a hole.** There is no SECURITY.md, so anyone who
-  finds something has to open a public issue or email an address they have to go looking for.
-  CodeQL and Dependabot are both off. Nothing has been reported to date, which proves nothing
-  either way — the project is a month old.
 - **The extension asks for more than it can justify.** It holds host permissions on ten streaming
   domains, plus an optional all-URLs grant for services outside the shipped list, and no threat
   model says which of those it actually needs. A server install also holds OAuth refresh tokens
