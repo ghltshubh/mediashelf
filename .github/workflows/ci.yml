@@ -10,11 +10,18 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.12 is what the shipped image runs. 3.14 is here so a base-image bump
+        # is a decision with evidence behind it, rather than a guess that pip
+        # resolved and therefore the app works.
+        python-version: ["3.12", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
       - run: pip install -e ".[dev]"
       - run: ruff check app tests
