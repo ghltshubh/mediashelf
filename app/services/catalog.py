@@ -555,6 +555,10 @@ def _service_rails(serialized: list[dict]) -> list[dict]:
     return shown
 
 
+def _iso(when: datetime | None) -> str | None:
+    return when.isoformat() if when else None
+
+
 def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     """Rails built from imported lists: unified Watchlist, then "Popular right
     now" from per-service Top 10s (rank-ordered). `by_id` is the already
@@ -587,11 +591,24 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
     # Top 10s across all services fold into ONE "Popular right now" rail: a title
     # trending on more services ranks higher, ties broken by best rank.
     popular: dict[int, dict] = {}     # item_id -> {item, services:set, best:int}
+    # Newest row per rail. A scheduled clip that quietly stops working leaves
+    # the rail looking healthy while it serves last month's data, so the age
+    # is the only thing that gives it away.
+    freshest: dict[str, datetime] = {}
+
+    def note_age(rail_key: str, when: datetime | None) -> None:
+        if when is None:
+            return
+        seen = freshest.get(rail_key)
+        if seen is None or when > seen:
+            freshest[rail_key] = when
+
     for entry, svc_name, svc_logo in rows:
         item = by_id.get(entry.media_item_id)
         if item is None:
             continue
         if entry.entry_type in ("watchlist", WATCHLIST_MANUAL):
+            note_age("watchlist", entry.created_at)
             if entry.media_item_id in started:
                 continue  # now in Continue watching — one list, one place
             wl = watchlist_map.get(item["id"])
@@ -609,19 +626,22 @@ def _imported_list_rails(db: Session, by_id: dict[int, dict]) -> list[dict]:
             agg = popular.setdefault(item["id"], {"item": item, "services": set(), "best": 99})
             agg["services"].add(svc_name)
             agg["best"] = min(agg["best"], rank)
+            note_age("popular", entry.created_at)
 
     rails: list[dict] = []
     if watchlist_map:
         # "Want to watch" rather than "Watchlist": next to "Continue watching"
         # the old name read as "things I'm watching", which is the opposite.
         rails.append({"key": "watchlist", "label": "Want to watch",
-                      "items": list(watchlist_map.values())})
+                      "items": list(watchlist_map.values()),
+                      "updated_at": _iso(freshest.get("watchlist"))})
     if popular:
         ranked = sorted(popular.values(), key=lambda a: (-len(a["services"]), a["best"]))
         # No per-rail cap here — the shelf's general 40-item rail cap applies, with
         # a "see all N" into the full browse grid for the remainder.
         rails.append({"key": "popular", "label": "Popular right now",
-                      "items": [a["item"] for a in ranked]})
+                      "items": [a["item"] for a in ranked],
+                      "updated_at": _iso(freshest.get("popular"))})
     return rails
 
 

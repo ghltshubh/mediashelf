@@ -209,3 +209,26 @@ def test_top10_popular_rail(client, monkeypatch):
 
     # "see all" browse page resolves for the aggregated rail.
     assert client.get("/api/shelf/rail/popular").status_code == 200
+
+
+def test_imported_rails_report_their_age(client, monkeypatch):
+    """A scheduled clip that quietly stops working leaves a healthy-looking
+    rail serving old data. The rail's newest row is what gives it away."""
+    from app.providers import tmdb as tmdb_mod
+
+    async def search_multi(self, query, page=1):
+        return [{"media_type": "movie", "id": 101, "title": "The Long Voyage",
+                 "release_date": "2023-06-01", "popularity": 90.0}]
+
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "search_multi", search_multi)
+    client.put("/api/settings", json={"tmdb_api_key": "goodkey"})
+    run_sync_now()
+
+    client.post("/api/watchlist/import", json={
+        "source": "netflix", "list_type": "top10",
+        "items": [{"title": "The Long Voyage", "rank": 1}]})
+
+    rails = {r["key"]: r for r in client.get("/api/shelf", params={"filter": "all"}).json()["rails"]}
+    assert rails["popular"]["updated_at"], "imported rail should carry its newest row's timestamp"
+    # Catalog rails come from the nightly sync, which has its own banner.
+    assert rails["movies"].get("updated_at") is None

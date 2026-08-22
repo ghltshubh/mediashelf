@@ -181,6 +181,7 @@ export function Shelf() {
       filter={active}
       mediaType={mediaType}
       genre={effGenre}
+      updatedAt={rail.updated_at}
     >
       {rail.items.map((item) =>
         // Continue watching gets an inline tick — marking the next episode is

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { ageOf, daysSince } from "../lib/time";
 
 export function RailSection({
   label,
@@ -10,10 +11,12 @@ export function RailSection({
   filter,
   mediaType,
   genre,
+  updatedAt,
   children,
 }: {
   label: string;
   railKey?: string;
+  updatedAt?: string | null;
   total?: number;
   shown?: number;
   region?: string;
@@ -33,6 +36,8 @@ export function RailSection({
   // A rail that already displays its whole set (Popular right now, Watchlist,
   // small categories) has nothing more to reveal, so it's a plain heading.
   const hasMore = total != null && shown != null && total > shown;
+  // A week is long enough that a daily schedule has plainly missed several runs.
+  const stale = (daysSince(updatedAt) ?? 0) > 7;
   const linkable = to != null && hasMore;
   return (
     <section className="mb-10">
@@ -54,6 +59,18 @@ export function RailSection({
           <Link to={to} className="font-mono text-[0.75rem] text-muted hover:text-owned">
             see all {total} →
           </Link>
+        )}
+        {/* Imported lists only. These are filled from outside the app, so a
+            clip that quietly stopped working leaves a healthy-looking rail
+            serving old data — the age is what gives it away. Silent while
+            it's fresh; nobody needs a timestamp on working data. */}
+        {stale && (
+          <span
+            className="font-mono text-[0.72rem] text-muted"
+            title={`Newest entry in this list is from ${updatedAt}`}
+          >
+            updated {ageOf(updatedAt)}
+          </span>
         )}
       </div>
       <div className="rail flex gap-4 overflow-x-auto pb-4 pt-1">{children}</div>

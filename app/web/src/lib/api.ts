@@ -217,7 +217,10 @@ export interface ShelfItem {
 
 export interface Shelf {
   stats: { titles: number; services: number; subscribed: number };
-  rails: { key: string; label: string; items: ShelfItem[]; total: number; owned?: boolean }[];
+  // updated_at: newest row in an imported list rail (Want to watch, Popular
+  // right now). Absent on catalog rails, which the nightly sync covers.
+  rails: { key: string; label: string; items: ShelfItem[]; total: number;
+           owned?: boolean; updated_at?: string | null }[];
   subscribed_services: { key: string; name: string }[];
   all_genres: string[];
   filter: string;

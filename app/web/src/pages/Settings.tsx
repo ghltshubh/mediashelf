@@ -1098,7 +1098,7 @@ export function Settings() {
         <Section id="about" title={t("settings.section.about")}>
           <KeyValueMono
             pairs={[
-              ["MediaShelf", "0.1.11"],
+              ["MediaShelf", "0.1.12"],
               ["License", "AGPL-3.0-or-later"],
               ["Data", "TMDB — this product uses the TMDB API but is not endorsed or certified by TMDB · streaming availability by JustWatch"],
               ["Storage", "SQLite in your data dir · keys encrypted at rest · nightly backups (keep 7)"],
