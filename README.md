@@ -222,6 +222,18 @@ sync tool; leave it empty and those links simply don't appear.
 - This product uses the TMDB API but is not endorsed or certified by TMDB. Streaming
   availability data is provided by **JustWatch**.
 
+## How this was built
+
+MediaShelf is written with a generative AI code assistant (Anthropic's Claude, through Claude
+Code), used across the codebase rather than in one corner of it: application logic, the React
+front end, the site readers in the extension, tests and documentation. Every line was directed,
+reviewed and tested by a person before it landed, the design decisions are mine, and I can explain
+any of them. The commit history is the record of what changed and when.
+
+This note is here so users and contributors know what they are reading, and because funders such
+as [NLnet](https://nlnet.nl/foundation/policies/generativeAI/) reasonably ask projects to say so
+plainly.
+
 ## License & support
 
 MediaShelf is licensed under the **GNU AGPL-3.0-or-later** — see [LICENSE](LICENSE).
