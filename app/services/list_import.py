@@ -73,6 +73,13 @@ async def import_list(db: Session, api_key: str, *, source: str,
             existing.payload = payload  # refresh rank even when title unchanged
             kept += 1
             continue
+        # Removed by hand earlier: leave it removed rather than re-resolving it.
+        if db.scalar(select(LibraryEntry.id).where(
+                LibraryEntry.service_id == svc.id,
+                LibraryEntry.entry_type == catalog.WATCHLIST_DISMISSED,
+                LibraryEntry.external_id == external_id)) is not None:
+            kept += 1
+            continue
         # Resolve against TMDB: prefer the match that's on the source service,
         # else article-insensitive popularity-best.
         try:
@@ -93,9 +100,10 @@ async def import_list(db: Session, api_key: str, *, source: str,
 
     removed = 0
     if replace:
+        swept = [list_type] + ([catalog.WATCHLIST_DISMISSED] if list_type == "watchlist" else [])
         for entry in db.scalars(select(LibraryEntry).where(
                 LibraryEntry.service_id == svc.id,
-                LibraryEntry.entry_type == list_type)):
+                LibraryEntry.entry_type.in_(swept))):
             if entry.external_id not in seen_external:
                 db.delete(entry)
                 removed += 1

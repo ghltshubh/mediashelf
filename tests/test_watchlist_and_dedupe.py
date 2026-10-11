@@ -232,3 +232,39 @@ def test_imported_rails_report_their_age(client, monkeypatch):
     assert rails["popular"]["updated_at"], "imported rail should carry its newest row's timestamp"
     # Catalog rails come from the nightly sync, which has its own banner.
     assert rails["movies"].get("updated_at") is None
+
+
+def test_removing_an_imported_title_sticks_across_reimports(client, monkeypatch):
+    from app.providers import tmdb as tmdb_mod
+
+    async def search_multi(self, query, page=1):
+        return [{"media_type": "movie", "id": 101, "title": "The Long Voyage",
+                 "release_date": "2023-06-01", "popularity": 90.0}]
+
+    async def detail(self, media_type, tmdb_id):
+        return {"id": tmdb_id, "title": "The Long Voyage", "release_date": "2023-06-01",
+                "overview": "", "poster_path": None, "genres": [], "popularity": 1.0,
+                "vote_average": 7.0}
+
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "search_multi", search_multi)
+    monkeypatch.setattr(tmdb_mod.TMDBClient, "detail", detail)
+    run_sync_now()
+    client.put("/api/settings", json={"tmdb_api_key": "test-key"})
+
+    assert _import(client, ["The Long Voyage"]).json()["added"] == 1
+    item_id = next(r for r in client.get("/api/shelf?filter=all").json()["rails"]
+                   if r["key"] == "watchlist")["items"][0]["id"]
+    assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is True
+
+    # Imported, not manual: removing it used to be a silent no-op.
+    assert client.delete(f"/api/titles/{item_id}/watchlist").json()["in_watchlist"] is False
+    assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is False
+
+    # Re-importing the same list, additive or full-state, does not bring it back.
+    assert _import(client, ["The Long Voyage"], replace=False).json()["added"] == 0
+    assert _import(client, ["The Long Voyage"], replace=True).json()["added"] == 0
+    assert client.get(f"/api/titles/{item_id}").json()["in_watchlist"] is False
+
+    # Gone from the source list: the hidden row is swept, so it can be re-added later.
+    assert _import(client, ["Quiet Orbit"], replace=True).json()["removed"] == 1
+    assert _import(client, ["The Long Voyage"]).json()["added"] == 1
