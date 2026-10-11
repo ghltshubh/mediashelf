@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Removing a title you imported now actually removes it.** The "On your list" button on a title
+  page only ever deleted entries you had added by hand; for a title that arrived through an import
+  it returned 200 and changed nothing, so it looked broken. The imported entry is now dismissed:
+  hidden from the shelf, but kept, so re-importing the same list (additive or full-state sync)
+  doesn't add it back. Dropping it from the source list clears the hidden entry, and "+ Want to
+  watch" still brings the title back by hand.
+
 - **A "Trending this week" rail that works on a stock install.** "Popular right now" is built from
   per-service Top 10s, which only arrive via an importer MediaShelf doesn't ship — so on any
   normal install that slot was empty while the README advertised it. Trending comes from TMDB with

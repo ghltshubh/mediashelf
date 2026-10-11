@@ -90,6 +90,10 @@ CONNECTOR_KEYS = {"spotify", "youtube", "youtube_music", "apple_music"}
 # purpose: the companion tool's import is a full-state sync that deletes
 # anything the source list no longer has, and it must never reach your own.
 WATCHLIST_MANUAL = "watchlist_manual"
+# An imported row you removed by hand. The row stays (hidden from every
+# reader, which only look at "watchlist") so a re-import or a full-state sync
+# of the same list sees it as already handled instead of adding it back.
+WATCHLIST_DISMISSED = "watchlist_dismissed"
 
 
 def service_integration(key: str, tier: int, capabilities: dict) -> tuple[bool, str, str]:

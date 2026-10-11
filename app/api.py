@@ -521,19 +521,24 @@ def add_to_watchlist(item_id: int, db: Session = Depends(get_session)) -> dict:
 
 @router.delete("/titles/{item_id}/watchlist")
 def remove_from_watchlist(item_id: int, db: Session = Depends(get_session)) -> dict:
-    """Remove only your own row — an imported one belongs to the source list,
-    so it would come straight back on the next import anyway."""
+    """Take a title off "Want to watch", however it got there.
+
+    Your own row is deleted. An imported row is *dismissed* rather than
+    deleted: it stays, hidden, so the next import or full-state sync of the
+    same list does not quietly add the title back.
+    """
     from app.models import LibraryEntry
 
     for row in db.scalars(select(LibraryEntry).where(
             LibraryEntry.media_item_id == item_id,
             LibraryEntry.entry_type == catalog.WATCHLIST_MANUAL)):
         db.delete(row)
+    for row in db.scalars(select(LibraryEntry).where(
+            LibraryEntry.media_item_id == item_id,
+            LibraryEntry.entry_type == "watchlist")):
+        row.entry_type = catalog.WATCHLIST_DISMISSED
     db.commit()
-    still = db.scalar(select(LibraryEntry.id).where(
-        LibraryEntry.media_item_id == item_id,
-        LibraryEntry.entry_type == "watchlist").limit(1))
-    return {"in_watchlist": bool(still), "imported": bool(still)}
+    return {"in_watchlist": False, "imported": False}
 
 
 def _tv_or_404(db: Session, item_id: int):
